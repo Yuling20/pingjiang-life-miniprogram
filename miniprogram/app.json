@@ -3,7 +3,15 @@
     "pages/home/home",
     "pages/services/services",
     "pages/community/community",
-    "pages/mine/mine"
+    "pages/mine/mine",
+    "pages/services/convenience/job/job",
+    "pages/services/convenience/rental/rental",
+    "pages/services/convenience/homeservice/homeservice",
+    "pages/services/convenience/water/water",
+    "pages/services/convenience/guide/guide",
+    "pages/services/convenience/hospital/hospital",
+    "pages/common/webview/webview",
+    "pages/community/index"
   ],
   "window": {
     "backgroundTextStyle": "light",

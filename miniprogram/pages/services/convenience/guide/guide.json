@@ -1,3 +1,6 @@
 {
+  "navigationBarTitleText": "办事指南",
+  "navigationBarBackgroundColor": "#FF6B35",
+  "navigationBarTextStyle": "white",
   "usingComponents": {}
 }

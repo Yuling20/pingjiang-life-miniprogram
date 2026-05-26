@@ -1,2 +1,115 @@
-<!--pages/services/convenience/homeservice/homeservice.wxml-->
-<text>pages/services/convenience/homeservice/homeservice.wxml</text>
+<!-- miniprogram/pages/services/convenience/homeservice/homeservice.wxml -->
+<view class="page-wrap">
+
+<!-- 顶部操作栏 -->
+<view class="action-bar">
+  <view class="action-tip">
+    <text class="action-tip-icon">🔧</text>
+    <text class="action-tip-text">发布需求让师傅主动联系你</text>
+  </view>
+  <view class="publish-btn" bindtap="publishDemand">
+    <text>＋ 发布需求</text>
+  </view>
+</view>
+
+<!-- 安全提示 -->
+<view class="safety-tip">
+  <text>⚠️ 请当面核验师傅证件，不要提前支付大额费用，谨防诈骗！</text>
+</view>
+
+<!-- 区域筛选 -->
+<scroll-view scroll-x enable-flex class="filter-scroll">
+  <view class="filter-row">
+    <view
+      wx:for="{{areaList}}"
+      wx:key="index"
+      class="filter-tag {{currentArea === index ? 'filter-tag-active' : ''}}"
+      bindtap="switchArea"
+      data-index="{{index}}"
+    >{{item}}</view>
+  </view>
+</scroll-view>
+
+<!-- 分类筛选 -->
+<scroll-view scroll-x enable-flex class="filter-scroll">
+  <view class="filter-row">
+    <view
+      wx:for="{{categoryList}}"
+      wx:key="id"
+      class="filter-tag category-tag {{currentCategory === item.id ? 'category-tag-active' : ''}}"
+      bindtap="switchCategory"
+      data-id="{{item.id}}"
+    >{{item.name}}</view>
+  </view>
+</scroll-view>
+
+<!-- 服务列表 -->
+<scroll-view scroll-y enable-flex class="list-scroll">
+
+  <view wx:if="{{showList.length === 0}}" class="empty-wrap">
+    <text class="empty-icon">🔍</text>
+    <text class="empty-text">暂无相关服务，换个筛选试试</text>
+  </view>
+
+  <view
+    wx:for="{{showList}}"
+    wx:key="id"
+    class="service-card"
+  >
+    <!-- 卡片头部 -->
+    <view class="card-header">
+      <view class="avatar-wrap">
+        <text class="avatar-text">{{item.name[0]}}</text>
+      </view>
+      <view class="header-info">
+        <view class="name-row">
+          <text class="service-name">{{item.name}}</text>
+          <text class="experience-tag">{{item.experience}}</text>
+        </view>
+        <view class="meta-row">
+          <text class="area-tag">📍 {{item.area}}</text>
+          <text class="category-badge">{{item.categoryName}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 评分与订单 -->
+    <view class="stats-row">
+      <text class="rating">⭐ {{item.rating}}</text>
+      <text class="order-count">已服务 {{item.orderCount}} 单</text>
+      <text class="publish-time">{{item.publishTime}}</text>
+    </view>
+
+    <!-- 简介 -->
+    <view class="intro-text">{{item.intro}}</view>
+
+    <!-- 标签 -->
+    <view class="tags-row">
+      <view
+        wx:for="{{item.tags}}"
+        wx:for-item="tag"
+        wx:key="index"
+        class="tag"
+      >{{tag}}</view>
+    </view>
+
+    <!-- 底部价格+联系 -->
+    <view class="card-footer">
+      <view class="price-wrap">
+        <text class="price-label">收费参考</text>
+        <text class="price-val">{{item.price}}</text>
+      </view>
+      <view
+        class="contact-btn"
+        bindtap="callPhone"
+        data-phone="{{item.phone}}"
+      >
+        📞 立即联系
+      </view>
+    </view>
+  </view>
+
+  <view style="height: 60rpx;"></view>
+</scroll-view>
+
+</view>

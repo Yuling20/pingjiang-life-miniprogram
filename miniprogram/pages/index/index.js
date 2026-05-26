@@ -1,50 +1,89 @@
-// index.js 平江汇生活首页逻辑
+// pages/home/index.js
+const app = getApp()
 
 Page({
   data: {
-    greeting: '早上好',
-    currentDate: '',
-    notices: [
-      { id: 1, title: '社区健康义诊活动本周六开展', date: '06-10' },
-      { id: 2, title: '平江汇便利店正式营业公告', date: '06-09' },
-      { id: 3, title: '关于调整社区服务时间的通知', date: '06-08' },
-    ]
+    bannerList: [
+      { id: 1, text: '本周话题：医院搬过来后你最期待什么？已有36人参与讨论' },
+    ],
+    quickLinks: [
+      { id: 1, name: '医院专区', icon: '🏥', path: '/pages/services/convenience/hospital/hospital' },
+      { id: 2, name: '招聘求职', icon: '💼', path: '/pages/services/convenience/job/job' },
+      { id: 3, name: '房屋租售', icon: '🏠', path: '/pages/services/convenience/rental/rental' },
+      { id: 4, name: '停水停电', icon: '⚡', path: '/pages/services/convenience/water/water' },
+    ],
+    // ✅ 便民服务入口 - 路径严格对应你的文件夹名
+    serviceList: [
+      { id: 1, name: '找工作',   icon: '💼', path: '/pages/services/convenience/job/job' },
+      { id: 2, name: '房屋租赁', icon: '🏠', path: '/pages/services/convenience/rental/rental' },
+      { id: 3, name: '家政维修', icon: '🔧', path: '/pages/services/convenience/homeservice/homeservice' },
+      { id: 4, name: '停水停电', icon: '⚡', path: '/pages/services/convenience/water/water' },
+      { id: 5, name: '办事指南', icon: '📋', path: '/pages/services/convenience/guide/guide' },
+      { id: 6, name: '医院挂号', icon: '🏥', path: '/pages/services/convenience/hospital/hospital' },
+    ],
+    articleList: []
   },
 
   onLoad() {
-    this.setGreeting()
-    this.setDate()
+    console.log('首页加载完成')
+    this.loadArticles()
   },
 
-  // 根据时间显示问候语
-  setGreeting() {
-    const hour = new Date().getHours()
-    let greeting = '你好'
-    if (hour >= 5 && hour < 12) greeting = '早上好'
-    else if (hour >= 12 && hour < 14) greeting = '中午好'
-    else if (hour >= 14 && hour < 18) greeting = '下午好'
-    else greeting = '晚上好'
-    this.setData({ greeting })
+  // 加载文章
+  loadArticles() {
+    const articles = [
+      { id: 1, title: '便利店开业优惠', desc: '全场8折，限时3天', time: '今天' },
+      { id: 2, title: '平江美食推荐', desc: '本地人最爱的10家餐厅', time: '昨天' },
+    ]
+    this.setData({ articleList: articles })
   },
 
-  // 显示当前日期
-  setDate() {
-    const now = new Date()
-    const month = now.getMonth() + 1
-    const day = now.getDate()
-    const weeks = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-    const week = weeks[now.getDay()]
-    this.setData({
-      currentDate: `${month}月${day}日 ${week}`
+  // ✅ 核心修复：首页便民服务点击跳转
+  onServiceTap(e) {
+    const path = e.currentTarget.dataset.path
+    console.log('跳转路径：', path)
+    if (!path) {
+      wx.showToast({ title: '功能开发中', icon: 'none' })
+      return
+    }
+    wx.navigateTo({
+      url: path,
+      fail(err) {
+        console.error('跳转失败：', err)
+        wx.showToast({ title: '页面跳转失败', icon: 'none' })
+      }
     })
   },
 
-  // 功能跳转（先用提示代替）
-  goToPharmacy() { wx.showToast({ title: '药店查询开发中', icon: 'none' }) },
-  goToNotice() { wx.showToast({ title: '社区公告开发中', icon: 'none' }) },
-  goToHealth() { wx.showToast({ title: '健康提醒开发中', icon: 'none' }) },
-  goToStore() { wx.showToast({ title: '便利店开发中', icon: 'none' }) },
-  goToService() { wx.showToast({ title: '出行服务开发中', icon: 'none' }) },
-  goToHelp() { wx.showToast({ title: '一键求助开发中', icon: 'none' }) },
-  goToMy() { wx.showToast({ title: '个人中心开发中', icon: 'none' }) },
+  // 快捷入口点击
+  onQuickTap(e) {
+    const path = e.currentTarget.dataset.path
+    if (!path) return
+    wx.navigateTo({
+      url: path,
+      fail(err) {
+        console.error('快捷入口跳转失败：', err)
+      }
+    })
+  },
+
+  // 查看全部便民服务
+  onViewAll() {
+    wx.switchTab({
+      url: '/pages/services/index'
+    })
+  },
+
+  // 文章点击
+  onArticleTap(e) {
+    const id = e.currentTarget.dataset.id
+    wx.navigateTo({
+      url: `/pages/community/detail?id=${id}`
+    })
+  },
+
+  onPullDownRefresh() {
+    this.loadArticles()
+    wx.stopPullDownRefresh()
+  }
 })

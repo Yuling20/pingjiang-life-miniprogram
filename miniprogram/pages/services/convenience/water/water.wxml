@@ -1,2 +1,100 @@
-<!--pages/services/convenience/water/water.wxml-->
-<text>pages/services/convenience/water/water.wxml</text>
+<!-- miniprogram/pages/services/convenience/water/water.wxml -->
+<scroll-view scroll-y enable-flex class="page-wrap">
+
+<!-- 顶部说明 -->
+<view class="top-tip">
+  <text class="tip-icon">📢</text>
+  <text class="tip-text">本页汇聚官方停水停电通知，信息来源均为政府及国企官方平台</text>
+</view>
+
+<!-- 本地公告（社区编辑） -->
+<view class="section-card">
+  <view class="section-header">
+    <text class="section-title">📋 近期通知</text>
+    <text class="section-sub">社区整理</text>
+  </view>
+
+  <view
+    wx:for="{{localNotices}}"
+    wx:key="id"
+    class="notice-card"
+    style="border-left-color: {{item.color}};"
+  >
+    <view class="notice-top">
+      <view class="notice-badge" style="background: {{item.color}};">
+        <text>{{item.icon}} {{item.type}}</text>
+      </view>
+      <text wx:if="{{item.isNew}}" class="new-tag">NEW</text>
+      <text class="notice-area">{{item.area}}</text>
+    </view>
+    <view class="notice-time">🕐 {{item.time}} · {{item.reason}}</view>
+    <view class="notice-desc">{{item.desc}}</view>
+  </view>
+</view>
+
+<!-- 报修电话 -->
+<view class="section-card">
+  <view class="section-header">
+    <text class="section-title">📞 报修电话</text>
+  </view>
+  <view class="phone-list">
+    <view
+      class="phone-item"
+      bindtap="callRepair"
+      data-phone="95598"
+      data-name="国网客服"
+    >
+      <text class="phone-icon">⚡</text>
+      <view class="phone-info">
+        <text class="phone-name">电力报修 · 国网客服</text>
+        <text class="phone-num">95598</text>
+      </view>
+      <view class="call-btn">拨打</view>
+    </view>
+    <view
+      class="phone-item"
+      bindtap="callRepair"
+      data-phone="96969"
+      data-name="自来水报修"
+    >
+      <text class="phone-icon">💧</text>
+      <view class="phone-info">
+        <text class="phone-name">自来水报修</text>
+        <text class="phone-num">96969</text>
+      </view>
+      <view class="call-btn">拨打</view>
+    </view>
+  </view>
+</view>
+
+<!-- 官方平台入口 -->
+<view class="section-card">
+  <view class="section-header">
+    <text class="section-title">🔗 官方查询平台</text>
+    <text class="section-sub">点击跳转官网</text>
+  </view>
+
+  <view
+    wx:for="{{officialLinks}}"
+    wx:key="id"
+    class="official-item"
+    style="background: {{item.bgColor}};"
+    bindtap="goToOfficial"
+    data-url="{{item.url}}"
+    data-title="{{item.title}}"
+    hover-class="item-hover"
+  >
+    <view class="official-icon" style="color: {{item.color}};">{{item.icon}}</view>
+    <view class="official-info">
+      <view class="official-title-row">
+        <text class="official-title">{{item.title}}</text>
+        <text class="official-tag" style="background: {{item.color}};">{{item.tag}}</text>
+      </view>
+      <text class="official-desc">{{item.desc}}</text>
+    </view>
+    <text class="official-arrow" style="color: {{item.color}};">›</text>
+  </view>
+</view>
+
+<view style="height: 60rpx;"></view>
+</scroll-view>

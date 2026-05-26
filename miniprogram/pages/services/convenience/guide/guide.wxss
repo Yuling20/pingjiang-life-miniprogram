@@ -1,1 +1,120 @@
-/* pages/services/convenience/guide/guide.wxss */
+/* miniprogram/pages/services/convenience/guide/guide.wxss */
+.page-wrap {
+  background: #F5F5F5;
+  min-height: 100vh;
+}
+
+/* 顶部 banner */
+.top-banner {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #FF6B35, #E8A838);
+  padding: 32rpx 28rpx;
+  gap: 20rpx;
+  margin-bottom: 16rpx;
+}
+.banner-icon { font-size: 60rpx; }
+.banner-text-wrap { flex: 1; }
+.banner-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 6rpx;
+}
+.banner-desc {
+  display: block;
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.85);
+}
+
+/* 分类块 */
+.category-block {
+  background: #fff;
+  border-radius: 16rpx;
+  margin: 0 16rpx 16rpx;
+  overflow: hidden;
+}
+.category-header {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  padding: 20rpx 24rpx;
+  background: #FAFAFA;
+  border-bottom: 1rpx solid #F0F0F0;
+}
+.category-icon { font-size: 32rpx; }
+.category-name {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+}
+.items-wrap { padding: 0 24rpx; }
+
+/* 每条指南 */
+.guide-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #F5F5F5;
+  gap: 16rpx;
+}
+.guide-item:last-child { border-bottom: none; }
+.item-hover { background: #FFF8EE; }
+
+.guide-left {
+  width: 72rpx;
+  height: 72rpx;
+  background: #FFF3EC;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.guide-item-icon { font-size: 36rpx; }
+.guide-info { flex: 1; }
+.guide-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 6rpx;
+}
+.guide-name {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+}
+.guide-tag {
+  background: #FF6B35;
+  color: #fff;
+  font-size: 20rpx;
+  padding: 2rpx 10rpx;
+  border-radius: 8rpx;
+}
+.guide-desc {
+  font-size: 24rpx;
+  color: #999;
+}
+.guide-arrow {
+  font-size: 40rpx;
+  color: #CCC;
+  font-weight: bold;
+}
+
+/* 底部提示 */
+.bottom-tip {
+  display: flex;
+  align-items: flex-start;
+  background: #fff;
+  margin: 0 16rpx 16rpx;
+  padding: 20rpx 24rpx;
+  border-radius: 12rpx;
+  gap: 12rpx;
+}
+.bottom-tip-icon { font-size: 28rpx; }
+.bottom-tip-text {
+  font-size: 24rpx;
+  color: #999;
+  line-height: 1.6;
+  flex: 1;
+}

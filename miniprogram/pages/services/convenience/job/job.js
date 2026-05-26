@@ -1,66 +1,86 @@
 // pages/services/convenience/job/job.js
 Page({
-
-  /**
-   * 页面的初始数据
-   */
   data: {
-
+    currentArea: 'all',
+    currentType: 'all',
+    areaList: [
+      { id: 'all', name: '全部区域' },
+      { id: 'chengguan', name: '城关镇' },
+      { id: 'sanyang', name: '三阳乡' },
+      { id: 'anding', name: '安定镇' },
+      { id: 'jiayi', name: '嘉义镇' }
+    ],
+    jobTypeList: [
+      { id: 'all', name: '全部' },
+      { id: 'sales', name: '销售' },
+      { id: 'service', name: '客服' },
+      { id: 'cashier', name: '收银' },
+      { id: 'food', name: '餐饮' },
+      { id: 'clean', name: '保洁' }
+    ],
+    jobList: [
+      {
+        id: 1,
+        title: '超市收银员',
+        salary: '3500-4500元/月',
+        type: '全职',
+        count: 3,
+        company: '平江县步步高超市',
+        location: '平江县城关镇天虹城',
+        require: '年满18周岁，身体健康，有收银经验者优先。无经验可培训',
+        publishDate: '2025-06-01',
+        phone: '13800138000'
+      },
+      {
+        id: 2,
+        title: '餐厅服务员',
+        salary: '3000-4000元/月',
+        type: '全职',
+        count: 5,
+        company: '平江某餐厅',
+        location: '平江县城关镇',
+        require: '形象良好，吃苦耐劳，有服务经验者优先',
+        publishDate: '2025-06-02',
+        phone: '13900139000'
+      },
+      {
+        id: 3,
+        title: '装修工人',
+        salary: '200-400元/天',
+        type: '兼职',
+        count: 10,
+        company: '平江某装修公司',
+        location: '平江县城区',
+        require: '有一定装修经验，身体健康',
+        publishDate: '2025-06-03',
+        phone: '15000150000'
+      }
+    ]
   },
 
-  /**
-   * 生命周期函数--监听页面加载
-   */
-  onLoad(options) {
-
+  onLoad() {
+    console.log('招聘页面加载')
   },
 
-  /**
-   * 生命周期函数--监听页面初次渲染完成
-   */
-  onReady() {
-
+  onAreaChange(e) {
+    this.setData({ currentArea: e.currentTarget.dataset.id })
   },
 
-  /**
-   * 生命周期函数--监听页面显示
-   */
-  onShow() {
-
+  onTypeChange(e) {
+    this.setData({ currentType: e.currentTarget.dataset.id })
   },
 
-  /**
-   * 生命周期函数--监听页面隐藏
-   */
-  onHide() {
-
+  goToDetail(e) {
+    const id = e.currentTarget.dataset.id
+    wx.navigateTo({ url: `/pages/services/detail/detail?id=${id}&type=job` })
   },
 
-  /**
-   * 生命周期函数--监听页面卸载
-   */
-  onUnload() {
-
+  onContact(e) {
+    const phone = e.currentTarget.dataset.phone
+    wx.makePhoneCall({ phoneNumber: phone })
   },
 
-  /**
-   * 页面相关事件处理函数--监听用户下拉动作
-   */
-  onPullDownRefresh() {
-
-  },
-
-  /**
-   * 页面上拉触底事件的处理函数
-   */
-  onReachBottom() {
-
-  },
-
-  /**
-   * 用户点击右上角分享
-   */
-  onShareAppMessage() {
-
+  onPublish() {
+    wx.showToast({ title: '发布功能即将上线', icon: 'none' })
   }
 })

@@ -1,3 +1,6 @@
 {
+  "navigationBarTitleText": "停水停电通知",
+  "navigationBarBackgroundColor": "#FF6B35",
+  "navigationBarTextStyle": "white",
   "usingComponents": {}
 }

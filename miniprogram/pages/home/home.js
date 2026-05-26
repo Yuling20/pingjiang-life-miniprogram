@@ -1,170 +1,173 @@
 // pages/home/home.js
 Page({
-
   data: {
-    // 天气数据
-    weatherIcon: '☀️',
-    weatherDesc: '晴',
-    temp: '25',
-    wind: '东风2级',
-    humidity: '60%',
-    airQuality: '空气良',
-    airLevel: 'air-good',
-    hasNewNotify: true,
-
-    // 轮播图数据
+    weatherInfo: {
+      city: '平江',
+      temp: '25°C',
+      weather: '晴',
+      wind: '东风2级',
+      air: '空气良'
+    },
     bannerList: [
       {
-        id: 'notice',
-        emoji: '🚨',
-        tag: '紧急通知',
-        title: '杨园小区今日计划停水',
-        desc: '14:00 - 18:00  请提前储水备用',
-        btnText: '查看详情',
-        bg: 'linear-gradient(135deg, #E8450A 0%, #F07030 100%)'
-      },
-      {
-        id: 'job',
-        emoji: '💼',
-        tag: '置顶推荐',
-        title: '平江人民医院急招护工8名',
-        desc: '月薪 3500-5000元 · 包住',
-        btnText: '立即查看',
-        bg: 'linear-gradient(135deg, #1A3A6B 0%, #2E6BC4 100%)'
-      },
-      {
-        id: 'topic',
-        emoji: '📢',
-        tag: '本周话题',
-        title: '"医院搬来后你最期待什么？"',
-        desc: '💬 已有36人参与讨论',
-        btnText: '去聊聊',
-        bg: 'linear-gradient(135deg, #1B6B3A 0%, #2E9E58 100%)'
-      },
-      {
-        id: 'intro',
-        emoji: '🏥',
-        tag: '平台介绍',
-        title: '杨园新城专属生活服务',
-        desc: '找工作 · 租房 · 社区互助 · 跑腿配送',
-        btnText: '了解服务',
-        bg: 'linear-gradient(135deg, #C8700A 0%, #E8B84B 100%)'
-      }
-    ],
-
-    // 精选内容左列
-    leftList: [
-      {
         id: 1,
-        icon: '🏗️',
-        type: 'photo',
-        title: '医院建设最新进度来了！',
-        location: '杨园新城',
-        statIcon: '📸',
-        statNum: '12人看过'
+        icon: '🚨',
+        title: '停水停电通知',
+        desc: '点击查看最新通知公告',
+        bgColor: '#E74C3C',
+        type: 'water'
+      },
+      {
+        id: 2,
+        icon: '💼',
+        title: '本地招聘信息',
+        desc: '平江最新招聘职位',
+        bgColor: '#2980B9',
+        type: 'job'
       },
       {
         id: 3,
-        icon: '🎒',
-        type: 'video',
-        duration: '2\'35"',
-        title: '住院必备清单全分享',
-        location: '平江县',
-        statIcon: '▶',
-        statNum: '156次'
-      }
-    ],
-
-    // 精选内容右列
-    rightList: [
-      {
-        id: 2,
-        icon: '🌿',
-        type: 'photo',
-        title: '杨园小区邻居随手拍',
-        location: '杨园小区',
-        statIcon: '❤️',
-        statNum: '28人点赞'
+        icon: '🏠',
+        title: '房屋租赁',
+        desc: '平江本地房源汇总',
+        bgColor: '#27AE60',
+        type: 'rental'
       },
       {
         id: 4,
-        icon: '💼',
-        type: 'job',
-        title: '本地招聘 · 护工急招 待遇好',
-        location: '平江人民医院',
-        statIcon: '💼',
-        statNum: '今日发布'
+        icon: '🔧',
+        title: '家政维修',
+        desc: '专业上门服务',
+        bgColor: '#8E44AD',
+        type: 'homeservice'
+      }
+    ],
+    quickMenuList: [
+      { id: 1, icon: '🏥', name: '医院', type: 'hospital' },
+      { id: 2, icon: '💼', name: '招聘', type: 'job' },
+      { id: 3, icon: '🏠', name: '租房', type: 'rental' },
+      { id: 4, icon: '🔧', name: '家政', type: 'homeservice' },
+      { id: 5, icon: '🚨', name: '停水电', type: 'water' },
+      { id: 6, icon: '📋', name: '办事', type: 'guide' }
+    ],
+    serviceList: [
+      { id: 1, icon: '💼', name: '找工作', type: 'job', color: '#2980B9' },
+      { id: 2, icon: '🏠', name: '房屋租赁', type: 'rental', color: '#27AE60' },
+      { id: 3, icon: '🔧', name: '家政维修', type: 'homeservice', color: '#E67E22' },
+      { id: 4, icon: '🚨', name: '停水停电', type: 'water', color: '#E74C3C' },
+      { id: 5, icon: '📋', name: '办事指南', type: 'guide', color: '#8E44AD' },
+      { id: 6, icon: '🏥', name: '医院专区', type: 'hospital', color: '#16A085' }
+    ],
+    communityList: [
+      { id: 1, icon: '📸', name: '随手拍', type: 'photo' },
+      { id: 2, icon: '🆘', name: '求助互助', type: 'help' },
+      { id: 3, icon: '🔄', name: '二手转让', type: 'secondhand' },
+      { id: 4, icon: '💬', name: '今日话题', type: 'topic' },
+      { id: 5, icon: '🏆', name: '积分中心', type: 'points' },
+      { id: 6, icon: '📢', name: '本地公告', type: 'notice' }
+    ],
+    articleList: [
+      { id: 1, tag: '热议', title: '平江新医院建设最新进度来了！', count: 328 },
+      { id: 2, tag: '求助', title: '有没有人知道北街哪里有修鞋的？', count: 45 },
+      { id: 3, tag: '热议', title: '平江这家餐厅真的太好吃了！', count: 156 }
+    ],
+    contentFlow: [
+      {
+        id: 1,
+        tag: '📸',
+        title: '医院建设最新进度',
+        desc: '📸 12人看过',
+        color: '#2980B9'
+      },
+      {
+        id: 2,
+        tag: '❤️',
+        title: '杨园小区邻居随手拍',
+        desc: '❤️ 28人点赞',
+        color: '#E74C3C'
+      },
+      {
+        id: 3,
+        tag: '▶️',
+        title: '住院必备清单分享',
+        desc: '▶️ 156次播放',
+        color: '#8E44AD'
+      },
+      {
+        id: 4,
+        tag: '💼',
+        title: '本地招聘·护工急招',
+        desc: '💼 今日发布',
+        color: '#27AE60'
       }
     ]
   },
 
   onLoad() {
-    console.log('首页加载完成')
+    console.log('首页加载完成');
+    this.loadWeather();
   },
 
-  // 搜索
-  goSearch() {
-    wx.showToast({ title: '搜索功能建设中', icon: 'none' })
+  loadWeather() {
+    this.setData({
+      weatherInfo: {
+        city: '平江',
+        temp: '25°C',
+        weather: '晴',
+        wind: '东风2级',
+        air: '空气良'
+      }
+    });
   },
 
-  // 通知
-  goNotify() {
-    wx.showToast({ title: '暂无新消息', icon: 'none' })
+  onBannerTap(e) {
+    const item = e.currentTarget.dataset.item;
+    this._doNavigate(item.type);
   },
 
-  // 跳我的
-  goMine() {
-    wx.switchTab({ url: '/pages/mine/mine' })
+  onBannerChange() {},
+
+  navigateQuick(e) {
+    const type = e.currentTarget.dataset.type;
+    this._doNavigate(type);
   },
 
-  // 轮播图
-  goBanner(e) {
-    const id = e.currentTarget.dataset.id
-    if (id === 'job') {
-      wx.switchTab({ url: '/pages/services/services' })
+  navigateToService(e) {
+    const type = e.currentTarget.dataset.type;
+    this._doNavigate(type);
+  },
+
+  // ✅ 已修复：water 指向正确的 water 页面
+  _doNavigate(type) {
+    const routeMap = {
+      job:         '/pages/services/convenience/job/job',
+      rental:      '/pages/services/convenience/rental/rental',
+      homeservice: '/pages/services/convenience/homeservice/homeservice',
+      water:       '/pages/services/convenience/water/water',
+      guide:       '/pages/services/convenience/guide/guide',
+      hospital:    '/pages/services/convenience/hospital/hospital'
+    };
+    const url = routeMap[type];
+    if (url) {
+      wx.navigateTo({ url });
     } else {
-      wx.showToast({ title: '功能建设中', icon: 'none' })
+      wx.showToast({ title: '该功能即将上线', icon: 'none' });
     }
   },
 
-  // 快速入口 & 宫格入口
-  goServicePage(e) {
-    wx.switchTab({ url: '/pages/services/services' })
+  navigateCommunity(e) {
+    wx.switchTab({ url: '/pages/community/community' });
   },
 
-  goMore() {
-    wx.switchTab({ url: '/pages/services/services' })
+  goToCommunity() {
+    wx.switchTab({ url: '/pages/community/community' });
   },
 
-  goServices() {
-    wx.switchTab({ url: '/pages/services/services' })
+  goToConvenience() {
+    wx.navigateTo({ url: '/pages/services/convenience/guide/guide' });
   },
 
-  goCommunity() {
-    wx.switchTab({ url: '/pages/community/community' })
-  },
-
-  goCommunityPage(e) {
-    wx.switchTab({ url: '/pages/community/community' })
-  },
-
-  // 商城提示
-  goShopTip() {
-    wx.showToast({ title: '敬请期待，即将上线', icon: 'none' })
-  },
-
-  // 精选内容
-  goContent(e) {
-    wx.showToast({ title: '内容详情建设中', icon: 'none' })
-  },
-
-  // 加载更多
-  loadMore() {
-    wx.showToast({ title: '没有更多了', icon: 'none' })
-  },
-
-  // 悬浮客服
-  goService() {
-    wx.showToast({ title: '客服功能即将开通', icon: 'none' })
+  goToContentDetail(e) {
+    wx.switchTab({ url: '/pages/community/community' });
   }
-})
+});

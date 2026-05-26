@@ -1,2 +1,112 @@
-<!--pages/services/convenience/rental/rental.wxml-->
-<text>pages/services/convenience/rental/rental.wxml</text>
+<!-- pages/services/convenience/rental/rental.wxml -->
+<view class="container">
+
+<!-- 页面标题 -->
+<view class="page-header">
+  <text class="page-title">🏠 房屋租赁</text>
+  <text class="page-subtitle">平江本地租房 安心租住</text>
+</view>
+
+<!-- ⚠️ 温馨提示（一行简化版） -->
+<view class="warning-bar">
+  <text class="warning-text">⚠️ 租房请当面核验房东身份，不要大额提前付款，谨防诈骗！平台概不负责</text>
+</view>
+
+<!-- 区域筛选 -->
+<scroll-view class="filter-scroll" scroll-x="{{true}}" enable-flex="{{true}}">
+  <view class="filter-row">
+    <view
+      wx:for="{{areaList}}"
+      wx:key="id"
+      class="filter-chip {{currentArea === item.id ? 'chip-active' : ''}}"
+      bindtap="onAreaChange"
+      data-id="{{item.id}}"
+    >{{item.name}}</view>
+  </view>
+</scroll-view>
+
+<!-- 类型筛选 -->
+<scroll-view class="filter-scroll" scroll-x="{{true}}" enable-flex="{{true}}">
+  <view class="filter-row">
+    <view
+      wx:for="{{typeList}}"
+      wx:key="id"
+      class="filter-chip {{currentType === item.id ? 'chip-active' : ''}}"
+      bindtap="onTypeChange"
+      data-id="{{item.id}}"
+    >{{item.name}}</view>
+  </view>
+</scroll-view>
+
+<!-- 房源列表 -->
+<view class="list-wrap">
+  <view
+    wx:for="{{rentalList}}"
+    wx:key="id"
+    class="rental-card"
+    bindtap="goToDetail"
+    data-id="{{item.id}}"
+    hover-class="card-hover"
+  >
+    <!-- 图片区 -->
+    <view class="card-img">
+      <view class="img-placeholder">
+        <text class="img-tip">暂无房源图片</text>
+      </view>
+    </view>
+
+    <!-- 信息区 -->
+    <view class="card-body">
+      <!-- 标题行 -->
+      <view class="card-title-row">
+        <text class="card-title">{{item.title}}</text>
+        <view class="card-type-tag">{{item.type}}</view>
+      </view>
+
+      <!-- 价格 + 户型 -->
+      <view class="price-row">
+        <text class="price-main">{{item.price}}元/月</text>
+        <text class="price-sub">{{item.room}} / {{item.toilet}}</text>
+      </view>
+
+      <!-- 地址 -->
+      <view class="addr-row">
+        <text class="addr-text">📍 {{item.area}}</text>
+      </view>
+
+      <!-- 描述 -->
+      <text class="card-desc">{{item.desc}}</text>
+
+      <!-- 标签 -->
+      <view class="tag-row">
+        <view class="tag-item" wx:for="{{item.tags}}" wx:key="*this" wx:for-item="tag">
+          {{tag}}
+        </view>
+      </view>
+
+      <!-- 底部：发布时间 + 按钮 -->
+      <view class="card-footer">
+        <text class="publish-date">发布：{{item.publishDate}}</text>
+        <view class="contact-btn" catchtap="onContact" data-phone="{{item.phone}}">
+          联系房东
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部警示 -->
+    <view class="card-warn">⚠️ 请当面核实合同，核实房东证件，谨防诈骗</view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{rentalList.length === 0}}" class="empty-wrap">
+    <text class="empty-icon">🏠</text>
+    <text class="empty-text">暂无房源</text>
+  </view>
+</view>
+
+<!-- 发布按钮 -->
+<view class="publish-fab" bindtap="onPublish">
+  <text>➕ 我要发房</text>
+</view>
+
+</view>

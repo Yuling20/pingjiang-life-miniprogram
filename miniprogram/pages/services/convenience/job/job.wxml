@@ -1,2 +1,108 @@
-<!--pages/services/convenience/job/job.wxml-->
-<text>pages/services/convenience/job/job.wxml</text>
+<!-- pages/services/convenience/job/job.wxml -->
+<view class="container">
+
+<!-- 页面标题 -->
+<view class="page-header">
+  <text class="page-title">💼 招聘信息</text>
+  <text class="page-subtitle">平江本地找好工作更简单</text>
+</view>
+
+<!-- ⚠️ 温馨提示（一行简化版） -->
+<view class="warning-bar">
+  <text class="warning-text">⚠️ 凡要求先交费的职位，请提高警惕谨防诈骗</text>
+</view>
+
+<!-- 区域筛选 -->
+<scroll-view class="filter-scroll" scroll-x="{{true}}" enable-flex="{{true}}">
+  <view class="filter-row">
+    <view
+      wx:for="{{areaList}}"
+      wx:key="id"
+      class="filter-chip {{currentArea === item.id ? 'chip-active' : ''}}"
+      bindtap="onAreaChange"
+      data-id="{{item.id}}"
+    >{{item.name}}</view>
+  </view>
+</scroll-view>
+
+<!-- 岗位类型筛选 -->
+<scroll-view class="filter-scroll" scroll-x="{{true}}" enable-flex="{{true}}">
+  <view class="filter-row">
+    <view
+      wx:for="{{jobTypeList}}"
+      wx:key="id"
+      class="filter-chip {{currentType === item.id ? 'chip-active' : ''}}"
+      bindtap="onTypeChange"
+      data-id="{{item.id}}"
+    >{{item.name}}</view>
+  </view>
+</scroll-view>
+
+<!-- 职位列表 -->
+<view class="list-wrap">
+  <view
+    wx:for="{{jobList}}"
+    wx:key="id"
+    class="job-card"
+    bindtap="goToDetail"
+    data-id="{{item.id}}"
+    hover-class="card-hover"
+  >
+    <!-- 顶部：职位 + 薪资 -->
+    <view class="job-top">
+      <view class="job-left">
+        <text class="job-title">{{item.title}}</text>
+        <text class="job-salary">{{item.salary}}</text>
+      </view>
+      <view class="job-type-tag">{{item.type}}</view>
+    </view>
+
+    <!-- 图片区 -->
+    <view class="card-img">
+      <text class="img-tip">暂无企业图片</text>
+    </view>
+
+    <!-- 详情 -->
+    <view class="job-body">
+      <view class="info-row">
+        <text class="info-label">招聘人数：</text>
+        <text class="info-val">{{item.count}}人</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">📍</text>
+        <text class="info-val">{{item.company}} · {{item.location}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">岗位要求：</text>
+        <text class="info-val">{{item.require}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">发布：</text>
+        <text class="info-val">{{item.publishDate}}</text>
+      </view>
+    </view>
+
+    <!-- 底部按钮 -->
+    <view class="job-footer">
+      <view class="contact-btn" catchtap="onContact" data-phone="{{item.phone}}">
+        立即联系
+      </view>
+    </view>
+
+    <!-- 底部警示 -->
+    <view class="card-warn">⚠️ 请您核实信息，不要提前付费，谨防诈骗</view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{jobList.length === 0}}" class="empty-wrap">
+    <text class="empty-icon">💼</text>
+    <text class="empty-text">暂无职位</text>
+  </view>
+</view>
+
+<!-- 发布按钮 -->
+<view class="publish-fab" bindtap="onPublish">
+  <text>➕ 我要招人</text>
+</view>
+
+</view>

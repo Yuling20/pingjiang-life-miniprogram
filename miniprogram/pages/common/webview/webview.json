@@ -1,7 +1,6 @@
 {
-  "navigationBarTitleText": "平江汇生活",
+  "navigationBarTitleText": "详情",
   "navigationBarBackgroundColor": "#FF6B35",
   "navigationBarTextStyle": "white",
-  "backgroundColor": "#F5F5F5",
   "usingComponents": {}
 }
