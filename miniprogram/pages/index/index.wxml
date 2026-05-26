@@ -1,0 +1,367 @@
+<!--pages/index/index.wxml-->
+<view class="page-container">
+
+<!-- ===== 顶部固定区域（天气+搜索） ===== -->
+<view class="fixed-header">
+  
+  <!-- 天气条 -->
+  <view class="weather-bar">
+    <view class="weather-left">
+      <text class="weather-icon">{{weatherIcon}}</text>
+      <text class="weather-location">平江</text>
+      <text class="weather-temp">{{temperature}}°C</text>
+      <text class="weather-desc">{{weatherDesc}}</text>
+      <text class="weather-wind">{{windDesc}}</text>
+    </view>
+    <view class="weather-right">
+      <text class="weather-date">{{currentDate}}</text>
+    </view>
+  </view>
+
+  <!-- 搜索栏 -->
+  <view class="search-bar-wrap">
+    <view class="search-box" bindtap="onSearchTap">
+      <text class="search-icon">🔍</text>
+      <text class="search-placeholder">搜索服务 / 商品 / 信息</text>
+    </view>
+    <view class="header-actions">
+      <view class="action-btn" bindtap="onNotificationTap">
+        <text class="action-icon">🔔</text>
+        <view class="badge" wx:if="{{hasNotification}}">{{notificationCount}}</view>
+      </view>
+      <view class="action-btn" bindtap="onProfileTap">
+        <text class="action-icon">👤</text>
+      </view>
+    </view>
+  </view>
+
+</view>
+
+<!-- ===== 可滚动内容区 ===== -->
+<scroll-view 
+  class="scroll-content" 
+  scroll-y="true"
+  enhanced="true"
+  show-scrollbar="false"
+  bindscrolltolower="onLoadMore">
+
+  <!-- 轮播图区域 -->
+  <view class="banner-section">
+    <swiper 
+      class="banner-swiper"
+      indicator-dots="true"
+      indicator-color="rgba(255,255,255,0.5)"
+      indicator-active-color="#FFFFFF"
+      autoplay="true"
+      interval="3000"
+      circular="true">
+      <swiper-item wx:for="{{banners}}" wx:key="id">
+        <view class="banner-item {{item.type}}" bindtap="onBannerTap" data-id="{{item.id}}">
+          <view class="banner-content">
+            <view class="banner-tag">{{item.tag}}</view>
+            <text class="banner-title">{{item.title}}</text>
+            <text class="banner-desc">{{item.desc}}</text>
+          </view>
+          <text class="banner-emoji">{{item.emoji}}</text>
+        </view>
+      </swiper-item>
+    </swiper>
+  </view>
+
+  <!-- 快速入口横向滚动 -->
+  <view class="quick-entry-section">
+    <scroll-view scroll-x="true" class="quick-scroll" show-scrollbar="false">
+      <view class="quick-list">
+        <view 
+          class="quick-item" 
+          wx:for="{{quickEntries}}" 
+          wx:key="id"
+          bindtap="onQuickEntryTap"
+          data-item="{{item}}">
+          <view class="quick-icon-wrap" style="background:{{item.bg}}">
+            <text class="quick-icon">{{item.icon}}</text>
+          </view>
+          <text class="quick-name">{{item.name}}</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- ===== 便民服务板块 ===== -->
+  <view class="section-card services-card">
+    <view class="section-header">
+      <view class="section-title-wrap">
+        <view class="section-dot services-dot"></view>
+        <text class="section-title">便民服务</text>
+      </view>
+      <view class="section-more" bindtap="onServiceMore">
+        <text class="more-text">查看全部</text>
+        <text class="more-arrow">›</text>
+      </view>
+    </view>
+    <view class="grid-3">
+      <view 
+        class="grid-item" 
+        wx:for="{{services}}" 
+        wx:key="id"
+        bindtap="onServiceTap"
+        data-item="{{item}}">
+        <view class="grid-icon-wrap" style="background:{{item.bg}}">
+          <text class="grid-icon">{{item.icon}}</text>
+        </view>
+        <text class="grid-name">{{item.name}}</text>
+        <text class="grid-sub" wx:if="{{item.sub}}">{{item.sub}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 平江贴吧板块 ===== -->
+  <view class="section-card community-card">
+    <view class="section-header">
+      <view class="section-title-wrap">
+        <view class="section-dot community-dot"></view>
+        <text class="section-title">平江贴吧</text>
+      </view>
+      <view class="section-more" bindtap="onCommunityMore">
+        <text class="more-text">查看全部</text>
+        <text class="more-arrow">›</text>
+      </view>
+    </view>
+    <view class="grid-3">
+      <view 
+        class="grid-item" 
+        wx:for="{{community}}" 
+        wx:key="id"
+        bindtap="onCommunityTap"
+        data-item="{{item}}">
+        <view class="grid-icon-wrap" style="background:{{item.bg}}">
+          <text class="grid-icon">{{item.icon}}</text>
+        </view>
+        <text class="grid-name">{{item.name}}</text>
+        <text class="grid-sub" wx:if="{{item.sub}}">{{item.sub}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 商城板块（锁定样式） ===== -->
+  <view class="section-card mall-card">
+    <view class="section-header">
+      <view class="section-title-wrap">
+        <view class="section-dot mall-dot"></view>
+        <text class="section-title">商城板块</text>
+        <view class="coming-soon-tag">
+          <text class="lock-icon">🔒</text>
+          <text class="coming-text">即将上线</text>
+        </view>
+      </view>
+      <view class="section-more" bindtap="onMallMore">
+        <text class="more-text">查看</text>
+        <text class="more-arrow">›</text>
+      </view>
+    </view>
+    <view class="grid-3 grid-locked">
+      <view 
+        class="grid-item grid-item-locked" 
+        wx:for="{{mall}}" 
+        wx:key="id">
+        <view class="grid-icon-wrap grid-icon-locked" style="background:{{item.bg}}">
+          <text class="grid-icon">{{item.icon}}</text>
+        </view>
+        <text class="grid-name grid-name-locked">{{item.name}}</text>
+        <text class="grid-sub" wx:if="{{item.sub}}">{{item.sub}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ===== 精选内容双轨道 ===== -->
+  <view class="featured-section">
+    <view class="featured-header">
+      <text class="featured-title">══ 精选内容 ══</text>
+    </view>
+    <view class="waterfall-grid">
+      <view class="waterfall-col">
+        <view 
+          class="content-card" 
+          wx:for="{{featuredLeft}}" 
+          wx:key="id"
+          bindtap="onContentTap"
+          data-item="{{item}}">
+          <view class="content-img-wrap">
+            <image class="content-img" src="{{item.img}}" mode="aspectFill"/>
+            <view class="video-tag" wx:if="{{item.isVideo}}">
+              <text>▶</text>
+            </view>
+          </view>
+          <view class="content-info">
+            <text class="content-title">{{item.title}}</text>
+            <text class="content-sub">{{item.sub}}</text>
+            <view class="content-meta">
+              <text class="meta-icon">{{item.metaIcon}}</text>
+              <text class="meta-text">{{item.metaText}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <view class="waterfall-col">
+        <view 
+          class="content-card" 
+          wx:for="{{featuredRight}}" 
+          wx:key="id"
+          bindtap="onContentTap"
+          data-item="{{item}}">
+          <view class="content-img-wrap">
+            <image class="content-img" src="{{item.img}}" mode="aspectFill"/>
+            <view class="video-tag" wx:if="{{item.isVideo}}">
+              <text>▶</text>
+            </view>
+          </view>
+          <view class="content-info">
+            <text class="content-title">{{item.title}}</text>
+            <text class="content-sub">{{item.sub}}</text>
+            <view class="content-meta">
+              <text class="meta-icon">{{item.metaIcon}}</text>
+              <text class="meta-text">{{item.metaText}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 加载更多 -->
+    <view class="load-more" bindtap="onLoadMore">
+      <text class="load-more-text">加载更多...</text>
+    </view>
+  </view>
+
+  <!-- 底部安全距离 -->
+  <view class="safe-bottom"></view>
+
+</scroll-view>
+
+<!-- ===== 平江小助手悬浮按钮 ===== -->
+<view class="assistant-float" bindtap="onAssistantTap">
+  <view class="assistant-body">
+    <!-- 机器人头部 -->
+    <view class="robot-head">
+      <view class="robot-antenna">
+        <view class="antenna-ball"></view>
+        <view class="antenna-stick"></view>
+      </view>
+      <view class="robot-face">
+        <view class="robot-eyes">
+          <view class="robot-eye left-eye">
+            <view class="eye-shine"></view>
+          </view>
+          <view class="robot-eye right-eye">
+            <view class="eye-shine"></view>
+          </view>
+        </view>
+        <view class="robot-mouth"></view>
+      </view>
+      <view class="robot-ears">
+        <view class="robot-ear left-ear"></view>
+        <view class="robot-ear right-ear"></view>
+      </view>
+    </view>
+    <!-- 机器人身体 -->
+    <view class="robot-chest">
+      <view class="chest-light"></view>
+      <view class="chest-panel">
+        <view class="panel-btn"></view>
+        <view class="panel-btn"></view>
+      </view>
+    </view>
+  </view>
+  <text class="assistant-label">平江小助手</text>
+</view>
+
+</view>
+<!--index.wxml 平江汇生活首页-->
+<view class="container">
+
+<!-- 顶部问候栏 -->
+<view class="header">
+  <view class="header-left">
+    <text class="greeting">{{greeting}}，您好！</text>
+    <text class="date">{{currentDate}}</text>
+  </view>
+  <view class="header-right">
+    <text class="weather">☀️ 晴 28°C</text>
+  </view>
+</view>
+
+<!-- 轮播横幅 -->
+<swiper class="banner" autoplay interval="3000" circular>
+  <swiper-item>
+    <view class="banner-item banner-1">
+      <text class="banner-text">健康生活 · 平江汇为您服务</text>
+    </view>
+  </swiper-item>
+  <swiper-item>
+    <view class="banner-item banner-2">
+      <text class="banner-text">便民服务 · 就在您身边</text>
+    </view>
+  </swiper-item>
+  <swiper-item>
+    <view class="banner-item banner-3">
+      <text class="banner-text">社区公告 · 实时掌握</text>
+    </view>
+  </swiper-item>
+</swiper>
+
+<!-- 功能入口 -->
+<view class="section-title">便民服务</view>
+<view class="grid">
+  <view class="grid-item" bindtap="goToPharmacy">
+    <text class="grid-icon">💊</text>
+    <text class="grid-label">药店查询</text>
+  </view>
+  <view class="grid-item" bindtap="goToNotice">
+    <text class="grid-icon">📢</text>
+    <text class="grid-label">社区公告</text>
+  </view>
+  <view class="grid-item" bindtap="goToHealth">
+    <text class="grid-icon">❤️</text>
+    <text class="grid-label">健康提醒</text>
+  </view>
+  <view class="grid-item" bindtap="goToStore">
+    <text class="grid-icon">🏪</text>
+    <text class="grid-label">便利店</text>
+  </view>
+  <view class="grid-item" bindtap="goToService">
+    <text class="grid-icon">🚌</text>
+    <text class="grid-label">出行服务</text>
+  </view>
+  <view class="grid-item" bindtap="goToHelp">
+    <text class="grid-icon">📞</text>
+    <text class="grid-label">一键求助</text>
+  </view>
+</view>
+
+<!-- 社区公告 -->
+<view class="section-title">最新公告</view>
+<view class="notice-list">
+  <view class="notice-item" wx:for="{{notices}}" wx:key="id">
+    <text class="notice-dot">●</text>
+    <text class="notice-text">{{item.title}}</text>
+    <text class="notice-date">{{item.date}}</text>
+  </view>
+</view>
+
+</view>
+
+<!-- 底部导航 -->
+<view class="tab-bar">
+<view class="tab-item active">
+  <text class="tab-icon">🏠</text>
+  <text class="tab-label">首页</text>
+</view>
+<view class="tab-item" bindtap="goToStore">
+  <text class="tab-icon">🏪</text>
+  <text class="tab-label">便利店</text>
+</view>
+<view class="tab-item" bindtap="goToMy">
+  <text class="tab-icon">👤</text>
+  <text class="tab-label">我的</text>
+</view>
+</view>

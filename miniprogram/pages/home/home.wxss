@@ -1,0 +1,472 @@
+/* pages/home/home.wxss */
+
+/* ── 整体容器 ── */
+.page-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #F7F2E8;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── 固定头部 ── */
+.fixed-header {
+  flex-shrink: 0;
+  background: #FFFDF5;
+  box-shadow: 0 2rpx 12rpx rgba(180,140,60,0.10);
+  z-index: 100;
+}
+
+.status-bar {
+  height: var(--status-bar-height, 44rpx);
+}
+
+/* ── 天气栏 ── */
+.weather-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10rpx 32rpx;
+  background: linear-gradient(90deg, #FFF9EE, #FFF3D6);
+  border-bottom: 1rpx solid #F5E8C0;
+}
+
+.weather-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10rpx;
+}
+.weather-city {
+  font-size: 26rpx;
+  color: #8B6F47;
+  font-weight: 600;
+}
+.weather-sep {
+  font-size: 24rpx;
+  color: #D5C090;
+}
+.weather-icon-text {
+  font-size: 28rpx;
+}
+.weather-desc {
+  font-size: 24rpx;
+  color: #7A6040;
+}
+.weather-temp {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #C8860A;
+  margin-left: 4rpx;
+}
+.weather-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12rpx;
+}
+.weather-wind {
+  font-size: 22rpx;
+  color: #9E8860;
+}
+.weather-air {
+  font-size: 22rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 20rpx;
+  background: #E8F5E9;
+  color: #388E3C;
+}
+
+/* ── 搜索栏 ── */
+.search-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 16rpx 24rpx;
+  gap: 16rpx;
+}
+.search-input-box {
+  flex: 1;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14rpx;
+  background: #F8F3E8;
+  border: 2rpx solid #EDD98A;
+  border-radius: 50rpx;
+  padding: 16rpx 28rpx;
+}
+.search-icon {
+  font-size: 30rpx;
+}
+.search-hint {
+  font-size: 27rpx;
+  color: #B8A07A;
+}
+.search-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 14rpx;
+}
+.action-btn {
+  position: relative;
+  width: 72rpx;
+  height: 72rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F8F3E8;
+  border-radius: 50%;
+}
+.action-icon {
+  font-size: 38rpx;
+}
+.red-dot {
+  position: absolute;
+  top: 10rpx;
+  right: 10rpx;
+  width: 16rpx;
+  height: 16rpx;
+  background: #FF4D4F;
+  border-radius: 50%;
+  border: 3rpx solid #FFFDF5;
+}
+
+/* ── 滚动体 ── */
+.scroll-body {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ── 轮播图 ── */
+.banner-swiper {
+  width: 100%;
+  height: 360rpx;
+}
+.banner-card {
+  width: 100%;
+  height: 360rpx;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 0 40rpx 0;
+  box-sizing: border-box;
+}
+.banner-inner {
+  padding: 0 40rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  width: 100%;
+  box-sizing: border-box;
+}
+.banner-tag-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10rpx;
+}
+.banner-emoji {
+  font-size: 34rpx;
+}
+.banner-tag-text {
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.85);
+  background: rgba(0,0,0,0.20);
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+}
+.banner-title {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.35;
+  text-shadow: 0 2rpx 8rpx rgba(0,0,0,0.25);
+}
+.banner-desc {
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.88);
+}
+.banner-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6rpx;
+  margin-top: 6rpx;
+  width: fit-content;
+  background: rgba(255,255,255,0.25);
+  padding: 8rpx 24rpx;
+  border-radius: 30rpx;
+  border: 1rpx solid rgba(255,255,255,0.5);
+}
+.banner-btn-text {
+  font-size: 26rpx;
+  color: #FFFFFF;
+}
+.banner-arrow {
+  font-size: 32rpx;
+  color: #FFFFFF;
+}
+
+/* ── 通用板块卡片 ── */
+.section-card {
+  background: #FFFFFF;
+  margin: 20rpx 24rpx 0;
+  border-radius: 24rpx;
+  padding: 28rpx 24rpx 32rpx;
+  box-shadow: 0 4rpx 20rpx rgba(180,140,60,0.08);
+}
+.no-padding-bottom {
+  padding-bottom: 16rpx;
+}
+
+/* ── 板块标题 ── */
+.section-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+.header-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14rpx;
+}
+.header-line {
+  width: 8rpx;
+  height: 36rpx;
+  border-radius: 4rpx;
+}
+.section-title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #3D2B0E;
+}
+.header-more {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.more-text {
+  font-size: 26rpx;
+  color: #C8860A;
+}
+.more-arrow {
+  font-size: 32rpx;
+  color: #C8860A;
+}
+.gray-t {
+  color: #AAAAAA;
+}
+
+/* ── 快速入口 ── */
+.quick-scroll {
+  width: 100%;
+  white-space: nowrap;
+}
+.quick-row {
+  display: inline-flex;
+  flex-direction: row;
+  padding: 4rpx 0;
+  gap: 32rpx;
+}
+.quick-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+  min-width: 110rpx;
+}
+.quick-icon-wrap {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 28rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.06);
+}
+.quick-emoji {
+  font-size: 48rpx;
+}
+.quick-label {
+  font-size: 24rpx;
+  color: #5A4525;
+  font-weight: 500;
+}
+
+/* ── 宫格 ── */
+.grid-6 {
+  display: flex;
+  flex-wrap: wrap;
+}
+.g-item {
+  width: 33.33%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx 0;
+  gap: 12rpx;
+}
+.g-icon-wrap {
+  width: 104rpx;
+  height: 104rpx;
+  border-radius: 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.06);
+}
+.g-emoji {
+  font-size: 52rpx;
+}
+.g-label {
+  font-size: 24rpx;
+  color: #4A3520;
+  text-align: center;
+  font-weight: 500;
+}
+
+/* ── 商城锁定态 ── */
+.section-locked {
+  background: #FAFAFA;
+}
+.locked-t {
+  color: #AAAAAA;
+}
+.lock-badge {
+  background: #F0F0F0;
+  border-radius: 20rpx;
+  padding: 4rpx 16rpx;
+  margin-left: 10rpx;
+}
+.lock-text {
+  font-size: 22rpx;
+  color: #AAAAAA;
+}
+.locked-item {
+  opacity: 0.4;
+}
+.locked-icon {
+  background: #F0F0F0 !important;
+}
+.locked-label {
+  color: #BBBBBB;
+}
+
+/* ── 双列瀑布流 ── */
+.waterfall-wrap {
+  display: flex;
+  flex-direction: row;
+  gap: 16rpx;
+}
+.wf-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+.content-card {
+  background: #FFFCF5;
+  border-radius: 18rpx;
+  overflow: hidden;
+  border: 1rpx solid #F5E8C0;
+  box-shadow: 0 2rpx 12rpx rgba(180,140,60,0.06);
+}
+.card-img-wrap {
+  width: 100%;
+  height: 200rpx;
+  background: linear-gradient(135deg, #F5ECD7, #EDD98A);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.card-placeholder-icon {
+  font-size: 70rpx;
+  opacity: 0.6;
+}
+.card-type-tag {
+  position: absolute;
+  bottom: 10rpx;
+  left: 10rpx;
+}
+.tag-text {
+  font-size: 20rpx;
+  background: rgba(0,0,0,0.50);
+  color: #FFFFFF;
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+}
+.card-body {
+  padding: 16rpx 18rpx 18rpx;
+}
+.card-title-text {
+  font-size: 26rpx;
+  color: #3D2B0E;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+.card-footer {
+  margin-top: 10rpx;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+.card-location {
+  font-size: 20rpx;
+  color: #B0956A;
+}
+.card-stat {
+  font-size: 20rpx;
+  color: #B0956A;
+}
+
+/* 加载更多 */
+.load-more-btn {
+  margin-top: 24rpx;
+  padding: 22rpx;
+  background: #FAF5EA;
+  border-radius: 50rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.load-more-txt {
+  font-size: 26rpx;
+  color: #C8860A;
+  letter-spacing: 4rpx;
+}
+
+/* ── 悬浮客服 ── */
+.float-btn {
+  position: fixed;
+  right: 36rpx;
+  bottom: 180rpx;
+  width: 112rpx;
+  height: 112rpx;
+  background: linear-gradient(135deg, #E8930A, #C8700A);
+  border-radius: 56rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  box-shadow: 0 8rpx 28rpx rgba(200,134,10,0.45);
+  z-index: 999;
+}
+.float-emoji {
+  font-size: 38rpx;
+}
+.float-label-text {
+  font-size: 20rpx;
+  color: #FFFFFF;
+  font-weight: 500;
+}

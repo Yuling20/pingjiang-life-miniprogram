@@ -1,0 +1,350 @@
+<view class="page-wrap">
+
+<!-- ══ 顶部固定区域 ══ -->
+<view class="fixed-header">
+
+  <!-- 状态栏占位 -->
+  <view class="status-bar"></view>
+
+  <!-- 天气栏 -->
+  <view class="weather-bar">
+    <view class="weather-left">
+      <text class="weather-city">📍 平江</text>
+      <text class="weather-sep">|</text>
+      <text class="weather-icon-text">{{weatherIcon}}</text>
+      <text class="weather-desc">{{weatherDesc}}</text>
+      <text class="weather-temp">{{temp}}°C</text>
+    </view>
+    <view class="weather-right">
+      <text class="weather-wind">{{wind}}</text>
+      <text class="weather-air {{airLevel}}">{{airQuality}}</text>
+    </view>
+  </view>
+
+  <!-- 搜索栏 -->
+  <view class="search-bar">
+    <view class="search-input-box" bindtap="goSearch">
+      <text class="search-icon">🔍</text>
+      <text class="search-hint">搜索服务 / 信息 / 商品</text>
+    </view>
+    <view class="search-actions">
+      <view class="action-btn" bindtap="goNotify">
+        <text class="action-icon">🔔</text>
+        <view class="red-dot" wx:if="{{hasNewNotify}}"></view>
+      </view>
+      <view class="action-btn" bindtap="goMine">
+        <text class="action-icon">👤</text>
+      </view>
+    </view>
+  </view>
+
+</view>
+<!-- 固定区域结束 -->
+
+<!-- ══ 可滚动内容 ══ -->
+<scroll-view
+  scroll-y
+  class="scroll-body"
+  enhanced="{{true}}"
+  show-scrollbar="{{false}}">
+
+  <!-- ① 轮播图 -->
+  <swiper
+    class="banner-swiper"
+    autoplay="{{true}}"
+    interval="4500"
+    duration="500"
+    circular="{{true}}"
+    indicator-dots="{{true}}"
+    indicator-color="rgba(255,255,255,0.45)"
+    indicator-active-color="#FFFFFF">
+
+    <swiper-item wx:for="{{bannerList}}" wx:key="id">
+      <view
+        class="banner-card"
+        style="background:{{item.bg}}"
+        bindtap="goBanner"
+        data-id="{{item.id}}">
+        <view class="banner-inner">
+          <view class="banner-tag-row">
+            <text class="banner-emoji">{{item.emoji}}</text>
+            <text class="banner-tag-text">{{item.tag}}</text>
+          </view>
+          <text class="banner-title">{{item.title}}</text>
+          <text class="banner-desc">{{item.desc}}</text>
+          <view class="banner-btn">
+            <text class="banner-btn-text">{{item.btnText}}</text>
+            <text class="banner-arrow">›</text>
+          </view>
+        </view>
+      </view>
+    </swiper-item>
+
+  </swiper>
+
+  <!-- ② 快速入口横向滚动 -->
+  <view class="section-card no-padding-bottom">
+    <scroll-view scroll-x class="quick-scroll" show-scrollbar="{{false}}">
+      <view class="quick-row">
+        <view class="quick-item" bindtap="goServicePage" data-id="hospital">
+          <view class="quick-icon-wrap" style="background:#FFF0F0">
+            <text class="quick-emoji">🏥</text>
+          </view>
+          <text class="quick-label">医院</text>
+        </view>
+        <view class="quick-item" bindtap="goServicePage" data-id="job">
+          <view class="quick-icon-wrap" style="background:#EFF6FF">
+            <text class="quick-emoji">💼</text>
+          </view>
+          <text class="quick-label">招聘</text>
+        </view>
+        <view class="quick-item" bindtap="goServicePage" data-id="rent">
+          <view class="quick-icon-wrap" style="background:#FFF7EC">
+            <text class="quick-emoji">🏠</text>
+          </view>
+          <text class="quick-label">租房</text>
+        </view>
+        <view class="quick-item" bindtap="goServicePage" data-id="repair">
+          <view class="quick-icon-wrap" style="background:#F0FFF4">
+            <text class="quick-emoji">🔧</text>
+          </view>
+          <text class="quick-label">家政</text>
+        </view>
+        <view class="quick-item" bindtap="goServicePage" data-id="notice">
+          <view class="quick-icon-wrap" style="background:#FFF3F0">
+            <text class="quick-emoji">🚨</text>
+          </view>
+          <text class="quick-label">停水电</text>
+        </view>
+        <view class="quick-item" bindtap="goMore">
+          <view class="quick-icon-wrap" style="background:#F5F5F5">
+            <text class="quick-emoji">➕</text>
+          </view>
+          <text class="quick-label">更多</text>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- ③ 便民服务板块 -->
+  <view class="section-card">
+    <view class="section-header">
+      <view class="header-left">
+        <view class="header-line" style="background:#C8860A"></view>
+        <text class="section-title">便民服务</text>
+      </view>
+      <view class="header-more" bindtap="goServices">
+        <text class="more-text">查看全部</text>
+        <text class="more-arrow">›</text>
+      </view>
+    </view>
+    <view class="grid-6">
+      <view class="g-item" bindtap="goServicePage" data-id="job">
+        <view class="g-icon-wrap" style="background:#EFF6FF">
+          <text class="g-emoji">💼</text>
+        </view>
+        <text class="g-label">找工作</text>
+      </view>
+      <view class="g-item" bindtap="goServicePage" data-id="rent">
+        <view class="g-icon-wrap" style="background:#FFF7EC">
+          <text class="g-emoji">🏠</text>
+        </view>
+        <text class="g-label">房屋租赁</text>
+      </view>
+      <view class="g-item" bindtap="goServicePage" data-id="repair">
+        <view class="g-icon-wrap" style="background:#F0FFF4">
+          <text class="g-emoji">🔧</text>
+        </view>
+        <text class="g-label">家政维修</text>
+      </view>
+      <view class="g-item" bindtap="goServicePage" data-id="notice">
+        <view class="g-icon-wrap" style="background:#FFF0F0">
+          <text class="g-emoji">🚨</text>
+        </view>
+        <text class="g-label">停水停电</text>
+      </view>
+      <view class="g-item" bindtap="goServicePage" data-id="guide">
+        <view class="g-icon-wrap" style="background:#F0FFF0">
+          <text class="g-emoji">📋</text>
+        </view>
+        <text class="g-label">办事指南</text>
+      </view>
+      <view class="g-item" bindtap="goServicePage" data-id="hospital">
+        <view class="g-icon-wrap" style="background:#FFF0F0">
+          <text class="g-emoji">🏥</text>
+        </view>
+        <text class="g-label">医院专区</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ④ 平江贴吧板块 -->
+  <view class="section-card">
+    <view class="section-header">
+      <view class="header-left">
+        <view class="header-line" style="background:#5B9BD5"></view>
+        <text class="section-title">平江贴吧</text>
+      </view>
+      <view class="header-more" bindtap="goCommunity">
+        <text class="more-text">查看全部</text>
+        <text class="more-arrow">›</text>
+      </view>
+    </view>
+    <view class="grid-6">
+      <view class="g-item" bindtap="goCommunityPage" data-id="photo">
+        <view class="g-icon-wrap" style="background:#FFF0F8">
+          <text class="g-emoji">📸</text>
+        </view>
+        <text class="g-label">随手拍</text>
+      </view>
+      <view class="g-item" bindtap="goCommunityPage" data-id="help">
+        <view class="g-icon-wrap" style="background:#FFF3EC">
+          <text class="g-emoji">🆘</text>
+        </view>
+        <text class="g-label">求助互助</text>
+      </view>
+      <view class="g-item" bindtap="goCommunityPage" data-id="secondhand">
+        <view class="g-icon-wrap" style="background:#F0FFF4">
+          <text class="g-emoji">🔄</text>
+        </view>
+        <text class="g-label">二手转让</text>
+      </view>
+      <view class="g-item" bindtap="goCommunityPage" data-id="topic">
+        <view class="g-icon-wrap" style="background:#EFF6FF">
+          <text class="g-emoji">💬</text>
+        </view>
+        <text class="g-label">今日话题</text>
+      </view>
+      <view class="g-item" bindtap="goCommunityPage" data-id="score">
+        <view class="g-icon-wrap" style="background:#FFFBEC">
+          <text class="g-emoji">🏆</text>
+        </view>
+        <text class="g-label">积分中心</text>
+      </view>
+      <view class="g-item" bindtap="goCommunityPage" data-id="announce">
+        <view class="g-icon-wrap" style="background:#FFF0F0">
+          <text class="g-emoji">📢</text>
+        </view>
+        <text class="g-label">本地公告</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ⑤ 商城板块（锁定态） -->
+  <view class="section-card section-locked">
+    <view class="section-header">
+      <view class="header-left">
+        <view class="header-line" style="background:#CCCCCC"></view>
+        <text class="section-title locked-t">商城板块</text>
+        <view class="lock-badge">
+          <text class="lock-text">🔒 即将上线</text>
+        </view>
+      </view>
+      <view class="header-more" bindtap="goShopTip">
+        <text class="more-text gray-t">了解 ›</text>
+      </view>
+    </view>
+    <view class="grid-6">
+      <view class="g-item locked-item">
+        <view class="g-icon-wrap locked-icon">
+          <text class="g-emoji">🏥</text>
+        </view>
+        <text class="g-label locked-label">医院专区</text>
+      </view>
+      <view class="g-item locked-item">
+        <view class="g-icon-wrap locked-icon">
+          <text class="g-emoji">🛍️</text>
+        </view>
+        <text class="g-label locked-label">日用百货</text>
+      </view>
+      <view class="g-item locked-item">
+        <view class="g-icon-wrap locked-icon">
+          <text class="g-emoji">🚀</text>
+        </view>
+        <text class="g-label locked-label">跑腿接单</text>
+      </view>
+      <view class="g-item locked-item">
+        <view class="g-icon-wrap locked-icon">
+          <text class="g-emoji">💐</text>
+        </view>
+        <text class="g-label locked-label">鲜花礼品</text>
+      </view>
+      <view class="g-item locked-item">
+        <view class="g-icon-wrap locked-icon">
+          <text class="g-emoji">🛏️</text>
+        </view>
+        <text class="g-label locked-label">陪护用品</text>
+      </view>
+      <view class="g-item locked-item">
+        <view class="g-icon-wrap locked-icon">
+          <text class="g-emoji">📦</text>
+        </view>
+        <text class="g-label locked-label">快递代收</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ⑥ 精选内容双列流 -->
+  <view class="section-card">
+    <view class="section-header">
+      <view class="header-left">
+        <view class="header-line" style="background:#E8813A"></view>
+        <text class="section-title">精选内容</text>
+      </view>
+    </view>
+    <view class="waterfall-wrap">
+      <!-- 左列 -->
+      <view class="wf-col">
+        <view class="content-card" wx:for="{{leftList}}" wx:key="id" bindtap="goContent" data-id="{{item.id}}">
+          <view class="card-img-wrap">
+            <text class="card-placeholder-icon">{{item.icon}}</text>
+            <view class="card-type-tag" wx:if="{{item.type === 'video'}}">
+              <text class="tag-text">▶ {{item.duration}}</text>
+            </view>
+          </view>
+          <view class="card-body">
+            <text class="card-title-text">{{item.title}}</text>
+            <view class="card-footer">
+              <text class="card-location">📍 {{item.location}}</text>
+              <text class="card-stat">{{item.statIcon}} {{item.statNum}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+      <!-- 右列 -->
+      <view class="wf-col">
+        <view class="content-card" wx:for="{{rightList}}" wx:key="id" bindtap="goContent" data-id="{{item.id}}">
+          <view class="card-img-wrap">
+            <text class="card-placeholder-icon">{{item.icon}}</text>
+            <view class="card-type-tag" wx:if="{{item.type === 'job'}}">
+              <text class="tag-text" style="background:#4A90E2">💼 招聘</text>
+            </view>
+          </view>
+          <view class="card-body">
+            <text class="card-title-text">{{item.title}}</text>
+            <view class="card-footer">
+              <text class="card-location">📍 {{item.location}}</text>
+              <text class="card-stat">{{item.statIcon}} {{item.statNum}}</text>
+            </view>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <view class="load-more-btn" bindtap="loadMore">
+      <text class="load-more-txt">加载更多 · · ·</text>
+    </view>
+  </view>
+
+  <!-- 底部留白（避免被tabBar遮挡） -->
+  <view style="height:30rpx"></view>
+
+</scroll-view>
+
+<!-- ══ 全局悬浮客服按钮 ══ -->
+<view class="float-btn" bindtap="goService">
+  <text class="float-emoji">💬</text>
+  <text class="float-label-text">客服</text>
+</view>
+
+</view>

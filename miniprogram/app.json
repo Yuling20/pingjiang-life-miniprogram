@@ -1,0 +1,49 @@
+{
+  "pages": [
+    "pages/home/home",
+    "pages/services/services",
+    "pages/community/community",
+    "pages/mine/mine"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#FFF8EE",
+    "navigationBarTitleText": "平江汇生活",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F5F0E8"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#D4820A",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页",
+        "iconPath": "images/tab_home.png",
+        "selectedIconPath": "images/tab_home_active.png"
+      },
+      {
+        "pagePath": "pages/services/services",
+        "text": "便民服务",
+        "iconPath": "images/tab_service.png",
+        "selectedIconPath": "images/tab_service_active.png"
+      },
+      {
+        "pagePath": "pages/community/community",
+        "text": "平江贴吧",
+        "iconPath": "images/tab_community.png",
+        "selectedIconPath": "images/tab_community_active.png"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的",
+        "iconPath": "images/tab_mine.png",
+        "selectedIconPath": "images/tab_mine_active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}

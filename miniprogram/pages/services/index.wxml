@@ -1,0 +1,67 @@
+<!--pages/services/services.wxml-->
+<view class="container">
+
+<view class="page-header">
+  <text class="page-title">便民服务</text>
+  <text class="page-sub">为您提供生活所需的各类服务</text>
+</view>
+
+<!-- 6大服务模块 -->
+<view class="service-list">
+
+  <view class="service-card" bindtap="goDetail" data-id="medical">
+    <text class="service-icon">🏥</text>
+    <view class="service-info">
+      <text class="service-name">医疗健康</text>
+      <text class="service-desc">预约挂号、健康咨询、药店查询</text>
+    </view>
+    <text class="arrow">›</text>
+  </view>
+
+  <view class="service-card" bindtap="goDetail" data-id="home">
+    <text class="service-icon">🔧</text>
+    <view class="service-info">
+      <text class="service-name">家政维修</text>
+      <text class="service-desc">水电维修、保洁服务、家电维修</text>
+    </view>
+    <text class="arrow">›</text>
+  </view>
+
+  <view class="service-card" bindtap="goDetail" data-id="gov">
+    <text class="service-icon">🏛️</text>
+    <view class="service-info">
+      <text class="service-name">政务办理</text>
+      <text class="service-desc">证件办理、社保查询、便民申请</text>
+    </view>
+    <text class="arrow">›</text>
+  </view>
+
+  <view class="service-card" bindtap="goDetail" data-id="traffic">
+    <text class="service-icon">🚌</text>
+    <view class="service-info">
+      <text class="service-name">交通出行</text>
+      <text class="service-desc">公交查询、停车信息、出行导航</text>
+    </view>
+    <text class="arrow">›</text>
+  </view>
+
+  <view class="service-card" bindtap="goDetail" data-id="edu">
+    <text class="service-icon">📚</text>
+    <view class="service-info">
+      <text class="service-name">教育培训</text>
+      <text class="service-desc">老年大学、兴趣课程、子女教育</text>
+    </view>
+    <text class="arrow">›</text>
+  </view>
+
+  <view class="service-card" bindtap="goDetail" data-id="shop">
+    <text class="service-icon">🛒</text>
+    <view class="service-info">
+      <text class="service-name">生活购物</text>
+      <text class="service-desc">周边超市、团购优惠、生鲜配送</text>
+    </view>
+    <text class="arrow">›</text>
+  </view>
+
+</view>
+</view>

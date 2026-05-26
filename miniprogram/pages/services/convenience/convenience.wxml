@@ -1,0 +1,120 @@
+<!-- pages/services/convenience/convenience.wxml -->
+<view class="page-container">
+
+<!-- 顶部返回区 -->
+<view class="page-header">
+  <text class="header-title">{{pageTitle}}</text>
+</view>
+
+<!-- 找工作 -->
+<block wx:if="{{currentType === 'job'}}">
+  <view class="section">
+    <view class="section-title">🔥 热招职位</view>
+    <view class="job-list">
+      <view class="job-item" wx:for="{{jobList}}" wx:key="id">
+        <view class="job-top">
+          <text class="job-name">{{item.name}}</text>
+          <text class="job-salary">{{item.salary}}</text>
+        </view>
+        <text class="job-company">{{item.company}}</text>
+        <text class="job-tags">{{item.tags}}</text>
+      </view>
+    </view>
+  </view>
+</block>
+
+<!-- 房屋租售 -->
+<block wx:if="{{currentType === 'house'}}">
+  <view class="section">
+    <view class="section-title">🏠 房源信息</view>
+    <view class="house-list">
+      <view class="house-item" wx:for="{{houseList}}" wx:key="id">
+        <view class="house-top">
+          <text class="house-title">{{item.title}}</text>
+          <text class="house-price">{{item.price}}</text>
+        </view>
+        <text class="house-desc">{{item.desc}}</text>
+        <text class="house-contact">联系：{{item.contact}}</text>
+      </view>
+    </view>
+  </view>
+</block>
+
+<!-- 停水停电 -->
+<block wx:if="{{currentType === 'water'}}">
+  <view class="section">
+    <view class="section-title">📋 近期通知</view>
+    <view class="notice-list">
+      <view class="notice-item" wx:for="{{waterList}}" wx:key="id">
+        <view class="notice-badge {{item.type}}">{{item.typeName}}</view>
+        <view class="notice-info">
+          <text class="notice-title">{{item.title}}</text>
+          <text class="notice-time">时间：{{item.time}}</text>
+          <text class="notice-area">区域：{{item.area}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</block>
+
+<!-- 医院专区 -->
+<block wx:if="{{currentType === 'hospital'}}">
+  <view class="section">
+    <view class="section-title">🏥 医院信息</view>
+    <view class="hospital-list">
+      <view class="hospital-item" wx:for="{{hospitalList}}" wx:key="id">
+        <text class="hospital-name">{{item.name}}</text>
+        <text class="hospital-address">地址：{{item.address}}</text>
+        <view class="hospital-actions">
+          <view class="btn-call" bindtap="makeCall" data-phone="{{item.phone}}">
+            📞 拨打电话
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</block>
+
+<!-- 办事指南 -->
+<block wx:if="{{currentType === 'gov'}}">
+  <view class="section">
+    <view class="section-title">🏛️ 常用办事</view>
+    <view class="gov-list">
+      <view class="gov-item" wx:for="{{govList}}" wx:key="id">
+        <text class="gov-name">{{item.name}}</text>
+        <text class="gov-desc">{{item.desc}}</text>
+        <text class="gov-addr">地址：{{item.address}}</text>
+      </view>
+    </view>
+  </view>
+</block>
+
+<!-- 家政维修 -->
+<block wx:if="{{currentType === 'repair'}}">
+  <view class="section">
+    <view class="section-title">🔧 附近师傅</view>
+    <view class="repair-list">
+      <view class="repair-item" wx:for="{{repairList}}" wx:key="id">
+        <view class="repair-top">
+          <text class="repair-name">{{item.name}}</text>
+          <text class="repair-score">⭐{{item.score}}</text>
+        </view>
+        <text class="repair-skill">擅长：{{item.skill}}</text>
+        <view class="btn-call" bindtap="makeCall" data-phone="{{item.phone}}">
+          📞 立即联系
+        </view>
+      </view>
+    </view>
+  </view>
+</block>
+
+<!-- 其他通用 -->
+<block wx:if="{{currentType === 'bus' || currentType === 'market'}}">
+  <view class="section coming-soon">
+    <text class="coming-icon">🚧</text>
+    <text class="coming-text">该功能即将上线</text>
+    <text class="coming-sub">敬请期待</text>
+  </view>
+</block>
+
+</view>

@@ -1,0 +1,111 @@
+/* 整体页面 */
+.page-container {
+  min-height: 100vh;
+  background-color: #fdf6ec;
+  padding-bottom: 120rpx;
+}
+
+/* 顶部标题 */
+.page-header {
+  background: linear-gradient(135deg, #e8a020, #f5c842);
+  padding: 50rpx 40rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.page-title {
+  font-size: 42rpx;
+  font-weight: bold;
+  color: #ffffff;
+  letter-spacing: 4rpx;
+}
+
+.page-subtitle {
+  font-size: 24rpx;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 10rpx;
+}
+
+/* 功能宫格 */
+.service-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24rpx;
+  padding: 40rpx 30rpx;
+}
+
+/* 每个入口 */
+.service-item {
+  background: #ffffff;
+  border-radius: 20rpx;
+  padding: 36rpx 20rpx 28rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.08);
+}
+
+/* 图标圆圈 */
+.service-icon-wrap {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 18rpx;
+}
+
+.service-icon {
+  font-size: 44rpx;
+}
+
+/* 各颜色背景 */
+.blue         { background-color: #e6f0ff; }
+.orange       { background-color: #fff3e6; }
+.yellow       { background-color: #fffbe6; }
+.red          { background-color: #ffe6e6; }
+.green        { background-color: #e6f7ee; }
+.hospital-red { background-color: #ffe6e6; }
+
+/* 入口名称 */
+.service-name {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333333;
+  margin-bottom: 8rpx;
+}
+
+/* 入口描述 */
+.service-desc {
+  font-size: 22rpx;
+  color: #999999;
+}
+
+/* 敬请期待标签 */
+.coming-soon-tag {
+  position: absolute;
+  top: 14rpx;
+  right: 14rpx;
+  background-color: #ff4d4f;
+  border-radius: 20rpx;
+  padding: 4rpx 12rpx;
+}
+
+.coming-soon-tag text {
+  font-size: 18rpx;
+  color: #ffffff;
+}
+
+/* 底部说明 */
+.page-footer {
+  text-align: center;
+  padding: 30rpx 0 20rpx;
+}
+
+.footer-text {
+  font-size: 24rpx;
+  color: #bbbbbb;
+}
