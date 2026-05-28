@@ -1,7 +1,4 @@
 {
-  "navigationBarTitleText": "平江圈子",
-  "navigationBarBackgroundColor": "#ffffff",
-  "navigationBarTextStyle": "black",
-  "enablePullDownRefresh": false,
+  "navigationStyle": "custom",
   "backgroundColor": "#ffffff"
 }
