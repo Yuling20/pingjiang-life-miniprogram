@@ -154,8 +154,26 @@
 .official-desc {
   font-size: 24rpx;
   color: #666;
+  margin-bottom: 6rpx;
+}
+.official-phone {
+  font-size: 24rpx;
+  font-weight: bold;
 }
 .official-arrow {
   font-size: 40rpx;
   font-weight: bold;
+}
+
+/* 访问提示 */
+.access-tip {
+  background: #FFF8E1;
+  border-radius: 10rpx;
+  padding: 16rpx 20rpx;
+  margin-top: 8rpx;
+}
+.access-tip-text {
+  font-size: 24rpx;
+  color: #8B6914;
+  line-height: 1.6;
 }

@@ -1,0 +1,117 @@
+<!-- pages/forum/forum.wxml -->
+<view class="forum-container">
+  
+  <!-- 顶部标签栏 -->
+  <view class="header">
+    <view class="header-left">
+      <image class="logo-icon" src="/images/tab_service.png" mode="aspectFit"/>
+    </view>
+    <view class="tab-bar">
+      <view 
+        wx:for="{{tabs}}" 
+        wx:key="*this"
+        class="tab-item {{activeTab === item ? 'tab-active' : ''}}"
+        bindtap="switchTab"
+        data-tab="{{item}}"
+      >
+        {{item}}
+        <view class="tab-line" wx:if="{{activeTab === item}}"></view>
+      </view>
+    </view>
+    <view class="header-right">
+      <view class="search-btn" bindtap="goSearch">
+        <text class="search-icon">🔍</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 帖子列表 -->
+  <scroll-view scroll-y class="post-list" refresher-enabled bindrefresherrefresh="onPullDownRefresh">
+    
+    <!-- 关注Tab - 空状态 -->
+    <view wx:if="{{activeTab === '关注' && followPosts.length === 0}}" class="empty-state">
+      <text class="empty-icon">👥</text>
+      <text class="empty-text">关注一些有趣的人</text>
+      <text class="empty-sub">他们的动态会出现在这里</text>
+    </view>
+
+    <!-- 帖子卡片列表 -->
+    <block wx:for="{{activeTab === '关注' ? followPosts : (activeTab === '同城' ? cityPosts : posts)}}" wx:key="id">
+      <view class="post-card" bindtap="goPostDetail" data-id="{{item.id}}">
+        
+        <!-- 左侧头像 -->
+        <view class="avatar-col">
+          <view class="avatar-wrap" bindtap="goUserDetail" data-id="{{item.id}}" catchtap="goUserDetail">
+            <view class="avatar-placeholder">
+              <text class="avatar-text">{{item.nickname[0]}}</text>
+            </view>
+          </view>
+          <view class="avatar-line"></view>
+        </view>
+
+        <!-- 右侧内容 -->
+        <view class="post-content-col">
+          
+          <!-- 用户信息行 -->
+          <view class="user-info-row">
+            <view class="user-names">
+              <text class="nickname">{{item.nickname}}</text>
+              <text class="handle">{{item.handle}}</text>
+            </view>
+            <view class="post-time-tag">
+              <text class="tag-badge">{{item.tag}}</text>
+              <text class="post-time">{{item.time}}</text>
+            </view>
+          </view>
+
+          <!-- 帖子文字 -->
+          <view class="post-text">
+            <text>{{item.content}}</text>
+          </view>
+
+          <!-- 帖子图片 -->
+          <view class="post-images" wx:if="{{item.images.length > 0}}">
+            <image 
+              wx:for="{{item.images}}" 
+              wx:key="*this"
+              wx:for-item="img"
+              src="{{img}}" 
+              mode="aspectFill" 
+              class="post-img {{item.images.length === 1 ? 'img-single' : 'img-grid'}}"
+            />
+          </view>
+
+          <!-- 操作栏 -->
+          <view class="action-bar">
+            <view class="action-item" catchtap="goComment" data-id="{{item.id}}">
+              <text class="action-icon">💬</text>
+              <text class="action-count">{{item.comments}}</text>
+            </view>
+            <view class="action-item" catchtap="goRepost" data-id="{{item.id}}">
+              <text class="action-icon">🔁</text>
+              <text class="action-count">{{item.reposts}}</text>
+            </view>
+            <view class="action-item {{item.liked ? 'liked' : ''}}" catchtap="toggleLike" data-id="{{item.id}}">
+              <text class="action-icon">{{item.liked ? '❤️' : '🤍'}}</text>
+              <text class="action-count {{item.liked ? 'liked-text' : ''}}">{{item.likes}}</text>
+            </view>
+            <view class="action-item" catchtap="goShare" data-id="{{item.id}}">
+              <text class="action-icon">↗️</text>
+            </view>
+          </view>
+
+        </view>
+      </view>
+    </block>
+
+    <view class="list-bottom">
+      <text>— 已经到底了 —</text>
+    </view>
+  </scroll-view>
+
+  <!-- 发帖按钮（推特风格蓝色圆形） -->
+  <view class="publish-fab" bindtap="goPublish">
+    <text class="fab-icon">✏️</text>
+  </view>
+
+</view>

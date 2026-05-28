@@ -4,33 +4,36 @@ Page({
     officialLinks: [
       {
         id: 1,
-        title: '国网停电信息查询',
-        desc: '国家电网官方停电通知平台',
-        icon: '⚡',
-        color: '#E6A817',
-        bgColor: '#FFF8E6',
-        url: 'https://www.95598.cn/osgweb/noticeStopped',
-        tag: '官方'
-      },
-      {
-        id: 2,
-        title: '平江自来水停水通知',
-        desc: '岳阳水务官方停水公告查询',
+        title: '平江自来水公司停水公告',
+        desc: '平江县自来水有限公司停水热线',
         icon: '💧',
         color: '#4A90D9',
         bgColor: '#EDF5FF',
-        url: 'https://www.yywater.com',
-        tag: '官方'
+        phone: '0730-6822345',
+        tag: '官方',
+        tip: '请拨打平江自来水公司服务热线查询停水信息，或到营业厅咨询。'
+      },
+      {
+        id: 2,
+        title: '国网停电查询（微信小程序）',
+        desc: '微信搜索「国网95598」查询计划停电，比官网更准确',
+        icon: '⚡',
+        color: '#E6A817',
+        bgColor: '#FFF8E6',
+        phone: '95598',
+        tag: '推荐',
+        tip: '请微信搜索小程序「国网95598」查询平江停电信息。\n\n🔍 搜索步骤：微信→发现→小程序→搜索「国网95598」'
       },
       {
         id: 3,
-        title: '湖南停电信息平台',
-        desc: '湖南省电力公司计划停电查询',
+        title: '国家电网客服热线',
+        desc: '24小时停电报修、计划停电查询、用电咨询',
         icon: '🔌',
         color: '#67C23A',
         bgColor: '#F0F9EB',
-        url: 'https://www.hn.sgcc.com.cn',
-        tag: '官方'
+        phone: '95598',
+        tag: '24H',
+        tip: '拨打95598可查询停电信息、报修或咨询电费。\n\n💡 提示：微信搜索「国网95598」小程序查询更方便！'
       }
     ],
     localNotices: [
@@ -63,21 +66,37 @@ Page({
     wx.setNavigationBarTitle({ title: '停水停电通知' });
   },
 
-  // 跳转官方平台
   goToOfficial(e) {
-    const { url, title } = e.currentTarget.dataset;
-    wx.navigateTo({
-      url: `/pages/common/webview/webview?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`
+    const item = e.currentTarget.dataset.item;
+    wx.showModal({
+      title: item.icon + ' ' + item.title,
+      content: item.tip + '\n\n📞 服务热线：' + item.phone,
+      confirmText: '拨打热线',
+      cancelText: '知道了',
+      success(res) {
+        if (res.confirm) {
+          wx.makePhoneCall({ phoneNumber: item.phone });
+        }
+      }
     });
   },
 
-  // 拨打报修电话
   callRepair(e) {
-    const { phone, name } = e.currentTarget.dataset;
-    wx.makePhoneCall({
-      phoneNumber: phone,
-      fail() {
-        wx.showToast({ title: '拨号失败', icon: 'none' });
+    const { phone } = e.currentTarget.dataset;
+    wx.showModal({
+      title: '确认拨打',
+      content: '即将拨打：' + phone,
+      confirmText: '拨打',
+      cancelText: '取消',
+      success(res) {
+        if (res.confirm) {
+          wx.makePhoneCall({
+            phoneNumber: phone,
+            fail() {
+              wx.showToast({ title: '拨号失败，请手动拨打', icon: 'none' });
+            }
+          });
+        }
       }
     });
   }

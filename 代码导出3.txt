@@ -1,0 +1,6353 @@
+﻿
+========== D:\平江汇生活\cloudfunctions\quickstartFunctions\config.json ==========
+{
+  "permissions": {
+    "openapi": [
+      "wxacode.get"
+    ]
+  }
+}
+
+========== D:\平江汇生活\cloudfunctions\quickstartFunctions\index.js ==========
+const cloud = require("wx-server-sdk");
+cloud.init({
+  env: cloud.DYNAMIC_CURRENT_ENV,
+});
+
+const db = cloud.database();
+// 获取openid
+const getOpenId = async () => {
+  // 获取基础信息
+  const wxContext = cloud.getWXContext();
+  return {
+    openid: wxContext.OPENID,
+    appid: wxContext.APPID,
+    unionid: wxContext.UNIONID,
+  };
+};
+
+// 获取小程序二维码
+const getMiniProgramCode = async () => {
+  // 获取小程序二维码的buffer
+  const resp = await cloud.openapi.wxacode.get({
+    path: "pages/index/index",
+  });
+  const { buffer } = resp;
+  // 将图片上传云存储空间
+  const upload = await cloud.uploadFile({
+    cloudPath: "code.png",
+    fileContent: buffer,
+  });
+  return upload.fileID;
+};
+
+// 创建集合
+const createCollection = async () => {
+  try {
+    // 创建集合
+    await db.createCollection("sales");
+    await db.collection("sales").add({
+      // data 字段表示需新增的 JSON 数据
+      data: {
+        region: "华东",
+        city: "上海",
+        sales: 11,
+      },
+    });
+    await db.collection("sales").add({
+      // data 字段表示需新增的 JSON 数据
+      data: {
+        region: "华东",
+        city: "南京",
+        sales: 11,
+      },
+    });
+    await db.collection("sales").add({
+      // data 字段表示需新增的 JSON 数据
+      data: {
+        region: "华南",
+        city: "广州",
+        sales: 22,
+      },
+    });
+    await db.collection("sales").add({
+      // data 字段表示需新增的 JSON 数据
+      data: {
+        region: "华南",
+        city: "深圳",
+        sales: 22,
+      },
+    });
+    return {
+      success: true,
+    };
+  } catch (e) {
+    // 这里catch到的是该collection已经存在，从业务逻辑上来说是运行成功的，所以catch返回success给前端，避免工具在前端抛出异常
+    return {
+      success: true,
+      data: "create collection success",
+    };
+  }
+};
+
+// 查询数据
+const selectRecord = async () => {
+  // 返回数据库查询结果
+  return await db.collection("sales").get();
+};
+
+// 更新数据
+const updateRecord = async (event) => {
+  try {
+    // 遍历修改数据库信息
+    for (let i = 0; i < event.data.length; i++) {
+      await db
+        .collection("sales")
+        .where({
+          _id: event.data[i]._id,
+        })
+        .update({
+          data: {
+            sales: event.data[i].sales,
+          },
+        });
+    }
+    return {
+      success: true,
+      data: event.data,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      errMsg: e,
+    };
+  }
+};
+
+// 新增数据
+const insertRecord = async (event) => {
+  try {
+    const insertRecord = event.data;
+    // 插入数据
+    await db.collection("sales").add({
+      data: {
+        region: insertRecord.region,
+        city: insertRecord.city,
+        sales: Number(insertRecord.sales),
+      },
+    });
+    return {
+      success: true,
+      data: event.data,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      errMsg: e,
+    };
+  }
+};
+
+// 删除数据
+const deleteRecord = async (event) => {
+  try {
+    await db
+      .collection("sales")
+      .where({
+        _id: event.data._id,
+      })
+      .remove();
+    return {
+      success: true,
+    };
+  } catch (e) {
+    return {
+      success: false,
+      errMsg: e,
+    };
+  }
+};
+
+// const getOpenId = require('./getOpenId/index');
+// const getMiniProgramCode = require('./getMiniProgramCode/index');
+// const createCollection = require('./createCollection/index');
+// const selectRecord = require('./selectRecord/index');
+// const updateRecord = require('./updateRecord/index');
+// const fetchGoodsList = require('./fetchGoodsList/index');
+// const genMpQrcode = require('./genMpQrcode/index');
+// 云函数入口函数
+exports.main = async (event, context) => {
+  switch (event.type) {
+    case "getOpenId":
+      return await getOpenId();
+    case "getMiniProgramCode":
+      return await getMiniProgramCode();
+    case "createCollection":
+      return await createCollection();
+    case "selectRecord":
+      return await selectRecord();
+    case "updateRecord":
+      return await updateRecord(event);
+    case "insertRecord":
+      return await insertRecord(event);
+    case "deleteRecord":
+      return await deleteRecord(event);
+  }
+};
+
+========== D:\平江汇生活\cloudfunctions\quickstartFunctions\package.json ==========
+{
+  "name": "quickstartFunctions",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "wx-server-sdk": "~2.4.0"
+  }
+}
+
+========== D:\平江汇生活\miniprogram\components\cloudTipModal\index.js ==========
+Component({
+
+  /**
+   * 页面的初始数据
+   */
+  data: {
+    showTip: false,
+  },
+  properties: {
+    showTipProps: Boolean,
+    title:String,
+    content:String
+  },
+  observers: {
+    showTipProps: function(showTipProps) {
+      this.setData({
+        showTip: showTipProps
+      });
+    }
+  },
+  methods: {
+    onClose(){
+      this.setData({
+        showTip: !this.data.showTip
+      });
+    },
+  }
+});
+
+========== D:\平江汇生活\miniprogram\components\cloudTipModal\index.json ==========
+{
+  "usingComponents": {},
+  "component": true
+}
+
+========== D:\平江汇生活\miniprogram\components\cloudTipModal\index.wxml ==========
+<!--miniprogram/components/cloudTipModal/index.wxml-->
+<!--  wx:if="{{showUploadTip}}" -->
+<view class="install_tip" wx:if="{{showTip}}">
+  <view class="install_tip_back"></view>
+  <view class="install_tip_detail">
+    <image class="install_tip_close" bind:tap="onClose" src="../../images/icons/close.png"/>
+    <view class="install_tip_detail_title">{{title}}</view>
+    <view class="install_tip_detail_tip">{{content}}</view>
+  </view>
+</view>
+
+========== D:\平江汇生活\miniprogram\components\cloudTipModal\index.wxss ==========
+.install_tip_back {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(0,0,0,0.4);
+  z-index: 1;
+}
+.install_tip_close{
+  position:absolute;
+  right: 10rpx;
+  top: 10rpx;
+  width: 32px;
+  height: 32px;
+  /* background-color: red; */
+}
+.install_tip_detail {
+  position: fixed;
+  background-color: white;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  border-radius: 40rpx 40rpx 0 0;
+  padding: 50rpx 50rpx 100rpx 50rpx;
+  z-index: 9;
+}
+
+.install_tip_detail_title {
+  font-weight: 400;
+  font-size: 40rpx;
+  text-align: center;
+}
+
+.install_tip_detail_tip {
+  font-size: 25rpx;
+  color: rgba(0,0,0,0.4);
+  margin-top: 20rpx;
+  text-align: left;
+}
+.install_tip_detail_buttons {
+  padding-top: 50rpx;
+  display: flex;
+}
+.install_tip_detail_button {
+  color: #07C160;
+  font-weight: 500;
+  background-color: rgba(0,0,0,0.1);
+  width: 40%;
+  text-align: center;
+  /* height: 90rpx; */
+  /* line-height: 90rpx; */
+  border-radius: 10rpx;
+  margin: 0 auto;
+}
+
+.install_tip_detail_button_primary {
+  background-color: #07C160;
+  color: #fff;
+}
+
+========== D:\平江汇生活\miniprogram\pages\ai\ai.js ==========
+// pages/ai/ai.js
+// ⚠️ 豆包API需在后端或云函数中调用，此处为前端交互框架
+// 实际接入需要：1.申请火山引擎豆包API Key 2.通过云函数中转请求
+
+Page({
+  data: {
+    messages: [
+      {
+        role: 'assistant',
+        content: '你好！我是平江汇AI小助手 🤖\n\n我可以帮你：\n📋 解答办事流程\n🏠 租房租赁咨询\n💼 招聘求职建议\n🚨 停水停电查询\n\n请问有什么需要帮助的？',
+        time: ''
+      }
+    ],
+    inputText: '',
+    isLoading: false,
+    scrollToId: 'msg0'
+  },
+
+  onLoad() {
+    const now = new Date();
+    const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+    const messages = this.data.messages.map(m => ({ ...m, time }));
+    this.setData({ messages });
+  },
+
+  // 输入框变化
+  onInputChange(e) {
+    this.setData({ inputText: e.detail.value });
+  },
+
+  // 发送消息
+  onSend() {
+    const text = this.data.inputText.trim();
+    if (!text) return;
+    if (this.data.isLoading) return;
+
+    const now = new Date();
+    const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    // 添加用户消息
+    const messages = [
+      ...this.data.messages,
+      { role: 'user', content: text, time }
+    ];
+
+    const scrollId = 'msg' + messages.length;
+
+    this.setData({
+      messages,
+      inputText: '',
+      isLoading: true,
+      scrollToId: scrollId
+    });
+
+    // 调用云函数（需提前部署 doubao 云函数）
+    this.callDoubaoAPI(text, messages);
+  },
+
+  // 调用豆包 AI（通过云函数中转）
+  callDoubaoAPI(userText, currentMessages) {
+    const now = new Date();
+    const time = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    // ✅ 方式一：已配置云函数时使用（推荐）
+    // wx.cloud.callFunction({
+    //   name: 'doubaoChat',
+    //   data: { message: userText },
+    //   success: (res) => {
+    //     const reply = res.result.reply || '抱歉，我暂时无法回答，请稍后再试';
+    //     this.addReply(reply, time);
+    //   },
+    //   fail: () => {
+    //     this.addReply('网络异常，请稍后再试 🙏', time);
+    //   }
+    // });
+
+    // ✅ 方式二：未配置云函数时，使用本地智能回复（演示用）
+    setTimeout(() => {
+      const reply = this.getLocalReply(userText);
+      this.addReply(reply, time);
+    }, 800);
+  },
+
+  // 本地关键词回复（云函数未接入时的降级方案）
+  getLocalReply(text) {
+    if (text.includes('停水') || text.includes('水')) {
+      return '💧 停水查询：\n\n可拨打平江自来水公司热线：\n📞 0730-6822345\n\n或在本程序"便民服务→停水停电"板块查看最新公告。';
+    }
+    if (text.includes('停电') || text.includes('电')) {
+      return '⚡ 停电查询：\n\n可拨打国家电网客服：\n📞 95598\n\n或微信搜索小程序「国网95598」查询平江计划停电信息。';
+    }
+    if (text.includes('租房') || text.includes('房子') || text.includes('出租')) {
+      return '🏠 租房建议：\n\n1. 在本程序"便民服务→房屋租赁"查看房源\n2. 当面看房，核实房东身份证和房产证\n3. 签订正规租房合同\n4. 不要一次性交超过3个月租金\n\n⚠️ 谨防诈骗！';
+    }
+    if (text.includes('找工作') || text.includes('招聘') || text.includes('工作')) {
+      return '💼 找工作建议：\n\n1. 在本程序"便民服务→找工作"查看本地招聘\n2. 面试前了解公司真实情况\n3. 不要支付任何培训费、押金\n4. 签订正规劳动合同\n\n⚠️ 凡要求先交费的职位请提高警惕！';
+    }
+    if (text.includes('身份证') || text.includes('补办')) {
+      return '🪪 补办身份证：\n\n1. 携带户口本到户籍所在派出所申请\n2. 或通过"办事指南"板块进入公安网办系统\n3. 办理电话：📞 0730-6822110
+
+========== D:\平江汇生活\miniprogram\pages\ai\ai.json ==========
+{
+  "navigationBarTitleText": "AI小助手",
+  "navigationBarBackgroundColor": "#6C63FF",
+  "navigationBarTextStyle": "white",
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\ai\ai.wxml ==========
+<!--pages/ai/ai.wxml-->
+<text>pages/ai/ai.wxml</text>
+
+========== D:\平江汇生活\miniprogram\pages\ai\ai.wxss ==========
+/* pages/ai/ai.wxss */
+
+.ai-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #F0F0F5;
+}
+
+/* 顶部栏 */
+.ai-topbar {
+  background: linear-gradient(135deg, #7B68EE, #9B59B6);
+  padding: 24rpx 30rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.ai-topbar-info {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.ai-topbar-icon {
+  font-size: 52rpx;
+}
+.ai-topbar-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #fff;
+}
+.ai-topbar-sub {
+  display: block;
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.8);
+  margin-top: 4rpx;
+}
+.ai-clear-btn {
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+  font-size: 26rpx;
+  padding: 10rpx 24rpx;
+  border-radius: 30rpx;
+}
+
+/* 消息列表 */
+.msg-list {
+  flex: 1;
+  overflow: hidden;
+}
+.msg-list-inner {
+  padding: 20rpx 16rpx 20rpx;
+}
+
+/* 消息行 */
+.msg-row {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+  margin-bottom: 28rpx;
+  gap: 12rpx;
+}
+.msg-row-user {
+  flex-direction: row-reverse;
+}
+.msg-row-ai {
+  flex-direction: row;
+}
+
+/* 头像 */
+.msg-avatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 36rpx;
+}
+.ai-avatar {
+  background: linear-gradient(135deg, #7B68EE, #9B59B6);
+}
+.user-avatar {
+  background: linear-gradient(135deg, #FF6B35, #E8A838);
+}
+
+/* 气泡容器 */
+.msg-bubble-wrap {
+  display: flex;
+  flex-direction: column;
+  max-width: 75%;
+}
+.msg-row-user .msg-bubble-wrap {
+  align-items: flex-end;
+}
+.msg-row-ai .msg-bubble-wrap {
+  align-items: flex-start;
+}
+
+/* 气泡 */
+.msg-bubble {
+  padding: 20rpx 24rpx;
+  border-radius: 24rpx;
+  word-break: break-all;
+}
+.bubble-ai {
+  background: #FFFFFF;
+  border-radius: 6rpx 24rpx 24rpx 24rpx;
+}
+.bubble-user {
+  background: linear-gradient(135deg, #7B68EE, #9B59B6);
+  border-radius: 24rpx 6rpx 24rpx 24rpx;
+}
+.msg-text {
+  font-size: 30rpx;
+  line-height: 1.7;
+  color: #333;
+}
+.bubble-user .msg-text {
+  color: #fff;
+}
+
+/* 时间 */
+.msg-time {
+  font-size: 22rpx;
+  color: #BBBBBB;
+  margin-top: 8rpx;
+  padding: 0 8rpx;
+}
+
+/* 加载动画 */
+.loading-bubble {
+  display: flex;
+  flex-direction: row;
+  gap: 10rpx;
+  padding: 20rpx 28rpx;
+}
+.loading-dot {
+  font-size: 28rpx;
+  color: #9B59B6;
+  animation: blink 1.2s infinite;
+}
+.loading-dot:nth-child(2) { animation-delay: 0.2s; }
+.loading-dot:nth-child(3) { animation-delay: 0.4s; }
+@keyframes blink {
+  0%, 80%, 100% { opacity: 0.2; }
+  40% { opacity: 1; }
+}
+
+/* 底部输入区 */
+.input-bar {
+  background: #fff;
+  padding: 16rpx 20rpx;
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  border-top: 1rpx solid #EEEEEE;
+  flex-shrink: 0;
+}
+.input-box {
+  flex: 1;
+  background: #F5F5F5;
+  border-radius: 44rpx;
+  padding: 18rpx 28rpx;
+  font-size: 30rpx;
+  color: #333;
+  min-height: 72rpx;
+}
+.input-placeholder {
+  color: #BBBBBB;
+  font-size: 30rpx;
+}
+.send-btn {
+  border-radius: 44rpx;
+  padding: 18rpx 36rpx;
+  font-size: 30rpx;
+  font-weight: bold;
+  white-space: nowrap;
+}
+.send-btn-active {
+  background: linear-gradient(135deg, #7B68EE, #9B59B6);
+  color: #fff;
+}
+.send-btn-disabled {
+  background: #DDDDDD;
+  color: #AAAAAA;
+}
+
+========== D:\平江汇生活\miniprogram\pages\ai\index.js ==========
+// pages/home/index.js
+const app = getApp()
+
+Page({
+  data: {
+    bannerList: [
+      { id: 1, text: '本周话题：医院搬过来后你最期待什么？已有36人参与讨论' },
+    ],
+    quickLinks: [
+      { id: 1, name: '医院专区', icon: '🏥', path: '/pages/services/convenience/hospital/hospital' },
+      { id: 2, name: '招聘求职', icon: '💼', path: '/pages/services/convenience/job/job' },
+      { id: 3, name: '房屋租售', icon: '🏠', path: '/pages/services/convenience/rental/rental' },
+      { id: 4, name: '停水停电', icon: '⚡', path: '/pages/services/convenience/water/water' },
+    ],
+    // ✅ 便民服务入口 - 路径严格对应你的文件夹名
+    serviceList: [
+      { id: 1, name: '找工作',   icon: '💼', path: '/pages/services/convenience/job/job' },
+      { id: 2, name: '房屋租赁', icon: '🏠', path: '/pages/services/convenience/rental/rental' },
+      { id: 3, name: '家政维修', icon: '🔧', path: '/pages/services/convenience/homeservice/homeservice' },
+      { id: 4, name: '停水停电', icon: '⚡', path: '/pages/services/convenience/water/water' },
+      { id: 5, name: '办事指南', icon: '📋', path: '/pages/services/convenience/guide/guide' },
+      { id: 6, name: '医院挂号', icon: '🏥', path: '/pages/services/convenience/hospital/hospital' },
+    ],
+    articleList: []
+  },
+
+  onLoad() {
+    console.log('首页加载完成')
+    this.loadArticles()
+  },
+
+  // 加载文章
+  loadArticles() {
+    const articles = [
+      { id: 1, title: '便利店开业优惠', desc: '全场8折，限时3天', time: '今天' },
+      { id: 2, title: '平江美食推荐', desc: '本地人最爱的10家餐厅', time: '昨天' },
+    ]
+    this.setData({ articleList: articles })
+  },
+
+  // ✅ 核心修复：首页便民服务点击跳转
+  onServiceTap(e) {
+    const path = e.currentTarget.dataset.path
+    console.log('跳转路径：', path)
+    if (!path) {
+      wx.showToast({ title: '功能开发中', icon: 'none' })
+      return
+    }
+    wx.navigateTo({
+      url: path,
+      fail(err) {
+        console.error('跳转失败：', err)
+        wx.showToast({ title: '页面跳转失败', icon: 'none' })
+      }
+    })
+  },
+
+  // 快捷入口点击
+  onQuickTap(e) {
+    const path = e.currentTarget.dataset.path
+    if (!path) return
+    wx.navigateTo({
+      url: path,
+      fail(err) {
+        console.error('快捷入口跳转失败：', err)
+      }
+    })
+  },
+
+  // 查看全部便民服务
+  onViewAll() {
+    wx.switchTab({
+      url: '/pages/services/index'
+    })
+  },
+
+  // 文章点击
+  onArticleTap(e) {
+    const id = e.currentTarget.dataset.id
+    wx.navigateTo({
+      url: `/pages/community/detail?id=${id}`
+    })
+  },
+
+  onPullDownRefresh() {
+    this.loadArticles()
+    wx.stopPullDownRefresh()
+  }
+})
+
+========== D:\平江汇生活\miniprogram\pages\common\webview\webview.js ==========
+// miniprogram/pages/common/webview/webview.js
+Page({
+  data: {
+    url: '',
+    title: '详情'
+  },
+
+  onLoad(options) {
+    const url = decodeURIComponent(options.url || '');
+    const title = decodeURIComponent(options.title || '详情');
+    this.setData({ url, title });
+    wx.setNavigationBarTitle({ title });
+  }
+});
+
+========== D:\平江汇生活\miniprogram\pages\common\webview\webview.json ==========
+{
+  "navigationBarTitleText": "详情",
+  "navigationBarBackgroundColor": "#FF6B35",
+  "navigationBarTextStyle": "white",
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\common\webview\webview.wxml ==========
+<!-- miniprogram/pages/common/webview/webview.wxml -->
+<web-view src="{{url}}"></web-view>
+
+========== D:\平江汇生活\miniprogram\pages\common\webview\webview.wxss ==========
+/* miniprogram/pages/common/webview/webview.wxss */
+web-view {
+  width: 100%;
+  height: 100vh;
+}
+
+========== D:\平江汇生活\miniprogram\pages\community\community.js ==========
+Page({
+  data: {
+    posts: [
+      {
+        id: 1,
+        avatar: '👨',
+        nickname: '平江老表',
+        time: '10分钟前',
+        content: '平江天岳广场今天好热闹，有活动！大家快去看看 🎉',
+        likes: 38,
+        comments: 12,
+        liked: false
+      },
+      {
+        id: 2,
+        avatar: '👩',
+        nickname: '嘉义街坊',
+        time: '32分钟前',
+        content: '请问平江哪里有卖正宗长寿鱼的？上次买的不新鲜😅',
+        likes: 15,
+        comments: 7,
+        liked: false
+      },
+      {
+        id: 3,
+        avatar: '🧑',
+        nickname: '汉昌居民',
+        time: '1小时前',
+        content: '平江高铁站附近停车方便吗？下周要去接人，求指路 🚗',
+        likes: 22,
+        comments: 9,
+        liked: false
+      },
+      {
+        id: 4,
+        avatar: '👴',
+        nickname: '平江退休族',
+        time: '2小时前',
+        content: '天气变化大，大家多注意保暖！尤其老人小孩别感冒了 ❤️',
+        likes: 56,
+        comments: 18,
+        liked: false
+      },
+      {
+        id: 5,
+        avatar: '👩',
+        nickname: '美食探店er',
+        time: '3小时前',
+        content: '强烈推荐平江酱干！带了几包回长沙，同事抢着吃😋 平江特产真的香！',
+        likes: 89,
+        comments: 31,
+        liked: false
+      },
+      {
+        id: 6,
+        avatar: '🧑',
+        nickname: '安定社区邻居',
+        time: '昨天',
+        content: '咱们小区门口的路灯坏了好几天了，有人反映了吗？',
+        likes: 11,
+        comments: 5,
+        liked: false
+      }
+    ]
+  },
+
+  onLoad() {
+    console.log('贴吧页面加载完成')
+  },
+
+  // 点赞
+  handleLike(e) {
+    const id = e.currentTarget.dataset.id
+    const posts = this.data.posts.map(post => {
+      if (post.id === id) {
+        return {
+          ...post,
+          liked: !post.liked,
+          likes: post.liked ? post.likes - 1 : post.likes + 1
+        }
+      }
+      return post
+    })
+    this.setData({ posts })
+  },
+
+  // 发帖提示
+  handlePost() {
+    wx.showModal({
+      title: '提示',
+      content: '发帖功能即将开放，敬请期待！',
+      showCancel: false,
+      confirmText: '好的',
+      confirmColor: '#e6820e'
+    })
+  },
+
+  // 评论提示
+  handleComment(e) {
+    wx.showModal({
+      title: '提示',
+      content: '评论功能即将开放，敬请期待！',
+      showCancel: false,
+      confirmText: '好的',
+      confirmColor: '#e6820e'
+    })
+  }
+})
+
+========== D:\平江汇生活\miniprogram\pages\community\community.json ==========
+{
+  "usingComponents": {},
+  "navigationBarTitleText": "平江贴吧",
+  "navigationBarBackgroundColor": "#8B5E3C",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#FFF8F0",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark"
+}
+
+========== D:\平江汇生活\miniprogram\pages\community\community.wxml ==========
+<view class="container">
+
+<!-- 顶部横幅 -->
+<view class="banner">
+  <text class="banner-icon">💬</text>
+  <view class="banner-text">
+    <text class="banner-title">平江贴吧</text>
+    <text class="banner-sub">街坊邻里 畅所欲言</text>
+  </view>
+</view>
+
+<!-- 帖子列表 -->
+<view class="post-list">
+  <view
+    class="post-card"
+    wx:for="{{posts}}"
+    wx:key="id"
+  >
+    <!-- 头部：头像 + 昵称 + 时间 -->
+    <view class="post-header">
+      <text class="avatar">{{item.avatar}}</text>
+      <view class="post-meta">
+        <text class="nickname">{{item.nickname}}</text>
+        <text class="post-time">{{item.time}}</text>
+      </view>
+    </view>
+
+    <!-- 正文 -->
+    <text class="post-content">{{item.content}}</text>
+
+    <!-- 操作栏 -->
+    <view class="post-actions">
+      <view
+        class="action-btn {{item.liked ? 'liked' : ''}}"
+        bindtap="handleLike"
+        data-id="{{item.id}}"
+      >
+        <text>{{item.liked ? '❤️' : '🤍'}} {{item.likes}}</text>
+      </view>
+      <view
+        class="action-btn"
+        bindtap="handleComment"
+        data-id="{{item.id}}"
+      >
+        <text>💬 {{item.comments}}</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- 发帖按钮 -->
+<view class="fab" bindtap="handlePost">
+  <text class="fab-icon">✏️</text>
+  <text class="fab-text">发帖</text>
+</view>
+
+<!-- 底部说明 -->
+<view class="footer-tip">
+  <text>🌟 文明发言 和谐平江</text>
+</view>
+
+</view>
+
+========== D:\平江汇生活\miniprogram\pages\community\community.wxss ==========
+page {
+  background: #f5f5f5;
+}
+
+.container {
+  padding: 0 0 120rpx 0;
+}
+
+/* 顶部横幅 */
+.banner {
+  background: linear-gradient(135deg, #e6820e, #f5a623);
+  padding: 40rpx 30rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.banner-icon {
+  font-size: 64rpx;
+  margin-right: 20rpx;
+}
+
+.banner-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.banner-title {
+  color: #fff;
+  font-size: 40rpx;
+  font-weight: bold;
+}
+
+.banner-sub {
+  color: rgba(255,255,255,0.85);
+  font-size: 26rpx;
+  margin-top: 6rpx;
+}
+
+/* 帖子列表 */
+.post-list {
+  padding: 20rpx;
+}
+
+.post-card {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.06);
+}
+
+.post-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 18rpx;
+}
+
+.avatar {
+  font-size: 52rpx;
+  margin-right: 16rpx;
+}
+
+.post-meta {
+  display: flex;
+  flex-direction: column;
+}
+
+.nickname {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.post-time {
+  font-size: 24rpx;
+  color: #999;
+  margin-top: 4rpx;
+}
+
+.post-content {
+  font-size: 32rpx;
+  color: #444;
+  line-height: 1.7;
+  display: block;
+  margin-bottom: 24rpx;
+}
+
+.post-actions {
+  display: flex;
+  flex-direction: row;
+  gap: 30rpx;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  padding: 10rpx 24rpx;
+  background: #f8f8f8;
+  border-radius: 30rpx;
+  font-size: 28rpx;
+  color: #666;
+}
+
+.action-btn.liked {
+  background: #fff0e0;
+}
+
+/* 发帖浮动按钮 */
+.fab {
+  position: fixed;
+  right: 36rpx;
+  bottom: 160rpx;
+  background: #e6820e;
+  border-radius: 60rpx;
+  padding: 20rpx 36rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  box-shadow: 0 6rpx 20rpx rgba(230,130,14,0.4);
+}
+
+.fab-icon {
+  font-size: 36rpx;
+  margin-right: 10rpx;
+}
+
+.fab-text {
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: bold;
+}
+
+/* 底部提示 */
+.footer-tip {
+  text-align: center;
+  padding: 30rpx;
+  font-size: 26rpx;
+  color: #aaa;
+}
+
+========== D:\平江汇生活\miniprogram\pages\community\index.js ==========
+// pages/community/index.js
+Page({
+  data: {
+    // ✅ 补充缺失的 tabList、activeTab、filteredList
+    tabList: ['全部', '求助', '热议', '随手拍', '二手'],
+    activeTab: 0,
+    postList: [
+      {
+        id: 1,
+        nickname: '平江老街坊',
+        avatar: '👴',
+        time: '10分钟前',
+        tag: '热议',
+        tagColor: '#E74C3C',
+        title: '新医院建设进度更新！终于要来了',
+        content: '刚从工地旁边路过，看到施工队伍很多，听说主体结构已经封顶了，大家有没有最新消息？',
+        likes: 128,
+        comments: 36,
+        isLiked: false,
+        tabIndex: 2
+      },
+      {
+        id: 2,
+        nickname: '北街小陈',
+        avatar: '👩',
+        time: '30分钟前',
+        tag: '求助',
+        tagColor: '#3498DB',
+        title: '有没有人知道北街哪里修鞋？',
+        content: '我有双皮鞋鞋跟坏了，想找人修一下，北街附近有没有修鞋摊？知道的告诉我一声谢谢！',
+        likes: 15,
+        comments: 12,
+        isLiked: false,
+        tabIndex: 1
+      },
+      {
+        id: 3,
+        nickname: '平江吃货联盟',
+        avatar: '🍜',
+        time: '2小时前',
+        tag: '热议',
+        tagColor: '#E74C3C',
+        title: '强烈推荐！老南门那家米粉真的太香了',
+        content: '去了三次了每次都要排队，汤底是猪骨熬的，配上本地辣椒，真的绝了。强烈推荐大家去试试！',
+        likes: 256,
+        comments: 89,
+        isLiked: true,
+        tabIndex: 2
+      },
+      {
+        id: 4,
+        nickname: '二手达人',
+        avatar: '♻️',
+        time: '昨天',
+        tag: '二手',
+        tagColor: '#27AE60',
+        title: '九成新婴儿车出售，价格美丽',
+        content: '孩子大了用不上了，好孩子品牌婴儿车，原价1200，现在只要300，可以来看实物，城关镇自取。',
+        likes: 32,
+        comments: 8,
+        isLiked: false,
+        tabIndex: 4
+      },
+      {
+        id: 5,
+        nickname: '随手一拍',
+        avatar: '📸',
+        time: '今天',
+        tag: '随手拍',
+        tagColor: '#8E44AD',
+        title: '平江的夕阳真的太美了！',
+        content: '傍晚散步拍的，汨罗江边的夕阳，金灿灿的，心情一下子就好了，平江真的是个好地方。',
+        likes: 198,
+        comments: 45,
+        isLiked: false,
+        tabIndex: 3
+      }
+    ],
+    filteredList: []
+  },
+
+  onLoad() {
+    this.filterByTab(0);
+  },
+
+  // 根据tab过滤帖子
+  filterByTab(tabIndex) {
+    const { postList } = this.data;
+    let filtered = [];
+    if (tabIndex === 0) {
+      filtered = postList;
+    } else {
+      filtered = postList.filter(item => item.tabIndex === tabIndex);
+    }
+    this.setData({ filteredList: filtered });
+  },
+
+  // 切换tab
+  onTabTap(e) {
+    const index = e.currentTarget.dataset.index;
+    this.setData({ activeTab: index });
+    this.filterByTab(index);
+  },
+
+  // 点击帖子
+  onPostTap(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.showToast({ title: '帖子详情即将上线', icon: 'none' });
+  },
+
+  // 点赞
+  onLikeTap(e) {
+    const id = e.currentTarget.dataset.id;
+    const { postList } = this.data;
+    const newList = postList.map(item => {
+      if (item.id === id) {
+        return {
+          ...item,
+          isLiked: !item.isLiked,
+          likes: item.isLiked ? item.likes - 1 : item.likes + 1
+        };
+      }
+      return item;
+    });
+    this.setData({ postList: newList });
+    this.filterByTab(this.data.activeTab);
+  },
+
+  // 发帖
+  onPublishTap() {
+    wx.showToast({ title: '发帖功能即将上线', icon: 'none' });
+  }
+});
+
+========== D:\平江汇生活\miniprogram\pages\community\index.json ==========
+{
+  "usingComponents": {},
+  "navigationBarTitleText": "平江贴吧",
+  "navigationBarBackgroundColor": "#8B5E3C",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#FFF8F0",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark"
+}
+
+========== D:\平江汇生活\miniprogram\pages\community\index.wxml ==========
+<!--pages/community/index.wxml-->
+<view class="page-container">
+
+<!-- Tab切换栏 -->
+<view class="tab-bar">
+  <view
+    class="tab-item {{activeTab === index ? 'tab-active' : ''}}"
+    wx:for="{{tabList}}"
+    wx:key="*this"
+    bindtap="onTabTap"
+    data-index="{{index}}"
+  >
+    <text class="tab-text">{{item}}</text>
+  </view>
+</view>
+
+<!-- 帖子列表 -->
+<view class="post-list">
+
+  <!-- 无内容提示 -->
+  <view class="empty-tip" wx:if="{{filteredList.length === 0}}">
+    <text class="empty-icon">📭</text>
+    <text class="empty-text">暂无相关帖子</text>
+  </view>
+
+  <!-- 帖子卡片 -->
+  <view
+    class="post-card"
+    wx:for="{{filteredList}}"
+    wx:key="id"
+    bindtap="onPostTap"
+    data-id="{{item.id}}"
+  >
+    <!-- 用户信息行 -->
+    <view class="post-header">
+      <view class="avatar-wrap">
+        <text class="avatar">{{item.avatar}}</text>
+      </view>
+      <view class="user-info">
+        <text class="nickname">{{item.nickname}}</text>
+        <text class="post-time">{{item.time}}</text>
+      </view>
+      <view
+        class="post-tag"
+        style="background-color:{{item.tagColor}}"
+      >
+        <text class="tag-text">{{item.tag}}</text>
+      </view>
+    </view>
+
+    <!-- 帖子内容 -->
+    <view class="post-body">
+      <text class="post-title">{{item.title}}</text>
+      <text class="post-content">{{item.content}}</text>
+    </view>
+
+    <!-- 底部互动栏 -->
+    <view class="post-footer">
+      <view class="footer-left">
+        <view
+          class="action-btn"
+          catchtap="onLikeTap"
+          data-id="{{item.id}}"
+        >
+          <text class="action-icon">{{item.isLiked ? '❤️' : '🤍'}}</text>
+          <text class="action-count">{{item.likes}}</text>
+        </view>
+        <view class="action-btn">
+          <text class="action-icon">💬</text>
+          <text class="action-count">{{item.comments}}</text>
+        </view>
+      </view>
+      <text class="share-btn">分享</text>
+    </view>
+  </view>
+
+</view>
+
+<!-- 发帖悬浮按钮 -->
+<view class="publish-btn" bindtap="onPublishTap">
+  <text class="publish-icon">✏️</text>
+  <text class="publish-text">发帖</text>
+</view>
+
+</view>
+
+========== D:\平江汇生活\miniprogram\pages\community\index.wxss ==========
+/* pages/community/index.wxss */
+
+.page-container {
+  min-height: 100vh;
+  background-color: #FFF8F0;
+  padding-bottom: 120rpx;
+}
+
+/* Tab栏 */
+.tab-bar {
+  display: flex;
+  flex-direction: row;
+  background-color: #FFFFFF;
+  border-bottom: 1rpx solid #F0E6D8;
+  padding: 0 10rpx;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.tab-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx 0;
+  position: relative;
+}
+
+.tab-text {
+  font-size: 30rpx;
+  color: #999999;
+}
+
+.tab-active .tab-text {
+  color: #8B5E3C;
+  font-weight: bold;
+}
+
+.tab-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40rpx;
+  height: 6rpx;
+  background-color: #8B5E3C;
+  border-radius: 3rpx;
+}
+
+/* 帖子列表 */
+.post-list {
+  padding: 16rpx 20rpx;
+}
+
+/* 空状态 */
+.empty-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 0;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
+.empty-text {
+  font-size: 30rpx;
+  color: #CCBBAA;
+}
+
+/* 帖子卡片 */
+.post-card {
+  background: #FFFFFF;
+  border-radius: 20rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 16rpx rgba(139,94,60,0.08);
+}
+
+/* 帖子头部 */
+.post-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.avatar-wrap {
+  width: 72rpx;
+  height: 72rpx;
+  background-color: #FFF3E8;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+
+.avatar {
+  font-size: 40rpx;
+}
+
+.user-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.nickname {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333333;
+  margin-bottom: 4rpx;
+}
+
+.post-time {
+  font-size: 24rpx;
+  color: #AAAAAA;
+}
+
+.post-tag {
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+}
+
+.tag-text {
+  font-size: 24rpx;
+  color: #FFFFFF;
+  font-weight: bold;
+}
+
+/* 帖子内容 */
+.post-body {
+  margin-bottom: 20rpx;
+}
+
+.post-title {
+  display: block;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333333;
+  line-height: 1.5;
+  margin-bottom: 12rpx;
+}
+
+.post-content {
+  display: block;
+  font-size: 28rpx;
+  color: #666666;
+  line-height: 1.7;
+  /* 最多显示2行 */
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+/* 底部互动 */
+.post-footer {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #F5EDE0;
+}
+
+.footer-left {
+  display: flex;
+  flex-direction: row;
+}
+
+.action-btn {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-right: 36rpx;
+}
+
+.action-icon {
+  font-size: 32rpx;
+  margin-right: 8rpx;
+}
+
+.action-count {
+  font-size: 28rpx;
+  color: #999999;
+}
+
+.share-btn {
+  font-size: 28rpx;
+  color: #8B5E3C;
+}
+
+/* 发帖悬浮按钮 */
+.publish-btn {
+  position: fixed;
+  right: 40rpx;
+  bottom: 140rpx;
+  background: linear-gradient(135deg, #8B5E3C, #C4956A);
+  border-radius: 60rpx;
+  padding: 20rpx 36rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  box-shadow: 0 6rpx 24rpx rgba(139,94,60,0.4);
+  z-index: 100;
+}
+
+.publish-icon {
+  font-size: 36rpx;
+  margin-right: 10rpx;
+}
+
+.publish-text {
+  font-size: 30rpx;
+  color: #FFFFFF;
+  font-weight: bold;
+}
+
+========== D:\平江汇生活\miniprogram\pages\home\home.js ==========
+// pages/home/home.js
+Page({
+  data: {
+    weatherInfo: {
+      city: '平江',
+      temp: '25°C',
+      weather: '晴',
+      wind: '东风2级',
+      air: '空气良'
+    },
+    bannerList: [
+      {
+        id: 1,
+        icon: '🚨',
+        title: '停水停电通知',
+        desc: '点击查看最新通知公告',
+        bgColor: '#E74C3C',
+        type: 'water'
+      },
+      {
+        id: 2,
+        icon: '💼',
+        title: '本地招聘信息',
+        desc: '平江最新招聘职位',
+        bgColor: '#2980B9',
+        type: 'job'
+      },
+      {
+        id: 3,
+        icon: '🏠',
+        title: '房屋租赁',
+        desc: '平江本地房源汇总',
+        bgColor: '#27AE60',
+        type: 'rental'
+      },
+      {
+        id: 4,
+        icon: '🔧',
+        title: '家政维修',
+        desc: '专业上门服务',
+        bgColor: '#8E44AD',
+        type: 'homeservice'
+      }
+    ],
+    quickMenuList: [
+      { id: 1, icon: '💬', name: '贴吧', type: 'community' },
+      { id: 2, icon: '💼', name: '招聘', type: 'job' },
+      { id: 3, icon: '🏠', name: '租房', type: 'rental' },
+      { id: 4, icon: '🔧', name: '家政', type: 'homeservice' },
+      { id: 5, icon: '🚨', name: '停水电', type: 'water' },
+      { id: 6, icon: '📋', name: '办事', type: 'guide' }
+    ],
+    serviceList: [
+      { id: 1, icon: '💼', name: '找工作', type: 'job', color: '#2980B9' },
+      { id: 2, icon: '🏠', name: '房屋租赁', type: 'rental', color: '#27AE60' },
+      { id: 3, icon: '🔧', name: '家政维修', type: 'homeservice', color: '#E67E22' },
+      { id: 4, icon: '🚨', name: '停水停电', type: 'water', color: '#E74C3C' },
+      { id: 5, icon: '📋', name: '办事指南', type: 'guide', color: '#8E44AD' },
+      { id: 6, icon: '🔜', name: '更多服务', type: 'more', color: '#95A5A6' }
+    ],
+    communityList: [
+      { id: 1, icon: '📸', name: '随手拍', type: 'photo' },
+      { id: 2, icon: '🆘', name: '求助互助', type: 'help' },
+      { id: 3, icon: '🔄', name: '二手转让', type: 'secondhand' },
+      { id: 4, icon: '💬', name: '今日话题', type: 'topic' },
+      { id: 5, icon: '🏆', name: '积分中心', type: 'points' },
+      { id: 6, icon: '📢', name: '本地公告', type: 'notice' }
+    ],
+    articleList: [
+      { id: 1, tag: '热议', title: '平江新医院建设最新进度来了！', count: 328 },
+      { id: 2, tag: '求助', title: '有没有人知道北街哪里有修鞋的？', count: 45 },
+      { id: 3, tag: '热议', title: '平江这家餐厅真的太好吃了！', count: 156 }
+    ],
+    contentFlow: [
+      { id: 1, tag: '📸', title: '医院建设最新进度', desc: '📸 12人看过', color: '#2980B9' },
+      { id: 2, tag: '❤️', title: '杨园小区邻居随手拍', desc: '❤️ 28人点赞', color: '#E74C3C' },
+      { id: 3, tag: '▶️', title: '住院必备清单分享', desc: '▶️ 156次播放', color: '#8E44AD' },
+      { id: 4, tag: '💼', title: '本地招聘·护工急招', desc: '💼 今日发布', color: '#27AE60' }
+    ]
+  },
+
+  onLoad() {
+    console.log('首页加载完成');
+    this.loadWeather();
+  },
+
+  loadWeather() {
+    this.setData({
+      weatherInfo: {
+        city: '平江',
+        temp: '25°C',
+        weather: '晴',
+        wind: '东风2级',
+        air: '空气良'
+      }
+    });
+  },
+
+  onBannerTap(e) {
+    const item = e.currentTarget.dataset.item;
+    this._doNavigate(item.type);
+  },
+
+  onBannerChange() {},
+
+  navigateQuick(e) {
+    const type = e.currentTarget.dataset.type;
+    this._doNavigate(type);
+  },
+
+  navigateToService(e) {
+    const type = e.currentTarget.dataset.type;
+    this._doNavigate(type);
+  },
+
+  _doNavigate(type) {
+    if (type === 'community') {
+      wx.switchTab({ url: '/pages/community/community' });
+      return;
+    }
+    if (type === 'more') {
+      wx.showToast({ title: '更多服务即将上线，敬请期待', icon: 'none', duration: 2000 });
+      return;
+    }
+    const routeMap = {
+      job:         '/pages/services/convenience/job/job',
+      rental:      '/pages/services/convenience/rental/rental',
+      homeservice: '/pages/services/convenience/homeservice/homeservice',
+      water:       '/pages/services/convenience/water/water',
+      guide:       '/pages/services/convenience/guide/guide'
+    };
+    const url = routeMap[type];
+    if (url) {
+      wx.navigateTo({ url });
+    } else {
+      wx.showToast({ title: '该功能即将上线', icon: 'none' });
+    }
+  },
+
+  navigateCommunity(e) {
+    wx.switchTab({ url: '/pages/community/community' });
+  },
+
+  goToCommunity() {
+    wx.switchTab({ url: '/pages/community/community' });
+  },
+
+  goToConvenience() {
+    wx.navigateTo({ url: '/pages/services/convenience/guide/guide' });
+  },
+
+  goToContentDetail(e) {
+    wx.switchTab({ url: '/pages/community/community' });
+  },
+
+  goToAI() {
+    wx.navigateTo({ url: '/pages/ai/ai' });
+  }
+});
+
+========== D:\平江汇生活\miniprogram\pages\home\home.json ==========
+{
+  "navigationBarTitleText": "平江汇生活",
+  "navigationBarBackgroundColor": "#FF6B35",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#F5F5F5",
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\home\home.wxml ==========
+<!-- pages/home/home.wxml -->
+<view class="home-container">
+
+<!-- ① 顶部天气 + 搜索栏 -->
+<view class="top-bar">
+  <view class="weather-row">
+    <text class="weather-text">☀️ {{weatherInfo.city}} {{weatherInfo.temp}} {{weatherInfo.weather}} {{weatherInfo.wind}}</text>
+    <text class="weather-air">{{weatherInfo.air}}</text>
+  </view>
+  <view class="search-row">
+    <view class="search-box">
+      <text class="search-icon">🔍</text>
+      <text class="search-placeholder">搜索服务/信息/商品</text>
+    </view>
+    <view class="top-icons">
+      <text class="top-icon">🔔</text>
+      <text class="top-icon">👤</text>
+    </view>
+  </view>
+</view>
+
+<!-- ② Banner 轮播 -->
+<swiper
+  class="banner-swiper"
+  autoplay="{{true}}"
+  interval="4000"
+  circular="{{true}}"
+  indicator-dots="{{true}}"
+  indicator-color="rgba(255,255,255,0.5)"
+  indicator-active-color="#ffffff"
+  bindchange="onBannerChange"
+>
+  <swiper-item wx:for="{{bannerList}}" wx:key="id">
+    <view
+      class="banner-card"
+      style="background-color: {{item.bgColor}};"
+      bindtap="onBannerTap"
+      data-item="{{item}}"
+    >
+      <text class="banner-icon">{{item.icon}}</text>
+      <view class="banner-content">
+        <text class="banner-title">{{item.title}}</text>
+        <text class="banner-desc">{{item.desc}}</text>
+        <view class="banner-btn">查看详情 ›</view>
+      </view>
+    </view>
+  </swiper-item>
+</swiper>
+
+<!-- ③ 顶部快捷菜单 -->
+<scroll-view class="quick-menu" scroll-x="{{true}}" enable-flex="{{true}}">
+  <view
+    wx:for="{{quickMenuList}}"
+    wx:key="id"
+    class="quick-item"
+    bindtap="navigateQuick"
+    data-type="{{item.type}}"
+    hover-class="quick-item-hover"
+  >
+    <view class="quick-icon-wrap">{{item.icon}}</view>
+    <text class="quick-name">{{item.name}}</text>
+  </view>
+</scroll-view>
+
+<!-- ④ 便民服务板块 -->
+<view class="section-card">
+  <view class="section-header">
+    <text class="section-title">便民服务</text>
+    <view class="section-more" bindtap="goToConvenience">
+      <text>查看全部</text><text class="arrow">›</text>
+    </view>
+  </view>
+  <view class="service-grid">
+    <view
+      wx:for="{{serviceList}}"
+      wx:key="id"
+      class="service-item"
+      bindtap="navigateToService"
+      data-type="{{item.type}}"
+      hover-class="service-item-hover"
+    >
+      <view class="service-icon-wrap" style="background: {{item.color}}20;">
+        <text class="service-icon">{{item.icon}}</text>
+      </view>
+      <text class="service-name">{{item.name}}</text>
+    </view>
+  </view>
+</view>
+
+<!-- ⑤ 平江贴吧板块 -->
+<view class="section-card">
+  <view class="section-header">
+    <text class="section-title">平江贴吧</text>
+    <view class="section-more" bindtap="goToCommunity">
+      <text>查看全部</text><text class="arrow">›</text>
+    </view>
+  </view>
+  <view class="service-grid">
+    <view
+      wx:for="{{communityList}}"
+      wx:key="id"
+      class="service-item"
+      bindtap="navigateCommunity"
+      data-type="{{item.type}}"
+      hover-class="service-item-hover"
+    >
+      <view class="service-icon-wrap" style="background: #4A90D920;">
+        <text class="service-icon">{{item.icon}}</text>
+      </view>
+      <text class="service-name">{{item.name}}</text>
+    </view>
+  </view>
+</view>
+
+<!-- ⑥ 商城板块（即将上线） -->
+<view class="section-card section-locked">
+  <view class="section-header">
+    <text class="section-title">商城板块</text>
+    <view class="locked-badge">🔒 即将上线</view>
+  </view>
+  <view class="locked-tip">平江本地商城，敬请期待</view>
+</view>
+
+<!-- ⑦ 平江贴吧热帖 -->
+<view class="section-card">
+  <view class="section-header">
+    <text class="section-title">平江热帖</text>
+    <view class="section-more" bindtap="goToCommunity">
+      <text>查看全部</text><text class="arrow">›</text>
+    </view>
+  </view>
+  <view
+    wx:for="{{articleList}}"
+    wx:key="id"
+    class="article-item"
+    bindtap="goToCommunity"
+    hover-class="article-item-hover"
+  >
+    <view class="article-tag {{item.tag === '热议' ? 'tag-hot' : 'tag-help'}}">{{item.tag}}</view>
+    <text class="article-title">{{item.title}}</text>
+    <text class="article-count">{{item.count}}人参与</text>
+  </view>
+</view>
+
+<!-- ⑧ 双轨道精选内容流 -->
+<view class="content-section">
+  <view class="section-header content-section-header">
+    <text class="section-title">══ 精选内容 ══</text>
+  </view>
+  <view class="content-flow">
+    <view
+      wx:for="{{contentFlow}}"
+      wx:key="id"
+      class="content-card"
+      bindtap="goToContentDetail"
+      data-item="{{item}}"
+      hover-class="content-card-hover"
+    >
+      <view class="content-img-placeholder" style="background: {{item.color}}30;">
+        <text class="content-placeholder-icon">{{item.tag}}</text>
+      </view>
+      <view class="content-info">
+        <text class="content-title">{{item.title}}</text>
+        <text class="content-desc">{{item.desc}}</text>
+      </view>
+    </view>
+  </view>
+  <view class="load-more">加载更多...</view>
+</view>
+
+<!-- 底部安全区 -->
+<view style="height: 120rpx;"></view>
+
+<!-- 右侧悬浮 AI 小助手按钮 -->
+<view class="float-ai" bindtap="goToAI">
+  <text class="float-ai-icon">🤖</text>
+  <text class="float-ai-text">AI助手</text>
+</view>
+
+</view>
+
+========== D:\平江汇生活\miniprogram\pages\home\home.wxss ==========
+/* pages/home/home.wxss */
+page {
+  background-color: #F5F6FA;
+  font-size: 30rpx;
+}
+
+.home-container {
+  min-height: 100vh;
+  background-color: #F5F6FA;
+}
+
+/* ====== 顶部天气+搜索 ====== */
+.top-bar {
+  background: linear-gradient(135deg, #1A6FB8 0%, #2980B9 100%);
+  padding: 20rpx 30rpx 24rpx;
+}
+
+.weather-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 18rpx;
+}
+
+.weather-text {
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 500;
+}
+
+.weather-air {
+  color: rgba(255,255,255,0.85);
+  font-size: 26rpx;
+  background: rgba(255,255,255,0.2);
+  padding: 4rpx 14rpx;
+  border-radius: 20rpx;
+}
+
+.search-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.search-box {
+  flex: 1;
+  background: rgba(255,255,255,0.95);
+  border-radius: 40rpx;
+  padding: 16rpx 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.search-icon { font-size: 28rpx; }
+.search-placeholder { color: #999; font-size: 28rpx; }
+
+.top-icons { display: flex; gap: 16rpx; }
+.top-icon { font-size: 44rpx; color: #fff; }
+
+/* ====== 轮播图 ====== */
+.banner-swiper { height: 180rpx; width: 100%; }
+
+.banner-card {
+  height: 180rpx;
+  display: flex;
+  align-items: center;
+  padding: 0 40rpx;
+  gap: 24rpx;
+}
+
+.banner-icon { font-size: 72rpx; }
+.banner-content { flex: 1; }
+
+.banner-title {
+  display: block;
+  color: #fff;
+  font-size: 34rpx;
+  font-weight: bold;
+  margin-bottom: 8rpx;
+}
+
+.banner-desc {
+  display: block;
+  color: rgba(255,255,255,0.85);
+  font-size: 26rpx;
+  margin-bottom: 12rpx;
+}
+
+.banner-btn {
+  display: inline-block;
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+  font-size: 24rpx;
+  padding: 6rpx 20rpx;
+  border-radius: 20rpx;
+  border: 1rpx solid rgba(255,255,255,0.5);
+}
+
+/* ====== 快捷菜单 ====== */
+.quick-menu {
+  background: #fff;
+  padding: 20rpx 16rpx;
+  display: flex;
+  white-space: nowrap;
+}
+
+.quick-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 110rpx;
+  padding: 0 10rpx;
+}
+
+.quick-icon-wrap { font-size: 44rpx; margin-bottom: 8rpx; }
+.quick-name { font-size: 24rpx; color: #333; }
+.quick-item-hover { opacity: 0.7; }
+
+/* ====== 通用卡片 ====== */
+.section-card {
+  background: #fff;
+  margin: 16rpx 24rpx;
+  border-radius: 20rpx;
+  padding: 28rpx 28rpx 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.06);
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.section-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #1A1A1A;
+}
+
+.section-more {
+  display: flex;
+  align-items: center;
+  color: #999;
+  font-size: 26rpx;
+}
+
+.arrow { margin-left: 4rpx; font-size: 28rpx; }
+
+/* ====== 服务宫格 ====== */
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20rpx;
+}
+
+.service-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx 10rpx;
+  border-radius: 16rpx;
+  background: #FAFAFA;
+}
+
+.service-icon-wrap {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12rpx;
+}
+
+.service-icon { font-size: 44rpx; }
+
+.service-name {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+  text-align: center;
+}
+
+.service-item-hover { opacity: 0.7; transform: scale(0.97); }
+
+/* ====== 商城锁定 ====== */
+.section-locked { opacity: 0.65; }
+
+.locked-badge {
+  background: #F0F0F0;
+  color: #999;
+  font-size: 24rpx;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+}
+
+.locked-tip {
+  color: #999;
+  font-size: 28rpx;
+  text-align: center;
+  padding: 20rpx 0;
+}
+
+/* ====== 热帖列表 ====== */
+.article-item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #F0F0F0;
+  gap: 16rpx;
+}
+
+.article-item:last-child { border-bottom: none; }
+
+.article-tag {
+  font-size: 22rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.tag-hot { background: #FEE8E8; color: #E74C3C; }
+.tag-help { background: #E8F4FE; color: #2980B9; }
+
+.article-title {
+  flex: 1;
+  font-size: 30rpx;
+  color: #222;
+  line-height: 1.5;
+}
+
+.article-count { font-size: 24rpx; color: #999; white-space: nowrap; }
+.article-item-hover { background: #F8F8F8; }
+
+/* ====== 双轨道内容流 ====== */
+.content-section { margin: 16rpx 24rpx; }
+.content-section-header { margin-bottom: 16rpx; }
+
+.content-flow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16rpx;
+}
+
+.content-card {
+  background: #fff;
+  border-radius: 16rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.06);
+}
+
+.content-img-placeholder {
+  height: 160rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.content-placeholder-icon { font-size: 52rpx; }
+
+.content-info { padding: 14rpx 16rpx; }
+
+.content-title {
+  display: block;
+  font-size: 28rpx;
+  color: #222;
+  font-weight: 500;
+  margin-bottom: 6rpx;
+  line-height: 1.4;
+}
+
+.content-desc { display: block; font-size: 24rpx; color: #999; }
+.content-card-hover { opacity: 0.8; }
+
+.load-more {
+  text-align: center;
+  color: #999;
+  font-size: 26rpx;
+  padding: 30rpx 0;
+}
+
+/* ====== 右侧悬浮 AI 小助手 ====== */
+.float-ai {
+  position: fixed;
+  right: 32rpx;
+  bottom: 180rpx;
+  width: 100rpx;
+  height: 100rpx;
+  background: linear-gradient(135deg, #6C63FF, #3ECFCF);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6rpx 24rpx rgba(108,99,255,0.45);
+  z-index: 999;
+}
+
+.float-ai-icon { font-size: 38rpx; line-height: 1; }
+
+.float-ai-text {
+  font-size: 18rpx;
+  color: #fff;
+  margin-top: 4rpx;
+  font-weight: bold;
+}
+
+========== D:\平江汇生活\miniprogram\pages\index\index.js ==========
+// pages/home/index.js
+const app = getApp()
+
+Page({
+  data: {
+    bannerList: [
+      { id: 1, text: '本周话题：医院搬过来后你最期待什么？已有36人参与讨论' },
+    ],
+    quickLinks: [
+      { id: 1, name: '医院专区', icon: '🏥', path: '/pages/services/convenience/hospital/hospital' },
+      { id: 2, name: '招聘求职', icon: '💼', path: '/pages/services/convenience/job/job' },
+      { id: 3, name: '房屋租售', icon: '🏠', path: '/pages/services/convenience/rental/rental' },
+      { id: 4, name: '停水停电', icon: '⚡', path: '/pages/services/convenience/water/water' },
+    ],
+    // ✅ 便民服务入口 - 路径严格对应你的文件夹名
+    serviceList: [
+      { id: 1, name: '找工作',   icon: '💼', path: '/pages/services/convenience/job/job' },
+      { id: 2, name: '房屋租赁', icon: '🏠', path: '/pages/services/convenience/rental/rental' },
+      { id: 3, name: '家政维修', icon: '🔧', path: '/pages/services/convenience/homeservice/homeservice' },
+      { id: 4, name: '停水停电', icon: '⚡', path: '/pages/services/convenience/water/water' },
+      { id: 5, name: '办事指南', icon: '📋', path: '/pages/services/convenience/guide/guide' },
+      { id: 6, name: '医院挂号', icon: '🏥', path: '/pages/services/convenience/hospital/hospital' },
+    ],
+    articleList: []
+  },
+
+  onLoad() {
+    console.log('首页加载完成')
+    this.loadArticles()
+  },
+
+  // 加载文章
+  loadArticles() {
+    const articles = [
+      { id: 1, title: '便利店开业优惠', desc: '全场8折，限时3天', time: '今天' },
+      { id: 2, title: '平江美食推荐', desc: '本地人最爱的10家餐厅', time: '昨天' },
+    ]
+    this.setData({ articleList: articles })
+  },
+
+  // ✅ 核心修复：首页便民服务点击跳转
+  onServiceTap(e) {
+    const path = e.currentTarget.dataset.path
+    console.log('跳转路径：', path)
+    if (!path) {
+      wx.showToast({ title: '功能开发中', icon: 'none' })
+      return
+    }
+    wx.navigateTo({
+      url: path,
+      fail(err) {
+        console.error('跳转失败：', err)
+        wx.showToast({ title: '页面跳转失败', icon: 'none' })
+      }
+    })
+  },
+
+  // 快捷入口点击
+  onQuickTap(e) {
+    const path = e.currentTarget.dataset.path
+    if (!path) return
+    wx.navigateTo({
+      url: path,
+      fail(err) {
+        console.error('快捷入口跳转失败：', err)
+      }
+    })
+  },
+
+  // 查看全部便民服务
+  onViewAll() {
+    wx.switchTab({
+      url: '/pages/services/index'
+    })
+  },
+
+  // 文章点击
+  onArticleTap(e) {
+    const id = e.currentTarget.dataset.id
+    wx.navigateTo({
+      url: `/pages/community/detail?id=${id}`
+    })
+  },
+
+  onPullDownRefresh() {
+    this.loadArticles()
+    wx.stopPullDownRefresh()
+  }
+})
+
+========== D:\平江汇生活\miniprogram\pages\index\index.json ==========
+{
+  "navigationBarTitleText": "平江汇生活",
+  "navigationBarBackgroundColor": "#8B6F47",
+  "navigationBarTextStyle": "white",
+  "navigationStyle": "default",
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\index\index.wxml ==========
+<!-- pages/home/index.wxml -->
+<scroll-view scroll-y style="height:100vh;background:#F5F5F5;">
+
+<!-- 顶部搜索栏 -->
+<view class="search-bar">
+  <view class="search-inner">
+    <text class="search-icon">🔍</text>
+    <text class="search-text">搜索服务/商品/信息</text>
+  </view>
+</view>
+
+<!-- 横幅公告 -->
+<view class="banner-wrap">
+  <view class="banner-item" wx:for="{{bannerList}}" wx:key="id">
+    <text class="banner-text">📢 {{item.text}}</text>
+  </view>
+</view>
+
+<!-- 快捷入口（4个） -->
+<view class="quick-section">
+  <view 
+    class="quick-item" 
+    wx:for="{{quickLinks}}" 
+    wx:key="id"
+    data-path="{{item.path}}"
+    bindtap="onQuickTap"
+  >
+    <text class="quick-icon">{{item.icon}}</text>
+    <text class="quick-name">{{item.name}}</text>
+  </view>
+</view>
+
+<!-- 便民服务模块 -->
+<view class="section-wrap">
+  <view class="section-header">
+    <view class="section-title-wrap">
+      <view class="section-line"></view>
+      <text class="section-title">便民服务</text>
+    </view>
+    <text class="view-all" bindtap="onViewAll">查看全部 ›</text>
+  </view>
+
+  <!-- ✅ 关键：bindtap绑定onServiceTap，data-path传路径 -->
+  <view class="service-grid">
+    <view 
+      class="service-item"
+      wx:for="{{serviceList}}"
+      wx:key="id"
+      data-path="{{item.path}}"
+      bindtap="onServiceTap"
+    >
+      <view class="service-icon-wrap">
+        <text class="service-icon">{{item.icon}}</text>
+      </view>
+      <text class="service-name">{{item.name}}</text>
+    </view>
+  </view>
+</view>
+
+<!-- 平江贴吧模块 -->
+<view class="section-wrap">
+  <view class="section-header">
+    <view class="section-title-wrap">
+      <view class="section-line"></view>
+      <text class="section-title">平江贴吧</text>
+    </view>
+  </view>
+  <view class="article-list">
+    <view 
+      class="article-item"
+      wx:for="{{articleList}}"
+      wx:key="id"
+      data-id="{{item.id}}"
+      bindtap="onArticleTap"
+    >
+      <view class="article-content">
+        <text class="article-title">{{item.title}}</text>
+        <text class="article-desc">{{item.desc}}</text>
+      </view>
+      <text class="article-time">{{item.time}}</text>
+    </view>
+  </view>
+</view>
+
+<view style="height:80rpx;"></view>
+</scroll-view>
+
+========== D:\平江汇生活\miniprogram\pages\index\index.wxss ==========
+/* pages/home/index.wxss */
+
+/* 搜索栏 */
+.search-bar {
+  background: #E85D26;
+  padding: 20rpx 30rpx;
+}
+.search-inner {
+  background: #fff;
+  border-radius: 40rpx;
+  padding: 16rpx 24rpx;
+  display: flex;
+  align-items: center;
+}
+.search-icon { font-size: 28rpx; margin-right: 12rpx; }
+.search-text { font-size: 28rpx; color: #999; }
+
+/* 横幅公告 */
+.banner-wrap {
+  background: #FFF3EE;
+  padding: 20rpx 30rpx;
+  border-bottom: 2rpx solid #FFD4BC;
+}
+.banner-text { font-size: 26rpx; color: #E85D26; }
+
+/* 快捷入口 */
+.quick-section {
+  display: flex;
+  background: #fff;
+  padding: 30rpx 0;
+  margin-bottom: 20rpx;
+}
+.quick-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 88rpx;
+}
+.quick-icon { font-size: 48rpx; margin-bottom: 10rpx; }
+.quick-name { font-size: 24rpx; color: #333; font-weight: bold; }
+
+/* 通用区块 */
+.section-wrap {
+  background: #fff;
+  margin: 0 0 20rpx 0;
+  padding: 30rpx;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30rpx;
+}
+.section-title-wrap {
+  display: flex;
+  align-items: center;
+}
+.section-line {
+  width: 8rpx;
+  height: 36rpx;
+  background: #E85D26;
+  border-radius: 4rpx;
+  margin-right: 16rpx;
+}
+.section-title { font-size: 36rpx; font-weight: bold; color: #333; }
+.view-all { font-size: 26rpx; color: #E85D26; }
+
+/* 便民服务宫格 */
+.service-grid {
+  display: flex;
+  flex-wrap: wrap;
+}
+.service-item {
+  width: 33.33%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24rpx 0;
+  min-height: 88rpx;
+}
+.service-icon-wrap {
+  width: 88rpx;
+  height: 88rpx;
+  background: #FFF3EE;
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12rpx;
+}
+.service-icon { font-size: 44rpx; }
+.service-name { font-size: 28rpx; color: #333; }
+
+/* 文章列表 */
+.article-list { }
+.article-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 2rpx solid #F5F5F5;
+  min-height: 88rpx;
+}
+.article-content { flex: 1; }
+.article-title { font-size: 30rpx; color: #333; display: block; margin-bottom: 8rpx; }
+.article-desc { font-size: 24rpx; color: #999; }
+.article-time { font-size: 24rpx; color: #999; margin-left: 20rpx; }
+
+========== D:\平江汇生活\miniprogram\pages\mine\index.js ==========
+// pages/mine/index.js
+Page({
+
+  /**
+   * 页面的初始数据
+   */
+  data: {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面加载
+   */
+  onLoad(options) {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面初次渲染完成
+   */
+  onReady() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面显示
+   */
+  onShow() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面隐藏
+   */
+  onHide() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面卸载
+   */
+  onUnload() {
+
+  },
+
+  /**
+   * 页面相关事件处理函数--监听用户下拉动作
+   */
+  onPullDownRefresh() {
+
+  },
+
+  /**
+   * 页面上拉触底事件的处理函数
+   */
+  onReachBottom() {
+
+  },
+
+  /**
+   * 用户点击右上角分享
+   */
+  onShareAppMessage() {
+
+  }
+})
+
+========== D:\平江汇生活\miniprogram\pages\mine\index.json ==========
+{
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\mine\index.wxml ==========
+<!--pages/mine/index.wxml-->
+<text>pages/mine/index.wxml</text>
+
+========== D:\平江汇生活\miniprogram\pages\mine\index.wxss ==========
+/* pages/mine/index.wxss */
+
+========== D:\平江汇生活\miniprogram\pages\mine\mine.js ==========
+// pages/mine/mine.js
+Page({
+  data: {
+    // 用户信息（未登录状态）
+    isLoggedIn: false,
+    userInfo: {
+      nickName: '平江居民',
+      avatarIcon: '👤'
+    },
+    // 功能菜单
+    menuList: [
+      { id: 1, icon: '📝', name: '我的发帖', desc: '查看我发布的帖子', type: 'posts' },
+      { id: 2, icon: '❤️', name: '我的收藏', desc: '查看收藏的内容', type: 'favorites' },
+      { id: 3, icon: '📞', name: '联系我们', desc: '意见反馈与建议', type: 'contact' },
+      { id: 4, icon: '📋', name: '使用说明', desc: '小程序使用帮助', type: 'help' },
+      { id: 5, icon: 'ℹ️', name: '关于我们', desc: '平江汇生活简介', type: 'about' }
+    ],
+    // 快捷统计
+    stats: [
+      { label: '发帖', value: 0 },
+      { label: '收藏', value: 0 },
+      { label: '点赞', value: 0 }
+    ]
+  },
+
+  onLoad() {
+    console.log('我的页面加载');
+  },
+
+  // 点击登录
+  onLogin() {
+    wx.showToast({ title: '登录功能即将上线', icon: 'none' });
+  },
+
+  // 点击菜单
+  onMenuTap(e) {
+    const type = e.currentTarget.dataset.type;
+    const tipMap = {
+      posts:    '我的发帖功能即将上线',
+      favorites:'收藏功能即将上线',
+      contact:  '请通过小程序右上角反馈',
+      help:     '使用说明即将完善',
+      about:    '平江汇生活 - 平江人自己的生活服务平台'
+    };
+    wx.showToast({ title: tipMap[type] || '即将上线', icon: 'none', duration: 2000 });
+  },
+
+  onShareAppMessage() {
+    return {
+      title: '平江汇生活 - 平江人自己的服务平台',
+      path: '/pages/home/home'
+    };
+  }
+});
+
+========== D:\平江汇生活\miniprogram\pages\mine\mine.json ==========
+{
+  "navigationBarTitleText": "我的",
+  "navigationBarBackgroundColor": "#D4820A",
+  "navigationBarTextStyle": "white",
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\mine\mine.wxml ==========
+<!--pages/mine/mine.wxml-->
+<view class="page-wrap">
+
+<!-- 顶部用户信息 -->
+<view class="user-header">
+  <view class="avatar-wrap">
+    <text class="avatar-icon">{{userInfo.avatarIcon}}</text>
+  </view>
+  <view class="user-info">
+    <text class="user-name">{{userInfo.nickName}}</text>
+    <view class="login-btn" bindtap="onLogin">
+      <text class="login-text">点击登录 / 注册</text>
+    </view>
+  </view>
+</view>
+
+<!-- 统计数据 -->
+<view class="stats-card">
+  <view
+    wx:for="{{stats}}"
+    wx:key="label"
+    class="stat-item"
+  >
+    <text class="stat-value">{{item.value}}</text>
+    <text class="stat-label">{{item.label}}</text>
+  </view>
+</view>
+
+<!-- 功能菜单 -->
+<view class="menu-card">
+  <view
+    wx:for="{{menuList}}"
+    wx:key="id"
+    class="menu-item"
+    bindtap="onMenuTap"
+    data-type="{{item.type}}"
+    hover-class="menu-item-hover"
+  >
+    <text class="menu-icon">{{item.icon}}</text>
+    <view class="menu-info">
+      <text class="menu-name">{{item.name}}</text>
+      <text class="menu-desc">{{item.desc}}</text>
+    </view>
+    <text class="menu-arrow">›</text>
+  </view>
+</view>
+
+<!-- 底部版权 -->
+<view class="footer-tip">
+  <text class="footer-text">平江汇生活 · 平江人自己的平台</text>
+  <text class="footer-version">Version 1.0.0</text>
+</view>
+
+</view>
+
+========== D:\平江汇生活\miniprogram\pages\mine\mine.wxss ==========
+/* pages/mine/mine.wxss */
+.page-wrap {
+  min-height: 100vh;
+  background: #F5F5F5;
+  padding-bottom: 120rpx;
+}
+
+.user-header {
+  background: linear-gradient(135deg, #D4820A, #E8A838);
+  padding: 60rpx 30rpx 40rpx;
+  display: flex;
+  align-items: center;
+  gap: 24rpx;
+}
+.avatar-wrap {
+  width: 100rpx;
+  height: 100rpx;
+  background: rgba(255,255,255,0.3);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.avatar-icon { font-size: 52rpx; }
+.user-info { flex: 1; }
+.user-name {
+  display: block;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 12rpx;
+}
+.login-btn {
+  background: rgba(255,255,255,0.25);
+  border-radius: 30rpx;
+  padding: 8rpx 24rpx;
+  display: inline-block;
+}
+.login-text {
+  font-size: 26rpx;
+  color: #fff;
+}
+
+.stats-card {
+  background: #fff;
+  margin: 16rpx;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  display: flex;
+  justify-content: space-around;
+}
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+.stat-value {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #D4820A;
+}
+.stat-label {
+  font-size: 26rpx;
+  color: #999;
+}
+
+.menu-card {
+  background: #fff;
+  margin: 0 16rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+.menu-item {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 24rpx;
+  border-bottom: 1rpx solid #F5F5F5;
+  gap: 20rpx;
+}
+.menu-item:last-child { border-bottom: none; }
+.menu-item-hover { background: #FFF8EE; }
+.menu-icon { font-size: 40rpx; }
+.menu-info { flex: 1; }
+.menu-name {
+  display: block;
+  font-size: 30rpx;
+  color: #333;
+  margin-bottom: 4rpx;
+}
+.menu-desc {
+  display: block;
+  font-size: 24rpx;
+  color: #999;
+}
+.menu-arrow {
+  font-size: 40rpx;
+  color: #CCC;
+  font-weight: bold;
+}
+
+.footer-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40rpx 0 20rpx;
+  gap: 8rpx;
+}
+.footer-text {
+  font-size: 26rpx;
+  color: #CCC;
+}
+.footer-version {
+  font-size: 22rpx;
+  color: #DDD;
+}
+
+========== D:\平江汇生活\miniprogram\pages\profile\profile.js ==========
+// pages/profile/profile.js
+Page({
+
+  /**
+   * 页面的初始数据
+   */
+  data: {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面加载
+   */
+  onLoad(options) {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面初次渲染完成
+   */
+  onReady() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面显示
+   */
+  onShow() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面隐藏
+   */
+  onHide() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面卸载
+   */
+  onUnload() {
+
+  },
+
+  /**
+   * 页面相关事件处理函数--监听用户下拉动作
+   */
+  onPullDownRefresh() {
+
+  },
+
+  /**
+   * 页面上拉触底事件的处理函数
+   */
+  onReachBottom() {
+
+  },
+
+  /**
+   * 用户点击右上角分享
+   */
+  onShareAppMessage() {
+
+  }
+})
+
+========== D:\平江汇生活\miniprogram\pages\profile\profile.json ==========
+{
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\profile\profile.wxml ==========
+<!--pages/profile/profile.wxml-->
+<text>pages/profile/profile.wxml</text>
+
+========== D:\平江汇生活\miniprogram\pages\profile\profile.wxss ==========
+/* pages/profile/profile.wxss */
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\detail\detail.js ==========
+// pages/services/convenience/detail/detail.js
+Page({
+
+  /**
+   * 页面的初始数据
+   */
+  data: {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面加载
+   */
+  onLoad(options) {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面初次渲染完成
+   */
+  onReady() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面显示
+   */
+  onShow() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面隐藏
+   */
+  onHide() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面卸载
+   */
+  onUnload() {
+
+  },
+
+  /**
+   * 页面相关事件处理函数--监听用户下拉动作
+   */
+  onPullDownRefresh() {
+
+  },
+
+  /**
+   * 页面上拉触底事件的处理函数
+   */
+  onReachBottom() {
+
+  },
+
+  /**
+   * 用户点击右上角分享
+   */
+  onShareAppMessage() {
+
+  }
+})
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\detail\detail.json ==========
+{
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\detail\detail.wxml ==========
+<!--pages/services/convenience/detail/detail.wxml-->
+<text>pages/services/convenience/detail/detail.wxml</text>
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\detail\detail.wxss ==========
+/* pages/services/convenience/detail/detail.wxss */
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\guide\guide.js ==========
+// pages/services/convenience/guide/guide.js
+Page({
+  data: {
+    services: [
+      {
+        id: 1,
+        title: '补办身份证',
+        desc: '身份证丢失、损坏补办，全程网办指引',
+        icon: '🪪',
+        tag: '证件',
+        url: 'https://zwfw.mps.gov.cn',
+        phone: '0730-6822110'
+      },
+      {
+        id: 2,
+        title: '驾驶证业务办理',
+        desc: '驾照申请、审验、补换证、违章查询',
+        icon: '🚗',
+        tag: '车驾管',
+        url: 'https://www.122.gov.cn',
+        phone: '0730-6822122'
+      },
+      {
+        id: 3,
+        title: '平江县社会保险局',
+        desc: '社保参保、缴费记录、个人账户查询',
+        icon: '🏥',
+        tag: '社保',
+        url: 'http://rsj.yueyang.gov.cn',
+        phone: '0730-6822333'
+      },
+      {
+        id: 4,
+        title: '平江住房公积金查询',
+        desc: '住房公积金缴存、提取、贷款查询',
+        icon: '🏠',
+        tag: '公积金',
+        url: 'https://gjj.yueyang.gov.cn',
+        phone: '0730-6822444'
+      },
+      {
+        id: 5,
+        title: '平江税务局办税服务',
+        desc: '个人所得税、发票申请、税务登记',
+        icon: '🧾',
+        tag: '税务',
+        url: 'https://etax.chinatax.gov.cn',
+        phone: '12366'
+      },
+      {
+        id: 6,
+        title: '平江县医疗保障局',
+        desc: '医保参保、报销查询、异地就医备案',
+        icon: '💊',
+        tag: '医保',
+        url: 'http://ybj.yueyang.gov.cn',
+        phone: '0730-6822555'
+      },
+      {
+        id: 7,
+        title: '平江县政务服务网',
+        desc: '办事大厅统一入口、审批查询、证件办理',
+        icon: '🏛️',
+        tag: '政务',
+        url: 'https://www.pingjiang.gov.cn',
+        phone: '0730-6822000'
+      },
+      {
+        id: 8,
+        title: '不动产登记查询',
+        desc: '房产证、土地证信息查询与办理',
+        icon: '🏡',
+        tag: '不动产',
+        url: 'https://bdcdy.hunan.gov.cn',
+        phone: '0730-6822666'
+      }
+    ]
+  },
+
+  goToService(e) {
+    const url = e.currentTarget.dataset.url;
+    const title = e.currentTarget.dataset.title;
+    const phone = e.currentTarget.dataset.phone;
+
+    wx.showModal({
+      title: '📋 ' + title,
+      content: '点击"复制网址"可在手机浏览器访问官方网站\n也可直接拨打服务电话：' + phone,
+      confirmText: '复制网址',
+      cancelText: '拨打电话',
+      success(res) {
+        if (res.confirm) {
+          wx.setClipboardData({
+            data: url,
+            success() {
+              wx.showToast({
+                title: '网址已复制，请打开浏览器粘贴访问',
+                icon: 'none',
+                duration: 2500
+              });
+            }
+          });
+        } else if (res.cancel) {
+          wx.makePhoneCall({ phoneNumber: phone });
+        }
+      }
+    });
+  }
+});
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\guide\guide.json ==========
+{
+  "navigationBarTitleText": "办事指南",
+  "navigationBarBackgroundColor": "#FF6B35",
+  "navigationBarTextStyle": "white",
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\guide\guide.wxml ==========
+<!-- pages/services/convenience/guide/guide.wxml -->
+<view class="container">
+  <view class="header">
+    <text class="title">📋 办事指南</text>
+    <text class="subtitle">平江便民政务服务一站查询</text>
+    <text class="header-tip">点击条目可复制官方网址或直接拨打电话</text>
+  </view>
+
+  <view class="list">
+    <view
+      class="item"
+      wx:for="{{services}}"
+      wx:key="id"
+      bindtap="goToService"
+      data-url="{{item.url}}"
+      data-title="{{item.title}}"
+      data-phone="{{item.phone}}"
+    >
+      <view class="item-left">
+        <text class="icon">{{item.icon}}</text>
+      </view>
+      <view class="item-center">
+        <view class="item-title-row">
+          <text class="item-title">{{item.title}}</text>
+          <text class="tag">{{item.tag}}</text>
+        </view>
+        <text class="item-desc">{{item.desc}}</text>
+        <text class="item-phone">📞 {{item.phone}}</text>
+      </view>
+      <view class="item-right">
+        <text class="arrow">›</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="footer">
+    <text class="footer-text">以上均为官方渠道，如遇问题请直接前往政务服务大厅办理</text>
+  </view>
+</view>
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\guide\guide.wxss ==========
+/* pages/services/convenience/guide/guide.wxss */
+.container {
+  padding: 20rpx;
+  background: #f5f5f5;
+  min-height: 100vh;
+}
+
+.header {
+  text-align: center;
+  padding: 30rpx 0 20rpx;
+}
+
+.title {
+  display: block;
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.subtitle {
+  display: block;
+  font-size: 28rpx;
+  color: #888;
+  margin-top: 10rpx;
+}
+
+.header-tip {
+  display: block;
+  font-size: 24rpx;
+  color: #FF6B35;
+  margin-top: 10rpx;
+  background: #FFF3EC;
+  padding: 10rpx 20rpx;
+  border-radius: 20rpx;
+}
+
+.list { margin-top: 20rpx; }
+
+.item {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 16rpx;
+  padding: 30rpx 24rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.06);
+}
+
+.item-left { width: 80rpx; text-align: center; }
+.icon { font-size: 50rpx; }
+
+.item-center { flex: 1; padding: 0 16rpx; }
+
+.item-title-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 8rpx;
+}
+
+.item-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+  margin-right: 12rpx;
+}
+
+.tag {
+  font-size: 22rpx;
+  color: #E67E22;
+  background: #FEF0E6;
+  padding: 2rpx 12rpx;
+  border-radius: 20rpx;
+}
+
+.item-desc {
+  font-size: 26rpx;
+  color: #888;
+  display: block;
+  margin-bottom: 6rpx;
+}
+
+.item-phone {
+  font-size: 26rpx;
+  color: #2980B9;
+  font-weight: bold;
+}
+
+.item-right { width: 40rpx; text-align: center; }
+.arrow { font-size: 44rpx; color: #ccc; }
+
+.footer { text-align: center; padding: 30rpx 20rpx; }
+
+.footer-text { font-size: 24rpx; color: #aaa; }
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\homeservice\homeservice.js ==========
+// miniprogram/pages/services/convenience/homeservice/homeservice.js
+Page({
+  data: {
+    categoryList: [
+      { id: 0, name: '全部' },
+      { id: 1, name: '家政保洁' },
+      { id: 2, name: '水电维修' },
+      { id: 3, name: '家电维修' },
+      { id: 4, name: '搬家服务' },
+      { id: 5, name: '其他' }
+    ],
+    currentCategory: 0,
+    areaList: ['全部区域', '城关镇', '三阳乡', '安定镇', '嘉义镇'],
+    currentArea: 0,
+
+    allServiceList: [
+      {
+        id: 1,
+        name: '刘师傅专业水电维修',
+        category: 2,
+        categoryName: '水电维修',
+        area: '城关镇',
+        areaIndex: 1,
+        intro: '水管漏水、电路改造、插座安装、灯具更换，专业上门，当天可到。',
+        price: '50元起/次',
+        phone: '13812345678',
+        tags: ['当天上门', '持证上岗', '价格透明'],
+        experience: '8年经验',
+        rating: 4.9,
+        orderCount: 236,
+        publishTime: '今天',
+        reviews: [
+          { star: '⭐⭐⭐⭐⭐', content: '修得很快，价格实在，推荐！', time: '2天前' },
+          { star: '⭐⭐⭐⭐⭐', content: '师傅很专业，态度好', time: '5天前' }
+        ]
+      },
+      {
+        id: 2,
+        name: '洁美家政保洁服务',
+        category: 1,
+        categoryName: '家政保洁',
+        area: '城关镇',
+        areaIndex: 1,
+        intro: '日常保洁、深度清洁、开荒保洁、厨卫专项清洁，团队作业效率高。',
+        price: '80元/次起',
+        phone: '13987654321',
+        tags: ['专业团队', '放心入户', '按时到达'],
+        experience: '5年经验',
+        rating: 4.8,
+        orderCount: 158,
+        publishTime: '今天',
+        reviews: [
+          { star: '⭐⭐⭐⭐⭐', content: '打扫得非常干净，阿姨很勤快！', time: '1天前' }
+        ]
+      },
+      {
+        id: 3,
+        name: '老王家电维修',
+        category: 3,
+        categoryName: '家电维修',
+        area: '三阳乡',
+        areaIndex: 2,
+        intro: '空调、冰箱、洗衣机、热水器维修，原装配件，不修不收费。',
+        price: '上门费30元',
+        phone: '15012345678',
+        tags: ['不修不收费', '原装配件', '免费检测'],
+        experience: '12年经验',
+        rating: 4.7,
+        orderCount: 412,
+        publishTime: '昨天',
+        reviews: []
+      },
+      {
+        id: 4,
+        name: '平江快捷搬家公司',
+        category: 4,
+        categoryName: '搬家服务',
+        area: '城关镇',
+        areaIndex: 1,
+        intro: '小件搬运、整房搬迁、钢琴搬运，车辆齐全，轻拿轻放，支持预约。',
+        price: '200元起',
+        phone: '18812345678',
+        tags: ['车辆多', '轻拿轻放', '可预约'],
+        experience: '6年经验',
+        rating: 4.6,
+        orderCount: 89,
+        publishTime: '2天前',
+        reviews: []
+      }
+    ],
+
+    filteredList: [],
+    showList: []
+  },
+
+  onLoad() {
+    this.filterList();
+  },
+
+  switchCategory(e) {
+    const id = e.currentTarget.dataset.id;
+    this.setData({ currentCategory: id });
+    this.filterList();
+  },
+
+  switchArea(e) {
+    const index = e.currentTarget.dataset.index;
+    this.setData({ currentArea: index });
+    this.filterList();
+  },
+
+  filterList() {
+    const { allServiceList, currentCategory, currentArea } = this.data;
+    let list = [...allServiceList];
+    if (currentCategory !== 0) {
+      list = list.filter(item => item.category === currentCategory);
+    }
+    if (currentArea !== 0) {
+      list = list.filter(item => item.areaIndex === currentArea);
+    }
+    this.setData({ showList: list });
+  },
+
+  callPhone(e) {
+    const phone = e.currentTarget.dataset.phone;
+    wx.showActionSheet({
+      itemList: [`拨打 ${phone}`],
+      success: () => {
+        wx.makePhoneCall({ phoneNumber: phone });
+      }
+    });
+  }
+});
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\homeservice\homeservice.json ==========
+{
+  "navigationBarTitleText": "家政维修",
+  "navigationBarBackgroundColor": "#FF6B35",
+  "navigationBarTextStyle": "white",
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\homeservice\homeservice.wxml ==========
+<!-- miniprogram/pages/services/convenience/homeservice/homeservice.wxml -->
+<view class="page-wrap">
+
+<!-- 安全提示 -->
+<view class="safety-tip">
+  <text>⚠️ 请当面核验师傅证件，不要提前支付大额费用，谨防诈骗！</text>
+</view>
+
+<!-- 区域筛选 -->
+<scroll-view scroll-x enable-flex class="filter-scroll">
+  <view class="filter-row">
+    <view
+      wx:for="{{areaList}}"
+      wx:key="index"
+      class="filter-tag {{currentArea === index ? 'filter-tag-active' : ''}}"
+      bindtap="switchArea"
+      data-index="{{index}}"
+    >{{item}}</view>
+  </view>
+</scroll-view>
+
+<!-- 分类筛选 -->
+<scroll-view scroll-x enable-flex class="filter-scroll">
+  <view class="filter-row">
+    <view
+      wx:for="{{categoryList}}"
+      wx:key="id"
+      class="filter-tag category-tag {{currentCategory === item.id ? 'category-tag-active' : ''}}"
+      bindtap="switchCategory"
+      data-id="{{item.id}}"
+    >{{item.name}}</view>
+  </view>
+</scroll-view>
+
+<!-- 服务列表 -->
+<scroll-view scroll-y enable-flex class="list-scroll">
+
+  <view wx:if="{{showList.length === 0}}" class="empty-wrap">
+    <text class="empty-icon">🔍</text>
+    <text class="empty-text">暂无相关服务，换个筛选试试</text>
+  </view>
+
+  <view
+    wx:for="{{showList}}"
+    wx:key="id"
+    class="service-card"
+  >
+    <!-- 卡片头部 -->
+    <view class="card-header">
+      <view class="avatar-wrap">
+        <text class="avatar-text">{{item.name[0]}}</text>
+      </view>
+      <view class="header-info">
+        <view class="name-row">
+          <text class="service-name">{{item.name}}</text>
+          <text class="experience-tag">{{item.experience}}</text>
+        </view>
+        <view class="meta-row">
+          <text class="area-tag">📍 {{item.area}}</text>
+          <text class="category-badge">{{item.categoryName}}</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 评分与订单 -->
+    <view class="stats-row">
+      <text class="rating">⭐ {{item.rating}}</text>
+      <text class="order-count">已服务 {{item.orderCount}} 单</text>
+      <text class="publish-time">{{item.publishTime}}</text>
+    </view>
+
+    <!-- 简介 -->
+    <view class="intro-text">{{item.intro}}</view>
+
+    <!-- 标签 -->
+    <view class="tags-row">
+      <view
+        wx:for="{{item.tags}}"
+        wx:for-item="tag"
+        wx:key="index"
+        class="tag"
+      >{{tag}}</view>
+    </view>
+
+    <!-- 用户评价展示区 -->
+    <view class="review-section" wx:if="{{item.reviews && item.reviews.length > 0}}">
+      <view class="review-title">📣 用户评价</view>
+      <view
+        wx:for="{{item.reviews}}"
+        wx:for-item="review"
+        wx:key="index"
+        class="review-item"
+      >
+        <text class="review-star">{{review.star}}</text>
+        <text class="review-text">{{review.content}}</text>
+        <text class="review-time">{{review.time}}</text>
+      </view>
+    </view>
+    <view class="review-section" wx:else>
+      <text class="no-review">暂无评价，接单后客户可评价</text>
+    </view>
+
+    <!-- 底部价格+联系 -->
+    <view class="card-footer">
+      <view class="price-wrap">
+        <text class="price-label">收费参考</text>
+        <text class="price-val">{{item.price}}</text>
+      </view>
+      <view
+        class="contact-btn"
+        bindtap="callPhone"
+        data-phone="{{item.phone}}"
+      >
+        📞 立即联系
+      </view>
+    </view>
+  </view>
+
+  <view style="height: 60rpx;"></view>
+</scroll-view>
+
+</view>
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\homeservice\homeservice.wxss ==========
+/* miniprogram/pages/services/convenience/homeservice/homeservice.wxss */
+
+.page-wrap {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #F5F5F5;
+}
+
+/* 安全提示 */
+.safety-tip {
+  background: #FFF3EC;
+  border-left: 6rpx solid #FF6B35;
+  padding: 18rpx 24rpx;
+  font-size: 26rpx;
+  color: #FF6B35;
+  line-height: 1.6;
+}
+
+/* 筛选条 */
+.filter-scroll {
+  background: #fff;
+  border-bottom: 1rpx solid #F0F0F0;
+  white-space: nowrap;
+}
+
+.filter-row {
+  display: flex;
+  flex-direction: row;
+  padding: 16rpx 16rpx;
+  gap: 12rpx;
+}
+
+.filter-tag {
+  display: inline-block;
+  padding: 10rpx 24rpx;
+  border-radius: 32rpx;
+  font-size: 26rpx;
+  color: #666;
+  background: #F5F5F5;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.filter-tag-active {
+  background: #FFF0E8;
+  color: #FF6B35;
+  font-weight: bold;
+}
+
+.category-tag { background: #F0F4FF; color: #4A90D9; }
+.category-tag-active { background: #4A90D9; color: #fff; font-weight: bold; }
+
+/* 列表 */
+.list-scroll { flex: 1; overflow: hidden; }
+
+/* 服务卡片 */
+.service-card {
+  background: #fff;
+  border-radius: 16rpx;
+  margin: 16rpx 16rpx 0;
+  padding: 24rpx;
+}
+
+/* 卡片头部 */
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.avatar-wrap {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF6B35, #E8A838);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.avatar-text { color: #fff; font-size: 32rpx; font-weight: bold; }
+.header-info { flex: 1; }
+
+.name-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 8rpx;
+}
+
+.service-name { font-size: 30rpx; font-weight: bold; color: #333; }
+
+.experience-tag {
+  font-size: 22rpx;
+  color: #FF6B35;
+  background: #FFF0E8;
+  padding: 2rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.meta-row { display: flex; align-items: center; gap: 12rpx; }
+.area-tag { font-size: 24rpx; color: #999; }
+
+.category-badge {
+  font-size: 22rpx;
+  color: #4A90D9;
+  background: #EDF5FF;
+  padding: 2rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+/* 评分统计 */
+.stats-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 12rpx;
+}
+
+.rating { font-size: 26rpx; color: #E8A838; font-weight: bold; }
+.order-count { font-size: 24rpx; color: #999; flex: 1; }
+.publish-time { font-size: 24rpx; color: #CCC; }
+
+/* 简介 */
+.intro-text {
+  font-size: 26rpx;
+  color: #555;
+  line-height: 1.7;
+  margin-bottom: 16rpx;
+}
+
+/* 标签 */
+.tags-row { display: flex; flex-wrap: wrap; gap: 10rpx; margin-bottom: 20rpx; }
+
+.tag {
+  font-size: 22rpx;
+  color: #67C23A;
+  background: #F0F9EB;
+  padding: 4rpx 14rpx;
+  border-radius: 8rpx;
+}
+
+/* 评价区域 */
+.review-section {
+  background: #FFFBF5;
+  border-radius: 12rpx;
+  padding: 16rpx 20rpx;
+  margin-bottom: 20rpx;
+  border: 1rpx solid #FFE0C0;
+}
+
+.review-title {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #E8A838;
+  margin-bottom: 12rpx;
+}
+
+.review-item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 12rpx;
+  padding-bottom: 12rpx;
+  border-bottom: 1rpx solid #F5E8D0;
+}
+
+.review-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+.review-star { font-size: 24rpx; margin-bottom: 4rpx; }
+
+.review-text { font-size: 26rpx; color: #555; line-height: 1.6; }
+
+.review-time { font-size: 22rpx; color: #CCC; margin-top: 4rpx; }
+
+.no-review { font-size: 24rpx; color: #CCC; }
+
+/* 底部 */
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #F5F5F5;
+}
+
+.price-wrap { display: flex; flex-direction: column; }
+.price-label { font-size: 22rpx; color: #999; margin-bottom: 4rpx; }
+.price-val { font-size: 30rpx; font-weight: bold; color: #FF6B35; }
+
+.contact-btn {
+  background: #FF6B35;
+  color: #fff;
+  font-size: 28rpx;
+  padding: 16rpx 36rpx;
+  border-radius: 40rpx;
+}
+
+/* 空状态 */
+.empty-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 0;
+  gap: 20rpx;
+}
+
+.empty-icon { font-size: 80rpx; }
+.empty-text { font-size: 28rpx; color: #999; }
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\hospital\hospital.js ==========
+// pages/mine/mine.js
+Page({
+  data: {
+    // 用户信息（未登录状态）
+    isLoggedIn: false,
+    userInfo: {
+      nickName: '平江居民',
+      avatarIcon: '👤'
+    },
+    // 功能菜单
+    menuList: [
+      { id: 1, icon: '📝', name: '我的发帖', desc: '查看我发布的帖子', type: 'posts' },
+      { id: 2, icon: '❤️', name: '我的收藏', desc: '查看收藏的内容', type: 'favorites' },
+      { id: 3, icon: '📞', name: '联系我们', desc: '意见反馈与建议', type: 'contact' },
+      { id: 4, icon: '📋', name: '使用说明', desc: '小程序使用帮助', type: 'help' },
+      { id: 5, icon: 'ℹ️', name: '关于我们', desc: '平江汇生活简介', type: 'about' }
+    ],
+    // 快捷统计
+    stats: [
+      { label: '发帖', value: 0 },
+      { label: '收藏', value: 0 },
+      { label: '点赞', value: 0 }
+    ]
+  },
+
+  onLoad() {
+    console.log('我的页面加载');
+  },
+
+  // 点击登录
+  onLogin() {
+    wx.showToast({ title: '登录功能即将上线', icon: 'none' });
+  },
+
+  // 点击菜单
+  onMenuTap(e) {
+    const type = e.currentTarget.dataset.type;
+    const tipMap = {
+      posts:    '我的发帖功能即将上线',
+      favorites:'收藏功能即将上线',
+      contact:  '请通过小程序右上角反馈',
+      help:     '使用说明即将完善',
+      about:    '平江汇生活 - 平江人自己的生活服务平台'
+    };
+    wx.showToast({ title: tipMap[type] || '即将上线', icon: 'none', duration: 2000 });
+  },
+
+  onShareAppMessage() {
+    return {
+      title: '平江汇生活 - 平江人自己的服务平台',
+      path: '/pages/home/home'
+    };
+  }
+});
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\hospital\hospital.json ==========
+{
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\hospital\hospital.wxml ==========
+<!--pages/services/convenience/hospital/hospital.wxml-->
+<text>pages/services/convenience/hospital/hospital.wxml</text>
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\hospital\hospital.wxss ==========
+/* pages/services/convenience/hospital/hospital.wxss */
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\house\house.js ==========
+// pages/services/convenience/house/house.js
+Page({
+
+  /**
+   * 页面的初始数据
+   */
+  data: {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面加载
+   */
+  onLoad(options) {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面初次渲染完成
+   */
+  onReady() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面显示
+   */
+  onShow() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面隐藏
+   */
+  onHide() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面卸载
+   */
+  onUnload() {
+
+  },
+
+  /**
+   * 页面相关事件处理函数--监听用户下拉动作
+   */
+  onPullDownRefresh() {
+
+  },
+
+  /**
+   * 页面上拉触底事件的处理函数
+   */
+  onReachBottom() {
+
+  },
+
+  /**
+   * 用户点击右上角分享
+   */
+  onShareAppMessage() {
+
+  }
+})
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\house\house.json ==========
+{
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\house\house.wxml ==========
+<!--pages/services/convenience/house/house.wxml-->
+<text>pages/services/convenience/house/house.wxml</text>
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\house\house.wxss ==========
+/* pages/services/convenience/house/house.wxss */
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\housekeeper\housekeeper.js ==========
+// pages/services/convenience/housekeeper/housekeeper.js
+Page({
+
+  /**
+   * 页面的初始数据
+   */
+  data: {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面加载
+   */
+  onLoad(options) {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面初次渲染完成
+   */
+  onReady() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面显示
+   */
+  onShow() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面隐藏
+   */
+  onHide() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面卸载
+   */
+  onUnload() {
+
+  },
+
+  /**
+   * 页面相关事件处理函数--监听用户下拉动作
+   */
+  onPullDownRefresh() {
+
+  },
+
+  /**
+   * 页面上拉触底事件的处理函数
+   */
+  onReachBottom() {
+
+  },
+
+  /**
+   * 用户点击右上角分享
+   */
+  onShareAppMessage() {
+
+  }
+})
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\housekeeper\housekeeper.json ==========
+{
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\housekeeper\housekeeper.wxml ==========
+<!--pages/services/convenience/housekeeper/housekeeper.wxml-->
+<text>pages/services/convenience/housekeeper/housekeeper.wxml</text>
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\housekeeper\housekeeper.wxss ==========
+/* pages/services/convenience/housekeeper/housekeeper.wxss */
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\job\job.js ==========
+// pages/services/convenience/job/job.js
+Page({
+  data: {
+    currentArea: 'all',
+    currentType: 'all',
+    areaList: [
+      { id: 'all', name: '全部区域' },
+      { id: 'chengguan', name: '城关镇' },
+      { id: 'sanyang', name: '三阳乡' },
+      { id: 'anding', name: '安定镇' },
+      { id: 'jiayi', name: '嘉义镇' }
+    ],
+    jobTypeList: [
+      { id: 'all', name: '全部' },
+      { id: 'sales', name: '销售' },
+      { id: 'service', name: '客服' },
+      { id: 'cashier', name: '收银' },
+      { id: 'food', name: '餐饮' },
+      { id: 'clean', name: '保洁' }
+    ],
+    jobList: [
+      {
+        id: 1,
+        title: '超市收银员',
+        salary: '3500-4500元/月',
+        type: '全职',
+        count: 3,
+        company: '平江县步步高超市',
+        location: '平江县城关镇天虹城',
+        require: '年满18周岁，身体健康，有收银经验者优先。无经验可培训',
+        publishDate: '2025-06-01',
+        phone: '13800138000'
+      },
+      {
+        id: 2,
+        title: '餐厅服务员',
+        salary: '3000-4000元/月',
+        type: '全职',
+        count: 5,
+        company: '平江某餐厅',
+        location: '平江县城关镇',
+        require: '形象良好，吃苦耐劳，有服务经验者优先',
+        publishDate: '2025-06-02',
+        phone: '13900139000'
+      },
+      {
+        id: 3,
+        title: '装修工人',
+        salary: '200-400元/天',
+        type: '兼职',
+        count: 10,
+        company: '平江某装修公司',
+        location: '平江县城区',
+        require: '有一定装修经验，身体健康',
+        publishDate: '2025-06-03',
+        phone: '15000150000'
+      }
+    ]
+  },
+
+  onLoad() {
+    console.log('招聘页面加载')
+  },
+
+  onAreaChange(e) {
+    this.setData({ currentArea: e.currentTarget.dataset.id })
+  },
+
+  onTypeChange(e) {
+    this.setData({ currentType: e.currentTarget.dataset.id })
+  },
+
+  goToDetail(e) {
+    const id = e.currentTarget.dataset.id
+    wx.navigateTo({ url: `/pages/services/detail/detail?id=${id}&type=job` })
+  },
+
+  onContact(e) {
+    const phone = e.currentTarget.dataset.phone
+    wx.makePhoneCall({ phoneNumber: phone })
+  },
+
+  onPublish() {
+    wx.showToast({ title: '发布功能即将上线', icon: 'none' })
+  }
+})
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\job\job.json ==========
+{
+  "navigationBarTitleText": "招聘信息",
+  "navigationBarBackgroundColor": "#2ecc71",
+  "navigationBarTextStyle": "white"
+}
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\job\job.wxml ==========
+<!-- pages/services/convenience/job/job.wxml -->
+<view class="container">
+
+<!-- 页面标题 + 右上角按钮 -->
+<view class="page-header">
+  <view class="header-left">
+    <text class="page-title">💼 招聘信息</text>
+    <text class="page-subtitle">平江本地找好工作更简单</text>
+  </view>
+  <view class="header-right-btn" bindtap="onPublish">
+    <text class="header-btn-text">➕ 我要招人</text>
+  </view>
+</view>
+
+<!-- ⚠️ 提醒语 -->
+<view class="warning-bar">
+  <text class="warning-text">⚠️ 信息由用户发布，平台不担责，请自行核把关谨防受骗！</text>
+</view>
+
+<!-- 区域筛选 -->
+<scroll-view class="filter-scroll" scroll-x="{{true}}" enable-flex="{{true}}">
+  <view class="filter-row">
+    <view
+      wx:for="{{areaList}}"
+      wx:key="id"
+      class="filter-chip {{currentArea === item.id ? 'chip-active' : ''}}"
+      bindtap="onAreaChange"
+      data-id="{{item.id}}"
+    >{{item.name}}</view>
+  </view>
+</scroll-view>
+
+<!-- 岗位类型筛选 -->
+<scroll-view class="filter-scroll" scroll-x="{{true}}" enable-flex="{{true}}">
+  <view class="filter-row">
+    <view
+      wx:for="{{jobTypeList}}"
+      wx:key="id"
+      class="filter-chip {{currentType === item.id ? 'chip-active' : ''}}"
+      bindtap="onTypeChange"
+      data-id="{{item.id}}"
+    >{{item.name}}</view>
+  </view>
+</scroll-view>
+
+<!-- 职位列表 -->
+<view class="list-wrap">
+  <view
+    wx:for="{{jobList}}"
+    wx:key="id"
+    class="job-card"
+    hover-class="card-hover"
+  >
+    <!-- 顶部：职位 + 薪资 -->
+    <view class="job-top">
+      <view class="job-left">
+        <text class="job-title">{{item.title}}</text>
+        <text class="job-salary">{{item.salary}}</text>
+      </view>
+      <view class="job-type-tag">{{item.type}}</view>
+    </view>
+
+    <!-- 图片区 -->
+    <view class="card-img">
+      <text class="img-tip">暂无企业图片</text>
+    </view>
+
+    <!-- 详情 -->
+    <view class="job-body">
+      <view class="info-row">
+        <text class="info-label">招聘人数：</text>
+        <text class="info-val">{{item.count}}人</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">📍</text>
+        <text class="info-val">{{item.company}} · {{item.location}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">岗位要求：</text>
+        <text class="info-val">{{item.require}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">发布：</text>
+        <text class="info-val">{{item.publishDate}}</text>
+      </view>
+    </view>
+
+    <!-- 底部按钮 -->
+    <view class="job-footer">
+      <view class="contact-btn" catchtap="onContact" data-phone="{{item.phone}}">
+        立即联系
+      </view>
+    </view>
+
+    <!-- 底部警示 -->
+    <view class="card-warn">⚠️ 请您核实信息，不要提前付费，谨防诈骗</view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{jobList.length === 0}}" class="empty-wrap">
+    <text class="empty-icon">💼</text>
+    <text class="empty-text">暂无职位</text>
+  </view>
+</view>
+
+</view>
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\job\job.wxss ==========
+/* pages/services/convenience/job/job.wxss */
+page { background: #f5f6fa; }
+
+.container {
+  min-height: 100vh;
+  background: #f5f6fa;
+  padding-bottom: 80rpx;
+}
+
+/* 顶部 - 含右上角按钮 */
+.page-header {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  padding: 40rpx 32rpx 36rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.page-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
+.page-subtitle {
+  font-size: 28rpx;
+  color: rgba(255,255,255,0.85);
+  margin-top: 8rpx;
+}
+
+/* 右上角"我要招人"按钮 */
+.header-right-btn {
+  background: #FF6B35;
+  border-radius: 40rpx;
+  padding: 14rpx 28rpx;
+  margin-left: 20rpx;
+  flex-shrink: 0;
+}
+
+.header-btn-text {
+  color: #fff;
+  font-size: 26rpx;
+  font-weight: bold;
+}
+
+/* ⚠️ 提醒语 */
+.warning-bar {
+  background: #FFF8E1;
+  border-left: 6rpx solid #FFC107;
+  margin: 20rpx 24rpx;
+  border-radius: 10rpx;
+  padding: 18rpx 20rpx;
+}
+
+.warning-text {
+  font-size: 26rpx;
+  color: #7a5800;
+  line-height: 1.6;
+}
+
+/* 筛选 */
+.filter-scroll {
+  width: 100%;
+  padding: 0 0 0 24rpx;
+  margin-bottom: 12rpx;
+}
+
+.filter-row {
+  display: flex;
+  flex-direction: row;
+  padding-right: 24rpx;
+}
+
+.filter-chip {
+  flex-shrink: 0;
+  padding: 12rpx 28rpx;
+  border-radius: 40rpx;
+  background: #fff;
+  color: #555;
+  font-size: 28rpx;
+  margin-right: 16rpx;
+  border: 2rpx solid #e0e0e0;
+}
+
+.chip-active {
+  background: #2ecc71;
+  color: #fff;
+  border-color: #2ecc71;
+  font-weight: 600;
+}
+
+/* 列表 */
+.list-wrap { padding: 12rpx 24rpx 0; }
+
+/* 卡片 */
+.job-card {
+  background: #fff;
+  border-radius: 20rpx;
+  margin-bottom: 28rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 16rpx rgba(0,0,0,0.07);
+}
+
+.card-hover { opacity: 0.9; }
+
+.job-top {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 24rpx 24rpx 0;
+}
+
+.job-left { flex: 1; margin-right: 16rpx; }
+
+.job-title {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #222;
+  display: block;
+}
+
+.job-salary {
+  font-size: 34rpx;
+  font-weight: 800;
+  color: #e74c3c;
+  margin-top: 8rpx;
+  display: block;
+}
+
+.job-type-tag {
+  background: #e8f8ee;
+  color: #27ae60;
+  font-size: 24rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+}
+
+.card-img {
+  width: 100%;
+  height: 140rpx;
+  background: #f5f5f5;
+  margin: 16rpx 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.img-tip { font-size: 26rpx; color: #aaa; }
+
+.job-body { padding: 20rpx 24rpx; }
+
+.info-row {
+  display: flex;
+  flex-direction: row;
+  margin-bottom: 12rpx;
+}
+
+.info-label { font-size: 28rpx; color: #888; flex-shrink: 0; }
+.info-val { font-size: 28rpx; color: #333; flex: 1; line-height: 1.5; }
+
+.job-footer {
+  padding: 0 24rpx 20rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.contact-btn {
+  background: #2ecc71;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: 600;
+  padding: 14rpx 48rpx;
+  border-radius: 30rpx;
+}
+
+.card-warn {
+  background: #FFF8E1;
+  font-size: 24rpx;
+  color: #8B6914;
+  padding: 14rpx 24rpx;
+  border-top: 1rpx solid #ffe082;
+}
+
+.empty-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 0;
+}
+
+.empty-icon { font-size: 100rpx; }
+.empty-text { font-size: 32rpx; color: #aaa; margin-top: 24rpx; }
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\rental\rental.js ==========
+// pages/services/convenience/rental/rental.js
+Page({
+  data: {
+    currentArea: 'all',
+    currentType: 'all',
+    areaList: [
+      { id: 'all', name: '全部区域' },
+      { id: 'chengguan', name: '城关镇' },
+      { id: 'sanyang', name: '三阳乡' },
+      { id: 'anding', name: '安定镇' },
+      { id: 'jiayi', name: '嘉义镇' }
+    ],
+    typeList: [
+      { id: 'all', name: '全部' },
+      { id: 'zhengzu', name: '整租' },
+      { id: 'hezu', name: '合租' },
+      { id: 'shangpu', name: '商铺' }
+    ],
+    rentalList: [
+      {
+        id: 1,
+        title: '平江老街附近2室1厅整租',
+        type: '整租',
+        price: '2200',
+        room: '2室1厅',
+        toilet: '1卫',
+        area: '平江区平江路附近',
+        desc: '房屋干净整洁，家具家电齐全，拎包入住。楼层适中，采光好，交通便利。',
+        tags: ['拎包入住', '近菜场', '有停车'],
+        publishDate: '今天',
+        phone: '13800138000'
+      },
+      {
+        id: 2,
+        title: '干净合租房单间，近菜市场',
+        type: '合租',
+        price: '680',
+        room: '单间',
+        toilet: '1卫',
+        area: '平江区北寺塔附近',
+        desc: '室内干净整洁，生活便利，交通方便，拎包入住。',
+        tags: ['近菜市场', '拎包入住'],
+        publishDate: '今天',
+        phone: '13900139000'
+      }
+    ]
+  },
+
+  onLoad() {
+    console.log('租赁页面加载')
+  },
+
+  onAreaChange(e) {
+    this.setData({ currentArea: e.currentTarget.dataset.id })
+  },
+
+  onTypeChange(e) {
+    this.setData({ currentType: e.currentTarget.dataset.id })
+  },
+
+  goToDetail(e) {
+    const id = e.currentTarget.dataset.id
+    wx.navigateTo({ url: `/pages/services/detail/detail?id=${id}&type=rental` })
+  },
+
+  onContact(e) {
+    const phone = e.currentTarget.dataset.phone
+    wx.makePhoneCall({ phoneNumber: phone })
+  },
+
+  onPublish() {
+    wx.showToast({ title: '发布功能即将上线', icon: 'none' })
+  }
+})
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\rental\rental.json ==========
+{
+  "navigationBarTitleText": "房屋租赁",
+  "navigationBarBackgroundColor": "#4A90D9",
+  "navigationBarTextStyle": "white"
+}
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\rental\rental.wxml ==========
+<!-- pages/services/convenience/rental/rental.wxml -->
+<view class="container">
+
+<!-- 页面标题 + 右上角按钮 -->
+<view class="page-header">
+  <view class="header-left">
+    <text class="page-title">🏠 房屋租赁</text>
+    <text class="page-subtitle">平江本地租房 安心租住</text>
+  </view>
+  <view class="header-right-btn" bindtap="onPublish">
+    <text class="header-btn-text">➕ 我要发房</text>
+  </view>
+</view>
+
+<!-- ⚠️ 提醒语 -->
+<view class="warning-bar">
+  <text class="warning-text">⚠️ 信息由用户发布，须自行核验谨防受骗，平台概不负责</text>
+</view>
+
+<!-- 区域筛选 -->
+<scroll-view class="filter-scroll" scroll-x="{{true}}" enable-flex="{{true}}">
+  <view class="filter-row">
+    <view
+      wx:for="{{areaList}}"
+      wx:key="id"
+      class="filter-chip {{currentArea === item.id ? 'chip-active' : ''}}"
+      bindtap="onAreaChange"
+      data-id="{{item.id}}"
+    >{{item.name}}</view>
+  </view>
+</scroll-view>
+
+<!-- 类型筛选 -->
+<scroll-view class="filter-scroll" scroll-x="{{true}}" enable-flex="{{true}}">
+  <view class="filter-row">
+    <view
+      wx:for="{{typeList}}"
+      wx:key="id"
+      class="filter-chip {{currentType === item.id ? 'chip-active' : ''}}"
+      bindtap="onTypeChange"
+      data-id="{{item.id}}"
+    >{{item.name}}</view>
+  </view>
+</scroll-view>
+
+<!-- 房源列表 -->
+<view class="list-wrap">
+  <view
+    wx:for="{{rentalList}}"
+    wx:key="id"
+    class="rental-card"
+    hover-class="card-hover"
+  >
+    <!-- 图片区 -->
+    <view class="card-img">
+      <view class="img-placeholder">
+        <text class="img-tip">暂无房源图片</text>
+      </view>
+    </view>
+
+    <!-- 信息区 -->
+    <view class="card-body">
+      <!-- 标题行 -->
+      <view class="card-title-row">
+        <text class="card-title">{{item.title}}</text>
+        <view class="card-type-tag">{{item.type}}</view>
+      </view>
+
+      <!-- 价格 + 户型 -->
+      <view class="price-row">
+        <text class="price-main">{{item.price}}元/月</text>
+        <text class="price-sub">{{item.room}} / {{item.toilet}}</text>
+      </view>
+
+      <!-- 地址 -->
+      <view class="addr-row">
+        <text class="addr-text">📍 {{item.area}}</text>
+      </view>
+
+      <!-- 描述 -->
+      <text class="card-desc">{{item.desc}}</text>
+
+      <!-- 标签 -->
+      <view class="tag-row">
+        <view class="tag-item" wx:for="{{item.tags}}" wx:key="*this" wx:for-item="tag">
+          {{tag}}
+        </view>
+      </view>
+
+      <!-- 底部：发布时间 + 按钮 -->
+      <view class="card-footer">
+        <text class="publish-date">发布：{{item.publishDate}}</text>
+        <view class="contact-btn" catchtap="onContact" data-phone="{{item.phone}}">
+          联系房东
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部警示 -->
+    <view class="card-warn">⚠️ 请当面核实合同，核实房东证件，谨防诈骗</view>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{rentalList.length === 0}}" class="empty-wrap">
+    <text class="empty-icon">🏠</text>
+    <text class="empty-text">暂无房源</text>
+  </view>
+</view>
+
+</view>
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\rental\rental.wxss ==========
+/* pages/services/convenience/rental/rental.wxss */
+page { background: #f5f6fa; }
+
+.container {
+  min-height: 100vh;
+  background: #f5f6fa;
+  padding-bottom: 80rpx;
+}
+
+/* 顶部 - 含右上角按钮 */
+.page-header {
+  background: linear-gradient(135deg, #4A90D9, #2c7be5);
+  padding: 40rpx 32rpx 36rpx;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.page-title {
+  font-size: 44rpx;
+  font-weight: 700;
+  color: #fff;
+}
+
+.page-subtitle {
+  font-size: 28rpx;
+  color: rgba(255,255,255,0.85);
+  margin-top: 8rpx;
+}
+
+/* 右上角"我要发房"按钮 */
+.header-right-btn {
+  background: #FF6B35;
+  border-radius: 40rpx;
+  padding: 14rpx 28rpx;
+  margin-left: 20rpx;
+  flex-shrink: 0;
+}
+
+.header-btn-text {
+  color: #fff;
+  font-size: 26rpx;
+  font-weight: bold;
+}
+
+/* ⚠️ 提醒语 */
+.warning-bar {
+  background: #FFF8E1;
+  border-left: 6rpx solid #FFC107;
+  margin: 20rpx 24rpx;
+  border-radius: 10rpx;
+  padding: 18rpx 20rpx;
+}
+
+.warning-text {
+  font-size: 26rpx;
+  color: #7a5800;
+  line-height: 1.6;
+}
+
+/* 筛选 */
+.filter-scroll {
+  width: 100%;
+  padding: 0 0 0 24rpx;
+  margin-bottom: 12rpx;
+}
+
+.filter-row {
+  display: flex;
+  flex-direction: row;
+  padding-right: 24rpx;
+}
+
+.filter-chip {
+  flex-shrink: 0;
+  padding: 12rpx 28rpx;
+  border-radius: 40rpx;
+  background: #fff;
+  color: #555;
+  font-size: 28rpx;
+  margin-right: 16rpx;
+  border: 2rpx solid #e0e0e0;
+}
+
+.chip-active {
+  background: #4A90D9;
+  color: #fff;
+  border-color: #4A90D9;
+  font-weight: 600;
+}
+
+/* 列表 */
+.list-wrap { padding: 12rpx 24rpx 0; }
+
+/* 卡片 */
+.rental-card {
+  background: #fff;
+  border-radius: 20rpx;
+  margin-bottom: 28rpx;
+  overflow: hidden;
+  box-shadow: 0 2rpx 16rpx rgba(0,0,0,0.07);
+}
+
+.card-hover { opacity: 0.9; }
+
+.card-img {
+  width: 100%;
+  height: 200rpx;
+  background: #e8f4ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.img-placeholder { display: flex; align-items: center; justify-content: center; }
+.img-tip { font-size: 26rpx; color: #aaa; }
+
+.card-body { padding: 24rpx 24rpx 16rpx; }
+
+.card-title-row {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-title { font-size: 34rpx; font-weight: 700; color: #222; flex: 1; }
+
+.card-type-tag {
+  background: #e8f4ff;
+  color: #4A90D9;
+  font-size: 24rpx;
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+  margin-left: 12rpx;
+}
+
+.price-row {
+  display: flex;
+  flex-direction: row;
+  align-items: baseline;
+  margin-top: 12rpx;
+  gap: 16rpx;
+}
+
+.price-main { font-size: 40rpx; font-weight: 800; color: #e74c3c; }
+.price-sub { font-size: 26rpx; color: #888; }
+
+.addr-row { margin-top: 10rpx; }
+.addr-text { font-size: 28rpx; color: #666; }
+
+.card-desc {
+  font-size: 28rpx;
+  color: #555;
+  line-height: 1.6;
+  margin-top: 12rpx;
+  display: block;
+}
+
+.tag-row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  margin-top: 14rpx;
+  gap: 10rpx;
+}
+
+.tag-item {
+  background: #f0f7ff;
+  color: #4A90D9;
+  font-size: 24rpx;
+  padding: 4rpx 18rpx;
+  border-radius: 20rpx;
+}
+
+.card-footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 16rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #f0f0f0;
+}
+
+.publish-date { font-size: 26rpx; color: #aaa; }
+
+.contact-btn {
+  background: #4A90D9;
+  color: #fff;
+  font-size: 28rpx;
+  font-weight: 600;
+  padding: 12rpx 32rpx;
+  border-radius: 30rpx;
+}
+
+.card-warn {
+  background: #FFF8E1;
+  font-size: 24rpx;
+  color: #8B6914;
+  padding: 14rpx 24rpx;
+  border-top: 1rpx solid #ffe082;
+}
+
+.empty-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 0;
+}
+
+.empty-icon { font-size: 100rpx; }
+.empty-text { font-size: 32rpx; color: #aaa; margin-top: 24rpx; }
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\utilities\utilities.js ==========
+// pages/services/convenience/utilities/utilities.js
+Page({
+
+  /**
+   * 页面的初始数据
+   */
+  data: {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面加载
+   */
+  onLoad(options) {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面初次渲染完成
+   */
+  onReady() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面显示
+   */
+  onShow() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面隐藏
+   */
+  onHide() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面卸载
+   */
+  onUnload() {
+
+  },
+
+  /**
+   * 页面相关事件处理函数--监听用户下拉动作
+   */
+  onPullDownRefresh() {
+
+  },
+
+  /**
+   * 页面上拉触底事件的处理函数
+   */
+  onReachBottom() {
+
+  },
+
+  /**
+   * 用户点击右上角分享
+   */
+  onShareAppMessage() {
+
+  }
+})
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\utilities\utilities.json ==========
+{
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\utilities\utilities.wxml ==========
+<!--pages/services/convenience/utilities/utilities.wxml-->
+<text>pages/services/convenience/utilities/utilities.wxml</text>
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\utilities\utilities.wxss ==========
+/* pages/services/convenience/utilities/utilities.wxss */
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\water\water.js ==========
+// miniprogram/pages/services/convenience/water/water.js
+Page({
+  data: {
+    officialLinks: [
+      {
+        id: 1,
+        title: '国家电网停电信息查询',
+        desc: '拨打95598或微信搜索"国网95598"小程序查询',
+        icon: '⚡',
+        color: '#E6A817',
+        bgColor: '#FFF8E6',
+        url: '',
+        phone: '95598',
+        tag: '官方',
+        canOpen: false,
+        tip: '请拨打 95598 或微信搜索「国网95598」小程序查询停电信息'
+      },
+      {
+        id: 2,
+        title: '平江自来水公司停水公告',
+        desc: '平江县自来水有限公司服务热线',
+        icon: '💧',
+        color: '#4A90D9',
+        bgColor: '#EDF5FF',
+        url: '',
+        phone: '0730-6822345',
+        tag: '官方',
+        canOpen: false,
+        tip: '请拨打平江自来水公司服务热线查询停水信息'
+      },
+      {
+        id: 3,
+        title: '湖南电力 95598 官方小程序',
+        desc: '微信搜索「国网95598」即可查询计划停电',
+        icon: '🔌',
+        color: '#67C23A',
+        bgColor: '#F0F9EB',
+        url: '',
+        phone: '95598',
+        tag: '推荐',
+        canOpen: false,
+        tip: '请微信搜索小程序「国网95598」查询平江停电信息，更准确！'
+      }
+    ],
+    localNotices: [
+      {
+        id: 1,
+        type: '停水',
+        area: '杨园小区',
+        time: '今日 14:00 - 18:00',
+        reason: '管道维修',
+        desc: '请提前储水备用，恢复供水后可能出现短暂浑浊，请放水至清澈后使用。',
+        color: '#4A90D9',
+        icon: '💧',
+        isNew: true
+      },
+      {
+        id: 2,
+        type: '停电',
+        area: '城关镇北街片区',
+        time: '明日 09:00 - 17:00',
+        reason: '线路改造',
+        desc: '10千伏平江线路升级改造，影响北街、粮食局宿舍等区域。',
+        color: '#E6A817',
+        icon: '⚡',
+        isNew: true
+      }
+    ]
+  },
+
+  onLoad() {
+    wx.setNavigationBarTitle({ title: '停水停电通知' });
+  },
+
+  goToOfficial(e) {
+    const item = e.currentTarget.dataset.item;
+    wx.showModal({
+      title: item.title,
+      content: item.tip + '\n\n📞 服务热线：' + item.phone,
+      confirmText: '拨打热线',
+      cancelText: '知道了',
+      success(res) {
+        if (res.confirm) {
+          wx.makePhoneCall({ phoneNumber: item.phone });
+        }
+      }
+    });
+  },
+
+  callRepair(e) {
+    const { phone } = e.currentTarget.dataset;
+    wx.makePhoneCall({
+      phoneNumber: phone,
+      fail() {
+        wx.showToast({ title: '拨号失败', icon: 'none' });
+      }
+    });
+  }
+});
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\water\water.json ==========
+{
+  "navigationBarTitleText": "停水停电通知",
+  "navigationBarBackgroundColor": "#FF6B35",
+  "navigationBarTextStyle": "white",
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\water\water.wxml ==========
+<scroll-view scroll-y enable-flex class="page-wrap">
+
+<!-- 顶部说明 -->
+<view class="top-tip">
+  <text class="tip-icon">📢</text>
+  <text class="tip-text">信息来源均为官方平台，点击直接跳转查询，如无法打开可拨打热线</text>
+</view>
+
+<!-- 本地公告 -->
+<view class="section-card">
+  <view class="section-header">
+    <text class="section-title">📋 近期通知</text>
+    <text class="section-sub">社区整理·仅供参考</text>
+  </view>
+  <view
+    wx:for="{{localNotices}}"
+    wx:key="id"
+    class="notice-card"
+    style="border-left-color: {{item.color}};"
+  >
+    <view class="notice-top">
+      <view class="notice-badge" style="background: {{item.color}};">
+        <text>{{item.icon}} {{item.type}}</text>
+      </view>
+      <text wx:if="{{item.isNew}}" class="new-tag">NEW</text>
+      <text class="notice-area">{{item.area}}</text>
+    </view>
+    <view class="notice-time">🕐 {{item.time}} · {{item.reason}}</view>
+    <view class="notice-desc">{{item.desc}}</view>
+  </view>
+</view>
+
+<!-- 报修电话 -->
+<view class="section-card">
+  <view class="section-header">
+    <text class="section-title">📞 报修热线</text>
+    <text class="section-sub">点击直接拨打</text>
+  </view>
+  <view class="phone-list">
+    <view class="phone-item" bindtap="callRepair" data-phone="95598">
+      <text class="phone-icon">⚡</text>
+      <view class="phone-info">
+        <text class="phone-name">电力报修 · 国网客服</text>
+        <text class="phone-num">95598</text>
+      </view>
+      <view class="call-btn">拨打</view>
+    </view>
+    <view class="phone-item" bindtap="callRepair" data-phone="96969">
+      <text class="phone-icon">💧</text>
+      <view class="phone-info">
+        <text class="phone-name">自来水报修</text>
+        <text class="phone-num">96969</text>
+      </view>
+      <view class="call-btn">拨打</view>
+    </view>
+  </view>
+</view>
+
+<!-- 官方平台入口 -->
+<view class="section-card">
+  <view class="section-header">
+    <text class="section-title">🔗 官方查询入口</text>
+    <text class="section-sub">点击跳转官方网站</text>
+  </view>
+  <view
+    wx:for="{{officialLinks}}"
+    wx:key="id"
+    class="official-item"
+    style="background: {{item.bgColor}};"
+    bindtap="goToOfficial"
+    data-item="{{item}}"
+    hover-class="item-hover"
+  >
+    <view class="official-icon" style="color: {{item.color}};">{{item.icon}}</view>
+    <view class="official-info">
+      <view class="official-title-row">
+        <text class="official-title">{{item.title}}</text>
+        <text class="official-tag" style="background: {{item.color}};">{{item.tag}}</text>
+      </view>
+      <text class="official-desc">{{item.desc}}</text>
+      <text class="official-phone" style="color: {{item.color}};">📞 热线：{{item.phone}}</text>
+    </view>
+    <text class="official-arrow" style="color: {{item.color}};">›</text>
+  </view>
+</view>
+
+<view style="height: 60rpx;"></view>
+</scroll-view>
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\water\water.wxss ==========
+/* miniprogram/pages/services/convenience/water/water.wxss */
+.page-wrap {
+  background: #F5F5F5;
+  min-height: 100vh;
+  padding: 16rpx 0;
+}
+
+/* 顶部提示 */
+.top-tip {
+  display: flex;
+  align-items: flex-start;
+  background: #EDF5FF;
+  margin: 0 16rpx 16rpx;
+  padding: 20rpx 24rpx;
+  border-radius: 12rpx;
+  gap: 12rpx;
+}
+.tip-icon { font-size: 30rpx; }
+.tip-text {
+  font-size: 24rpx;
+  color: #4A90D9;
+  line-height: 1.6;
+  flex: 1;
+}
+
+/* 卡片 */
+.section-card {
+  background: #fff;
+  border-radius: 16rpx;
+  margin: 0 16rpx 16rpx;
+  padding: 24rpx;
+}
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+.section-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+}
+.section-sub {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 本地通知卡片 */
+.notice-card {
+  border-left: 6rpx solid #ccc;
+  padding: 16rpx 16rpx 16rpx 20rpx;
+  background: #FAFAFA;
+  border-radius: 0 12rpx 12rpx 0;
+  margin-bottom: 16rpx;
+}
+.notice-top {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-bottom: 10rpx;
+}
+.notice-badge {
+  color: #fff;
+  font-size: 22rpx;
+  padding: 4rpx 14rpx;
+  border-radius: 20rpx;
+}
+.new-tag {
+  background: #FF4444;
+  color: #fff;
+  font-size: 20rpx;
+  padding: 2rpx 10rpx;
+  border-radius: 8rpx;
+}
+.notice-area {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  flex: 1;
+}
+.notice-time {
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 8rpx;
+}
+.notice-desc {
+  font-size: 26rpx;
+  color: #555;
+  line-height: 1.6;
+}
+
+/* 报修电话 */
+.phone-list { display: flex; flex-direction: column; gap: 16rpx; }
+.phone-item {
+  display: flex;
+  align-items: center;
+  background: #FAFAFA;
+  border-radius: 12rpx;
+  padding: 20rpx;
+  gap: 16rpx;
+}
+.phone-icon { font-size: 40rpx; }
+.phone-info { flex: 1; }
+.phone-name {
+  display: block;
+  font-size: 26rpx;
+  color: #666;
+  margin-bottom: 6rpx;
+}
+.phone-num {
+  display: block;
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #333;
+}
+.call-btn {
+  background: #FF6B35;
+  color: #fff;
+  font-size: 26rpx;
+  padding: 12rpx 28rpx;
+  border-radius: 24rpx;
+}
+
+/* 官方平台 */
+.official-item {
+  display: flex;
+  align-items: center;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  margin-bottom: 16rpx;
+  gap: 16rpx;
+}
+.item-hover { opacity: 0.75; }
+.official-icon { font-size: 48rpx; }
+.official-info { flex: 1; }
+.official-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 6rpx;
+}
+.official-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+}
+.official-tag {
+  font-size: 20rpx;
+  color: #fff;
+  padding: 2rpx 10rpx;
+  border-radius: 8rpx;
+}
+.official-desc {
+  font-size: 24rpx;
+  color: #666;
+  margin-bottom: 6rpx;
+}
+.official-phone {
+  font-size: 24rpx;
+  font-weight: bold;
+}
+.official-arrow {
+  font-size: 40rpx;
+  font-weight: bold;
+}
+
+/* 访问提示 */
+.access-tip {
+  background: #FFF8E1;
+  border-radius: 10rpx;
+  padding: 16rpx 20rpx;
+  margin-top: 8rpx;
+}
+.access-tip-text {
+  font-size: 24rpx;
+  color: #8B6914;
+  line-height: 1.6;
+}
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\convenience.js ==========
+// pages/services/convenience/convenience.js
+Page({
+  data: {
+    currentType: '',
+    pageTitle: '',
+
+    // 找工作数据
+    jobList: [
+      { id: 1, name: '超市收银员', salary: '3000-4000元/月', company: '平江县联华超市', tags: '五险 · 包午餐 · 双休' },
+      { id: 2, name: '保安', salary: '2800-3500元/月', company: '平江县物业管理公司', tags: '包住 · 统一制服' },
+      { id: 3, name: '家政阿姨', salary: '150-200元/天', company: '居民个人招聘', tags: '灵活上班 · 按天结算' },
+      { id: 4, name: '厂务工人', salary: '4000-6000元/月', company: '平江县纺织厂', tags: '计件 · 包三餐 · 有宿舍' }
+    ],
+
+    // 房屋租售
+    houseList: [
+      { id: 1, title: '3室2厅 精装出租', price: '1500元/月', desc: '平江县城区，近菜市场，家电齐全', contact: '138xxxx1234' },
+      { id: 2, title: '2室1厅 出售', price: '28万元', desc: '城区老小区，步梯4楼，采光好', contact: '139xxxx5678' },
+      { id: 3, title: '门面出租', price: '3000元/月', desc: '步行街旁，适合餐饮小吃', contact: '136xxxx9012' }
+    ],
+
+    // 停水停电
+    waterList: [
+      { id: 1, type: 'water', typeName: '停水', title: '城区检修停水通知', time: '5月26日 8:00-18:00', area: '建设路、文明路沿线' },
+      { id: 2, type: 'electric', typeName: '停电', title: '线路维护停电通知', time: '5月27日 9:00-15:00', area: '南江路、河西小区' },
+      { id: 3, type: 'water', typeName: '停水', title: '管网改造停水通知', time: '5月30日 全天', area: '城东新区' }
+    ],
+
+    // 医院
+    hospitalList: [
+      { id: 1, name: '平江县人民医院', address: '平江县城关镇长寿路', phone: '0730-6822120' },
+      { id: 2, name: '平江县中医医院', address: '平江县城关镇胜利街', phone: '0730-6822456' },
+      { id: 3, name: '平江县妇幼保健院', address: '平江县城关镇建设路', phone: '0730-6822789' }
+    ],
+
+    // 办事指南
+    govList: [
+      { id: 1, name: '户籍办理', desc: '身份证、户口本相关业务', address: '平江县公安局户籍科' },
+      { id: 2, name: '医保社保', desc: '参保缴费、报销查询', address: '平江县人社局服务大厅' },
+      { id: 3, name: '不动产登记', desc: '房产证办理、过户手续', address: '平江县不动产登记中心' },
+      { id: 4, name: '营业执照', desc: '个体工商户注册登记', address: '平江县市场监督管理局' }
+    ],
+
+    // 家政维修
+    repairList: [
+      { id: 1, name: '李师傅', score: '4.9', skill: '水电维修、管道疏通', phone: '138xxxx1111' },
+      { id: 2, name: '王阿姨', score: '4.8', skill: '家政保洁、月嫂服务', phone: '139xxxx2222' },
+      { id: 3, name: '张师傅', score: '4.7', skill: '家电维修、空调安装', phone: '136xxxx3333' }
+    ]
+  },
+
+  onLoad(options) {
+    const type = options.type || 'job'
+    const titleMap = {
+      job: '找工作',
+      house: '房屋租售',
+      repair: '家政维修',
+      water: '停水停电',
+      gov: '办事指南',
+      hospital: '医院专区',
+      bus: '公交查询',
+      market: '集市信息'
+    }
+    this.setData({
+      currentType: type,
+      pageTitle: titleMap[type] || '便民服务'
+    })
+  },
+
+  // 拨打电话
+  makeCall(e) {
+    const phone = e.currentTarget.dataset.phone
+    wx.makePhoneCall({ phoneNumber: phone })
+  }
+})
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\convenience.json ==========
+{
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\convenience.wxml ==========
+<!-- pages/services/convenience/convenience.wxml -->
+<view class="page-container">
+
+<!-- 顶部返回区 -->
+<view class="page-header">
+  <text class="header-title">{{pageTitle}}</text>
+</view>
+
+<!-- 找工作 -->
+<block wx:if="{{currentType === 'job'}}">
+  <view class="section">
+    <view class="section-title">🔥 热招职位</view>
+    <view class="job-list">
+      <view class="job-item" wx:for="{{jobList}}" wx:key="id">
+        <view class="job-top">
+          <text class="job-name">{{item.name}}</text>
+          <text class="job-salary">{{item.salary}}</text>
+        </view>
+        <text class="job-company">{{item.company}}</text>
+        <text class="job-tags">{{item.tags}}</text>
+      </view>
+    </view>
+  </view>
+</block>
+
+<!-- 房屋租售 -->
+<block wx:if="{{currentType === 'house'}}">
+  <view class="section">
+    <view class="section-title">🏠 房源信息</view>
+    <view class="house-list">
+      <view class="house-item" wx:for="{{houseList}}" wx:key="id">
+        <view class="house-top">
+          <text class="house-title">{{item.title}}</text>
+          <text class="house-price">{{item.price}}</text>
+        </view>
+        <text class="house-desc">{{item.desc}}</text>
+        <text class="house-contact">联系：{{item.contact}}</text>
+      </view>
+    </view>
+  </view>
+</block>
+
+<!-- 停水停电 -->
+<block wx:if="{{currentType === 'water'}}">
+  <view class="section">
+    <view class="section-title">📋 近期通知</view>
+    <view class="notice-list">
+      <view class="notice-item" wx:for="{{waterList}}" wx:key="id">
+        <view class="notice-badge {{item.type}}">{{item.typeName}}</view>
+        <view class="notice-info">
+          <text class="notice-title">{{item.title}}</text>
+          <text class="notice-time">时间：{{item.time}}</text>
+          <text class="notice-area">区域：{{item.area}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</block>
+
+<!-- 医院专区 -->
+<block wx:if="{{currentType === 'hospital'}}">
+  <view class="section">
+    <view class="section-title">🏥 医院信息</view>
+    <view class="hospital-list">
+      <view class="hospital-item" wx:for="{{hospitalList}}" wx:key="id">
+        <text class="hospital-name">{{item.name}}</text>
+        <text class="hospital-address">地址：{{item.address}}</text>
+        <view class="hospital-actions">
+          <view class="btn-call" bindtap="makeCall" data-phone="{{item.phone}}">
+            📞 拨打电话
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</block>
+
+<!-- 办事指南 -->
+<block wx:if="{{currentType === 'gov'}}">
+  <view class="section">
+    <view class="section-title">🏛️ 常用办事</view>
+    <view class="gov-list">
+      <view class="gov-item" wx:for="{{govList}}" wx:key="id">
+        <text class="gov-name">{{item.name}}</text>
+        <text class="gov-desc">{{item.desc}}</text>
+        <text class="gov-addr">地址：{{item.address}}</text>
+      </view>
+    </view>
+  </view>
+</block>
+
+<!-- 家政维修 -->
+<block wx:if="{{currentType === 'repair'}}">
+  <view class="section">
+    <view class="section-title">🔧 附近师傅</view>
+    <view class="repair-list">
+      <view class="repair-item" wx:for="{{repairList}}" wx:key="id">
+        <view class="repair-top">
+          <text class="repair-name">{{item.name}}</text>
+          <text class="repair-score">⭐{{item.score}}</text>
+        </view>
+        <text class="repair-skill">擅长：{{item.skill}}</text>
+        <view class="btn-call" bindtap="makeCall" data-phone="{{item.phone}}">
+          📞 立即联系
+        </view>
+      </view>
+    </view>
+  </view>
+</block>
+
+<!-- 其他通用 -->
+<block wx:if="{{currentType === 'bus' || currentType === 'market'}}">
+  <view class="section coming-soon">
+    <text class="coming-icon">🚧</text>
+    <text class="coming-text">该功能即将上线</text>
+    <text class="coming-sub">敬请期待</text>
+  </view>
+</block>
+
+</view>
+
+========== D:\平江汇生活\miniprogram\pages\services\convenience\convenience.wxss ==========
+/* pages/services/convenience/convenience.wxss */
+
+.page-container {
+  background-color: #fdf6e3;
+  min-height: 100vh;
+  padding-bottom: 60rpx;
+}
+
+.page-header {
+  background: linear-gradient(135deg, #8B6914, #c8a951);
+  padding: 40rpx 30rpx;
+}
+
+.header-title {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #fff;
+}
+
+.section {
+  margin: 20rpx 24rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(139,105,20,0.08);
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #5a3e10;
+  margin-bottom: 24rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 2rpx solid #f5e6c0;
+}
+
+/* 找工作 */
+.job-list { display: flex; flex-direction: column; gap: 20rpx; }
+.job-item {
+  background: #fffdf5;
+  border: 1rpx solid #f0dfa0;
+  border-radius: 16rpx;
+  padding: 20rpx;
+}
+.job-top { display: flex; justify-content: space-between; margin-bottom: 10rpx; }
+.job-name { font-size: 30rpx; font-weight: bold; color: #333; }
+.job-salary { font-size: 28rpx; color: #e07000; font-weight: bold; }
+.job-company { font-size: 26rpx; color: #666; margin-bottom: 8rpx; display: block; }
+.job-tags { font-size: 22rpx; color: #999; }
+
+/* 房屋 */
+.house-list { display: flex; flex-direction: column; gap: 20rpx; }
+.house-item {
+  background: #fffdf5;
+  border: 1rpx solid #f0dfa0;
+  border-radius: 16rpx;
+  padding: 20rpx;
+}
+.house-top { display: flex; justify-content: space-between; margin-bottom: 10rpx; }
+.house-title { font-size: 30rpx; font-weight: bold; color: #333; }
+.house-price { font-size: 28rpx; color: #e07000; font-weight: bold; }
+.house-desc { font-size: 26rpx; color: #666; display: block; margin-bottom: 8rpx; }
+.house-contact { font-size: 24rpx; color: #8B6914; }
+
+/* 停水停电 */
+.notice-list { display: flex; flex-direction: column; gap: 20rpx; }
+.notice-item {
+  display: flex;
+  gap: 16rpx;
+  background: #fffdf5;
+  border-radius: 16rpx;
+  padding: 20rpx;
+  border: 1rpx solid #f0dfa0;
+}
+.notice-badge {
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 22rpx;
+  height: fit-content;
+  flex-shrink: 0;
+}
+.notice-badge.water { background: #d0eaff; color: #0066cc; }
+.notice-badge.electric { background: #fff0d0; color: #cc6600; }
+.notice-info { display: flex; flex-direction: column; gap: 8rpx; }
+.notice-title { font-size: 28rpx; color: #333; font-weight: bold; }
+.notice-time, .notice-area { font-size: 24rpx; color: #666; }
+
+/* 医院 */
+.hospital-list { display: flex; flex-direction: column; gap: 20rpx; }
+.hospital-item {
+  background: #fffdf5;
+  border: 1rpx solid #f0dfa0;
+  border-radius: 16rpx;
+  padding: 20rpx;
+}
+.hospital-name { font-size: 30rpx; font-weight: bold; color: #333; display: block; margin-bottom: 10rpx; }
+.hospital-address { font-size: 26rpx; color: #666; display: block; margin-bottom: 16rpx; }
+
+/* 办事 */
+.gov-list { display: flex; flex-direction: column; gap: 20rpx; }
+.gov-item {
+  background: #fffdf5;
+  border: 1rpx solid #f0dfa0;
+  border-radius: 16rpx;
+  padding: 20rpx;
+}
+.gov-name { font-size: 30rpx; font-weight: bold; color: #333; display: block; margin-bottom: 8rpx; }
+.gov-desc { font-size: 26rpx; color: #666; display: block; margin-bottom: 8rpx; }
+.gov-addr { font-size: 24rpx; color: #999; }
+
+/* 家政维修 */
+.repair-list { display: flex; flex-direction: column; gap: 20rpx; }
+.repair-item {
+  background: #fffdf5;
+  border: 1rpx solid #f0dfa0;
+  border-radius: 16rpx;
+  padding: 20rpx;
+}
+.repair-top { display: flex; justify-content: space-between; margin-bottom: 8rpx; }
+.repair-name { font-size: 30rpx; font-weight: bold; color: #333; }
+.repair-score { font-size: 26rpx; color: #e07000; }
+.repair-skill { font-size: 26rpx; color: #666; display: block; margin-bottom: 16rpx; }
+
+/* 拨号按钮 */
+.btn-call {
+  background: linear-gradient(135deg, #8B6914, #c8a951);
+  color: #fff;
+  font-size: 28rpx;
+  padding: 16rpx 0;
+  border-radius: 50rpx;
+  text-align: center;
+  margin-top: 10rpx;
+}
+
+/* 即将上线 */
+.coming-soon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0;
+}
+.coming-icon { font-size: 80rpx; margin-bottom: 20rpx; }
+.coming-text { font-size: 32rpx; color: #5a3e10; font-weight: bold; }
+.coming-sub { font-size: 26rpx; color: #999; margin-top: 10rpx; }
+
+========== D:\平江汇生活\miniprogram\pages\services\index.js ==========
+// pages/services/index.js
+Page({
+  data: {},
+
+  // 点击服务跳转详情页
+  goToConvenience(e) {
+    const type = e.currentTarget.dataset.type
+    wx.navigateTo({
+      url: `/pages/services/convenience/convenience?type=${type}`
+    })
+  }
+})
+
+========== D:\平江汇生活\miniprogram\pages\services\index.json ==========
+{
+  "usingComponents": {},
+  "navigationBarTitleText": "便民服务",
+  "navigationBarBackgroundColor": "#8B5E3C",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#FFF8F0",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark"
+}
+
+========== D:\平江汇生活\miniprogram\pages\services\index.wxml ==========
+<!--pages/services/services.wxml-->
+<view class="container">
+
+<view class="page-header">
+  <text class="page-title">便民服务</text>
+  <text class="page-sub">为您提供生活所需的各类服务</text>
+</view>
+
+<!-- 6大服务模块 -->
+<view class="service-list">
+
+  <view class="service-card" bindtap="goDetail" data-id="medical">
+    <text class="service-icon">🏥</text>
+    <view class="service-info">
+      <text class="service-name">医疗健康</text>
+      <text class="service-desc">预约挂号、健康咨询、药店查询</text>
+    </view>
+    <text class="arrow">›</text>
+  </view>
+
+  <view class="service-card" bindtap="goDetail" data-id="home">
+    <text class="service-icon">🔧</text>
+    <view class="service-info">
+      <text class="service-name">家政维修</text>
+      <text class="service-desc">水电维修、保洁服务、家电维修</text>
+    </view>
+    <text class="arrow">›</text>
+  </view>
+
+  <view class="service-card" bindtap="goDetail" data-id="gov">
+    <text class="service-icon">🏛️</text>
+    <view class="service-info">
+      <text class="service-name">政务办理</text>
+      <text class="service-desc">证件办理、社保查询、便民申请</text>
+    </view>
+    <text class="arrow">›</text>
+  </view>
+
+  <view class="service-card" bindtap="goDetail" data-id="traffic">
+    <text class="service-icon">🚌</text>
+    <view class="service-info">
+      <text class="service-name">交通出行</text>
+      <text class="service-desc">公交查询、停车信息、出行导航</text>
+    </view>
+    <text class="arrow">›</text>
+  </view>
+
+  <view class="service-card" bindtap="goDetail" data-id="edu">
+    <text class="service-icon">📚</text>
+    <view class="service-info">
+      <text class="service-name">教育培训</text>
+      <text class="service-desc">老年大学、兴趣课程、子女教育</text>
+    </view>
+    <text class="arrow">›</text>
+  </view>
+
+  <view class="service-card" bindtap="goDetail" data-id="shop">
+    <text class="service-icon">🛒</text>
+    <view class="service-info">
+      <text class="service-name">生活购物</text>
+      <text class="service-desc">周边超市、团购优惠、生鲜配送</text>
+    </view>
+    <text class="arrow">›</text>
+  </view>
+
+</view>
+</view>
+
+========== D:\平江汇生活\miniprogram\pages\services\index.wxss ==========
+/* pages/services/index.wxss */
+
+.page-container {
+  background-color: #fdf6e3;
+  min-height: 100vh;
+  padding-bottom: 40rpx;
+}
+
+/* 顶部标题 */
+.page-header {
+  background: linear-gradient(135deg, #8B6914, #c8a951);
+  padding: 40rpx 30rpx 30rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.header-title {
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #fff;
+}
+
+.header-sub {
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.8);
+  margin-top: 8rpx;
+}
+
+/* 搜索栏 */
+.search-bar {
+  margin: 20rpx 24rpx;
+  background: #fff;
+  border-radius: 50rpx;
+  display: flex;
+  align-items: center;
+  padding: 16rpx 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(139,105,20,0.1);
+}
+
+.search-icon {
+  font-size: 30rpx;
+  margin-right: 12rpx;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.search-placeholder {
+  color: #bbb;
+  font-size: 28rpx;
+}
+
+/* 分区 */
+.section {
+  margin: 20rpx 24rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(139,105,20,0.08);
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #5a3e10;
+  margin-bottom: 24rpx;
+}
+
+/* 九宫格 */
+.grid-container {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.grid-item {
+  width: 25%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx 0;
+}
+
+.grid-icon {
+  font-size: 52rpx;
+  margin-bottom: 10rpx;
+}
+
+.grid-text {
+  font-size: 24rpx;
+  color: #5a3e10;
+  text-align: center;
+}
+
+/* 公告 */
+.notice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.notice-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+}
+
+.notice-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background-color: #c8a951;
+  margin-top: 12rpx;
+  flex-shrink: 0;
+}
+
+.notice-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.notice-text {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.5;
+}
+
+.notice-date {
+  font-size: 22rpx;
+  color: #999;
+}
+
+========== D:\平江汇生活\miniprogram\pages\services\services.js ==========
+Page({
+
+  data: {},
+
+  onLoad: function() {},
+
+  goToJobs: function() {
+    wx.navigateTo({
+      url: '/pages/services/convenience/job/job'
+    });
+  },
+
+  goToRent: function() {
+    wx.navigateTo({
+      url: '/pages/services/convenience/rental/rental'
+    });
+  },
+
+  goToHomeService: function() {
+    wx.navigateTo({
+      url: '/pages/services/convenience/homeservice/homeservice'
+    });
+  },
+
+  goToNotice: function() {
+    wx.navigateTo({
+      url: '/pages/services/convenience/water/water'
+    });
+  },
+
+  goToGuide: function() {
+    wx.navigateTo({
+      url: '/pages/services/convenience/guide/guide'
+    });
+  },
+
+  goToHospital: function() {
+    wx.showToast({
+      title: '医院专区即将开放',
+      icon: 'none',
+      duration: 2000
+    });
+  }
+
+});
+
+========== D:\平江汇生活\miniprogram\pages\services\services.json ==========
+{
+  "navigationBarTitleText": "便民服务",
+  "navigationBarBackgroundColor": "#e8a020",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#fdf6ec"
+}
+
+========== D:\平江汇生活\miniprogram\pages\services\services.wxml ==========
+<!-- pages/services/services.wxml -->
+<view class="page-container">
+
+<!-- 顶部标题栏 -->
+<view class="page-header">
+  <text class="page-title">便民服务</text>
+  <text class="page-subtitle">平江本地生活服务平台</text>
+</view>
+
+<!-- 6个功能入口 - 每行2个，大图标大字体 -->
+<view class="service-grid">
+
+  <!-- 入口1：找工作 -->
+  <view class="service-item" bindtap="goToJobs">
+    <view class="service-icon-wrap blue">
+      <text class="service-icon">💼</text>
+    </view>
+    <text class="service-name">找工作</text>
+    <text class="service-desc">本地招聘信息</text>
+  </view>
+
+  <!-- 入口2：房屋租赁 -->
+  <view class="service-item" bindtap="goToRent">
+    <view class="service-icon-wrap orange">
+      <text class="service-icon">🏠</text>
+    </view>
+    <text class="service-name">房屋租赁</text>
+    <text class="service-desc">周边房源查询</text>
+  </view>
+
+  <!-- 入口3：家政维修 -->
+  <view class="service-item" bindtap="goToHomeService">
+    <view class="service-icon-wrap yellow">
+      <text class="service-icon">🔧</text>
+    </view>
+    <text class="service-name">家政维修</text>
+    <text class="service-desc">专业上门服务</text>
+  </view>
+
+  <!-- 入口4：停水停电 -->
+  <view class="service-item" bindtap="goToNotice">
+    <view class="service-icon-wrap red">
+      <text class="service-icon">🚨</text>
+    </view>
+    <text class="service-name">停水停电</text>
+    <text class="service-desc">官方通知查询</text>
+  </view>
+
+  <!-- 入口5：办事指南 -->
+  <view class="service-item" bindtap="goToGuide">
+    <view class="service-icon-wrap green">
+      <text class="service-icon">📋</text>
+    </view>
+    <text class="service-name">办事指南</text>
+    <text class="service-desc">政务服务入口</text>
+  </view>
+
+  <!-- 入口6：更多服务 -->
+  <view class="service-item" bindtap="goToHospital">
+    <view class="service-icon-wrap gray">
+      <text class="service-icon">🔜</text>
+    </view>
+    <text class="service-name">更多服务</text>
+    <text class="service-desc">敬请期待</text>
+    <view class="coming-soon-tag">
+      <text>即将上线</text>
+    </view>
+  </view>
+
+</view>
+
+<!-- 底部说明 -->
+<view class="page-footer">
+  <text class="footer-text">更多服务陆续上线 · 欢迎反馈建议</text>
+</view>
+
+</view>
+
+========== D:\平江汇生活\miniprogram\pages\services\services.wxss ==========
+/* pages/services/services.wxss */
+.page-container {
+  min-height: 100vh;
+  background-color: #fdf6ec;
+  padding-bottom: 120rpx;
+}
+
+/* 顶部标题 */
+.page-header {
+  background: linear-gradient(135deg, #e8a020, #f5c842);
+  padding: 60rpx 40rpx 50rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.page-title {
+  font-size: 52rpx;
+  font-weight: bold;
+  color: #ffffff;
+  letter-spacing: 4rpx;
+}
+
+.page-subtitle {
+  font-size: 30rpx;
+  color: rgba(255, 255, 255, 0.85);
+  margin-top: 12rpx;
+}
+
+/* 功能宫格 - 每行2个 */
+.service-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28rpx;
+  padding: 40rpx 30rpx;
+}
+
+/* 每个入口 */
+.service-item {
+  background: #ffffff;
+  border-radius: 24rpx;
+  padding: 50rpx 20rpx 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+  min-height: 260rpx;
+}
+
+/* 图标圆圈 - 更大 */
+.service-icon-wrap {
+  width: 136rpx;
+  height: 136rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 24rpx;
+}
+
+/* 图标更大 */
+.service-icon { font-size: 68rpx; }
+
+/* 各颜色背景 */
+.blue         { background-color: #e6f0ff; }
+.orange       { background-color: #fff3e6; }
+.yellow       { background-color: #fffbe6; }
+.red          { background-color: #ffe6e6; }
+.green        { background-color: #e6f7ee; }
+.gray         { background-color: #f0f0f0; }
+
+/* 入口名称 - 更大 */
+.service-name {
+  font-size: 38rpx;
+  font-weight: bold;
+  color: #333333;
+  margin-bottom: 10rpx;
+}
+
+/* 入口描述 - 更大 */
+.service-desc {
+  font-size: 28rpx;
+  color: #999999;
+  text-align: center;
+}
+
+/* 即将上线标签 */
+.coming-soon-tag {
+  position: absolute;
+  top: 16rpx;
+  right: 16rpx;
+  background-color: #ff4d4f;
+  border-radius: 20rpx;
+  padding: 4rpx 14rpx;
+}
+
+.coming-soon-tag text {
+  font-size: 20rpx;
+  color: #ffffff;
+}
+
+/* 底部说明 */
+.page-footer {
+  text-align: center;
+  padding: 30rpx 0 20rpx;
+}
+
+.footer-text { font-size: 28rpx; color: #bbbbbb; }
+
+========== D:\平江汇生活\miniprogram\pages\webview\webview.js ==========
+// pages/webview/webview.js
+Page({
+
+  /**
+   * 页面的初始数据
+   */
+  data: {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面加载
+   */
+  onLoad(options) {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面初次渲染完成
+   */
+  onReady() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面显示
+   */
+  onShow() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面隐藏
+   */
+  onHide() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面卸载
+   */
+  onUnload() {
+
+  },
+
+  /**
+   * 页面相关事件处理函数--监听用户下拉动作
+   */
+  onPullDownRefresh() {
+
+  },
+
+  /**
+   * 页面上拉触底事件的处理函数
+   */
+  onReachBottom() {
+
+  },
+
+  /**
+   * 用户点击右上角分享
+   */
+  onShareAppMessage() {
+
+  }
+})
+
+========== D:\平江汇生活\miniprogram\pages\webview\webview.json ==========
+{
+  "usingComponents": {}
+}
+
+========== D:\平江汇生活\miniprogram\pages\webview\webview.wxml ==========
+<!--pages/webview/webview.wxml-->
+<text>pages/webview/webview.wxml</text>
+
+========== D:\平江汇生活\miniprogram\pages\webview\webview.wxss ==========
+/* pages/webview/webview.wxss */
+
+========== D:\平江汇生活\miniprogram\app.js ==========
+// app.js
+App({
+  onLaunch: function () {
+    this.globalData = {
+      env: "", // 暂未配置云环境ID，云功能暂时关闭
+    };
+
+    // ✅ 修复：env为空时跳过云初始化，避免timeout报错
+    if (!wx.cloud) {
+      console.log("当前基础库不支持云开发，跳过初始化");
+    } else if (this.globalData.env && this.globalData.env !== "") {
+      wx.cloud.init({
+        env: this.globalData.env,
+        traceUser: true,
+      });
+      console.log("云开发初始化成功，环境ID：", this.globalData.env);
+    } else {
+      console.log("云环境ID未配置，跳过云初始化，不影响基础功能使用");
+    }
+  },
+});
+
+========== D:\平江汇生活\miniprogram\app.json ==========
+{
+  "pages": [
+    "pages/home/home",
+    "pages/services/services",
+    "pages/community/community",
+    "pages/mine/mine",
+    "pages/services/convenience/job/job",
+    "pages/services/convenience/rental/rental",
+    "pages/services/convenience/homeservice/homeservice",
+    "pages/services/convenience/water/water",
+    "pages/services/convenience/guide/guide",
+    "pages/services/convenience/hospital/hospital",
+    "pages/common/webview/webview",
+    "pages/community/index",
+    "pages/ai/ai"
+  ],
+  "window": {
+    "backgroundTextStyle": "light",
+    "navigationBarBackgroundColor": "#FFF8EE",
+    "navigationBarTitleText": "平江汇生活",
+    "navigationBarTextStyle": "black",
+    "backgroundColor": "#F5F0E8"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#D4820A",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/home",
+        "text": "首页",
+        "iconPath": "images/tab_home.png",
+        "selectedIconPath": "images/tab_home_active.png"
+      },
+      {
+        "pagePath": "pages/services/services",
+        "text": "便民服务",
+        "iconPath": "images/tab_service.png",
+        "selectedIconPath": "images/tab_service_active.png"
+      },
+      {
+        "pagePath": "pages/community/community",
+        "text": "平江贴吧",
+        "iconPath": "images/tab_community.png",
+        "selectedIconPath": "images/tab_community_active.png"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的",
+        "iconPath": "images/tab_mine.png",
+        "selectedIconPath": "images/tab_mine_active.png"
+      }
+    ]
+  },
+  "style": "v2",
+  "sitemapLocation": "sitemap.json"
+}
+
+========== D:\平江汇生活\miniprogram\app.wxss ==========
+/* 全局样式 米黄色护眼风格 */
+page {
+  background-color: #FFF8F0;
+  font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+  color: #333333;
+}
+
+========== D:\平江汇生活\miniprogram\envList.js ==========
+const envList = [];
+const isMac = false;
+module.exports = {
+  envList,
+  isMac
+};
+
+========== D:\平江汇生活\miniprogram\sitemap.json ==========
+{
+  "desc": "关于本文件的更多信息，请参考文档 https://developers.weixin.qq.com/miniprogram/dev/framework/sitemap.html",
+  "rules": [{
+    "action": "allow",
+    "page": "*"
+  }]
+}
+
+========== D:\平江汇生活\project.config.json ==========
+{
+  "miniprogramRoot": "miniprogram/",
+  "cloudfunctionRoot": "cloudfunctions/",
+  "setting": {
+    "urlCheck": true,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "preloadBackgroundData": false,
+    "minified": true,
+    "newFeature": true,
+    "coverView": true,
+    "nodeModules": false,
+    "autoAudits": false,
+    "showShadowRootInWxmlPanel": true,
+    "scopeDataCheck": false,
+    "uglifyFileName": false,
+    "checkInvalidKey": true,
+    "checkSiteMap": true,
+    "uploadWithSourceMap": true,
+    "compileHotReLoad": false,
+    "useMultiFrameRuntime": true,
+    "useApiHook": true,
+    "useApiHostProcess": true,
+    "babelSetting": {
+      "ignore": [],
+      "disablePlugins": [],
+      "outputPath": ""
+    },
+    "enableEngineNative": false,
+    "useIsolateContext": true,
+    "useCompilerModule": true,
+    "userConfirmedUseCompilerModuleSwitch": false,
+    "userConfirmedBundleSwitch": false,
+    "packNpmManually": false,
+    "packNpmRelationList": [],
+    "minifyWXSS": true,
+    "compileWorklet": false,
+    "minifyWXML": true,
+    "localPlugins": false,
+    "disableUseStrict": false,
+    "useCompilerPlugins": false,
+    "condition": false,
+    "swc": false,
+    "disableSWC": true
+  },
+  "appid": "wx1617221bfdca407b",
+  "projectname": "quickstart-wx-cloud",
+  "libVersion": "2.20.1",
+  "cloudfunctionTemplateRoot": "cloudfunctionTemplate/",
+  "condition": {
+    "search": {
+      "list": []
+    },
+    "conversation": {
+      "list": []
+    },
+    "plugin": {
+      "list": []
+    },
+    "game": {
+      "list": []
+    },
+    "miniprogram": {
+      "list": [
+        {
+          "id": -1,
+          "name": "db guide",
+          "pathName": "pages/databaseGuide/databaseGuide"
+        }
+      ]
+    }
+  },
+  "compileType": "miniprogram",
+  "srcMiniprogramRoot": "miniprogram/",
+  "packOptions": {
+    "ignore": [],
+    "include": []
+  },
+  "editorSetting": {
+    "tabIndent": "insertSpaces",
+    "tabSize": 2
+  },
+  "simulatorPluginLibVersion": {}
+}
+
+========== D:\平江汇生活\project.private.config.json ==========
+{
+  "setting": {
+    "compileHotReLoad": true,
+    "urlCheck": false,
+    "coverView": true,
+    "lazyloadPlaceholderEnable": false,
+    "skylineRenderEnable": false,
+    "preloadBackgroundData": false,
+    "autoAudits": false,
+    "useApiHook": true,
+    "useApiHostProcess": true,
+    "showShadowRootInWxmlPanel": true,
+    "useStaticServer": false,
+    "useLanDebug": false,
+    "showES6CompileOption": false,
+    "checkInvalidKey": true,
+    "ignoreDevUnusedFiles": true,
+    "bigPackageSizeSupport": false,
+    "useIsolateContext": true
+  },
+  "condition": {},
+  "description": "项目私有配置文件。此文件中的内容将覆盖 project.config.json 中的相同字段。项目的改动优先同步到此文件中。详见文档：https://developers.weixin.qq.com/miniprogram/dev/devtools/projectconfig.html",
+  "projectname": "%E5%B9%B3%E6%B1%9F%E6%B1%87%E7%94%9F%E6%B4%BB",
+  "libVersion": "3.6.6"
+}

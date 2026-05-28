@@ -1,2 +1,36 @@
-<!--pages/community/community.wxml-->
-<text>pages/community/community.wxml</text>
+<view class="container">
+  <view class="banner">
+    <text class="banner-icon">💬</text>
+    <view class="banner-text">
+      <text class="banner-title">平江贴吧</text>
+      <text class="banner-sub">街坊邻里 畅所欲言</text>
+    </view>
+  </view>
+  <view class="post-list">
+    <view class="post-card" wx:for="{{posts}}" wx:key="id">
+      <view class="post-header">
+        <text class="avatar">{{item.avatar}}</text>
+        <view class="post-meta">
+          <text class="nickname">{{item.nickname}}</text>
+          <text class="post-time">{{item.time}}</text>
+        </view>
+      </view>
+      <text class="post-content">{{item.content}}</text>
+      <view class="post-actions">
+        <view class="action-btn {{item.liked ? 'liked' : ''}}" bindtap="handleLike" data-id="{{item.id}}">
+          <text>{{item.liked ? '❤️' : '🤍'}} {{item.likes}}</text>
+        </view>
+        <view class="action-btn" bindtap="handleComment" data-id="{{item.id}}">
+          <text>💬 {{item.comments}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+  <view class="fab" bindtap="handlePost">
+    <text class="fab-icon">✏️</text>
+    <text class="fab-text">发帖</text>
+  </view>
+  <view class="footer-tip">
+    <text>🌟 文明发言 和谐平江</text>
+  </view>
+</view>

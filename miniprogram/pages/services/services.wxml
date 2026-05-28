@@ -1,75 +1,77 @@
+<!-- pages/services/services.wxml -->
 <view class="page-container">
-  <!-- 顶部标题栏 -->
-  <view class="page-header">
-    <text class="page-title">便民服务</text>
-    <text class="page-subtitle">平江本地生活服务平台</text>
+
+<!-- 顶部标题栏 -->
+<view class="page-header">
+  <text class="page-title">便民服务</text>
+  <text class="page-subtitle">平江本地生活服务平台</text>
+</view>
+
+<!-- 6个功能入口 - 每行2个，大图标大字体 -->
+<view class="service-grid">
+
+  <!-- 入口1：找工作 -->
+  <view class="service-item" bindtap="goToJobs">
+    <view class="service-icon-wrap blue">
+      <text class="service-icon">💼</text>
+    </view>
+    <text class="service-name">找工作</text>
+    <text class="service-desc">本地招聘信息</text>
   </view>
 
-  <!-- 6个功能入口 -->
-  <view class="service-grid">
-
-    <!-- 入口1：找工作 -->
-    <view class="service-item" bindtap="goToJobs">
-      <view class="service-icon-wrap blue">
-        <text class="service-icon">💼</text>
-      </view>
-      <text class="service-name">找工作</text>
-      <text class="service-desc">本地招聘</text>
+  <!-- 入口2：房屋租赁 -->
+  <view class="service-item" bindtap="goToRent">
+    <view class="service-icon-wrap orange">
+      <text class="service-icon">🏠</text>
     </view>
-
-    <!-- 入口2：房屋租赁 -->
-    <view class="service-item" bindtap="goToRent">
-      <view class="service-icon-wrap orange">
-        <text class="service-icon">🏠</text>
-      </view>
-      <text class="service-name">房屋租赁</text>
-      <text class="service-desc">周边房源</text>
-    </view>
-
-    <!-- 入口3：家政维修 -->
-    <view class="service-item" bindtap="goToHomeService">
-      <view class="service-icon-wrap yellow">
-        <text class="service-icon">🔧</text>
-      </view>
-      <text class="service-name">家政维修</text>
-      <text class="service-desc">上门服务</text>
-    </view>
-
-    <!-- 入口4：停水停电 -->
-    <view class="service-item" bindtap="goToNotice">
-      <view class="service-icon-wrap red">
-        <text class="service-icon">🚨</text>
-      </view>
-      <text class="service-name">停水停电</text>
-      <text class="service-desc">实时通知</text>
-    </view>
-
-    <!-- 入口5：办事指南 -->
-    <view class="service-item" bindtap="goToGuide">
-      <view class="service-icon-wrap green">
-        <text class="service-icon">📋</text>
-      </view>
-      <text class="service-name">办事指南</text>
-      <text class="service-desc">政务服务</text>
-    </view>
-
-    <!-- 入口6：医院专区 -->
-    <view class="service-item" bindtap="goToHospital">
-      <view class="service-icon-wrap hospital-red">
-        <text class="service-icon">🏥</text>
-      </view>
-      <text class="service-name">医院专区</text>
-      <text class="service-desc">即将开放</text>
-      <view class="coming-soon-tag">
-        <text>敬请期待</text>
-      </view>
-    </view>
-
+    <text class="service-name">房屋租赁</text>
+    <text class="service-desc">周边房源查询</text>
   </view>
 
-  <!-- 底部说明 -->
-  <view class="page-footer">
-    <text class="footer-text">更多服务陆续上线 · 欢迎反馈建议</text>
+  <!-- 入口3：家政维修 -->
+  <view class="service-item" bindtap="goToHomeService">
+    <view class="service-icon-wrap yellow">
+      <text class="service-icon">🔧</text>
+    </view>
+    <text class="service-name">家政维修</text>
+    <text class="service-desc">专业上门服务</text>
   </view>
+
+  <!-- 入口4：停水停电 -->
+  <view class="service-item" bindtap="goToNotice">
+    <view class="service-icon-wrap red">
+      <text class="service-icon">🚨</text>
+    </view>
+    <text class="service-name">停水停电</text>
+    <text class="service-desc">官方通知查询</text>
+  </view>
+
+  <!-- 入口5：办事指南 -->
+  <view class="service-item" bindtap="goToGuide">
+    <view class="service-icon-wrap green">
+      <text class="service-icon">📋</text>
+    </view>
+    <text class="service-name">办事指南</text>
+    <text class="service-desc">政务服务入口</text>
+  </view>
+
+  <!-- 入口6：更多服务 -->
+  <view class="service-item" bindtap="goToHospital">
+    <view class="service-icon-wrap gray">
+      <text class="service-icon">🔜</text>
+    </view>
+    <text class="service-name">更多服务</text>
+    <text class="service-desc">敬请期待</text>
+    <view class="coming-soon-tag">
+      <text>即将上线</text>
+    </view>
+  </view>
+
+</view>
+
+<!-- 底部说明 -->
+<view class="page-footer">
+  <text class="footer-text">更多服务陆续上线 · 欢迎反馈建议</text>
+</view>
 
 </view>

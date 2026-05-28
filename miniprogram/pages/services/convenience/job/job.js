@@ -1,86 +1,43 @@
 // pages/services/convenience/job/job.js
 Page({
   data: {
-    currentArea: 'all',
-    currentType: 'all',
-    areaList: [
-      { id: 'all', name: '全部区域' },
-      { id: 'chengguan', name: '城关镇' },
-      { id: 'sanyang', name: '三阳乡' },
-      { id: 'anding', name: '安定镇' },
-      { id: 'jiayi', name: '嘉义镇' }
-    ],
-    jobTypeList: [
-      { id: 'all', name: '全部' },
-      { id: 'sales', name: '销售' },
-      { id: 'service', name: '客服' },
-      { id: 'cashier', name: '收银' },
-      { id: 'food', name: '餐饮' },
-      { id: 'clean', name: '保洁' }
-    ],
-    jobList: [
-      {
-        id: 1,
-        title: '超市收银员',
-        salary: '3500-4500元/月',
-        type: '全职',
-        count: 3,
-        company: '平江县步步高超市',
-        location: '平江县城关镇天虹城',
-        require: '年满18周岁，身体健康，有收银经验者优先。无经验可培训',
-        publishDate: '2025-06-01',
-        phone: '13800138000'
-      },
-      {
-        id: 2,
-        title: '餐厅服务员',
-        salary: '3000-4000元/月',
-        type: '全职',
-        count: 5,
-        company: '平江某餐厅',
-        location: '平江县城关镇',
-        require: '形象良好，吃苦耐劳，有服务经验者优先',
-        publishDate: '2025-06-02',
-        phone: '13900139000'
-      },
-      {
-        id: 3,
-        title: '装修工人',
-        salary: '200-400元/天',
-        type: '兼职',
-        count: 10,
-        company: '平江某装修公司',
-        location: '平江县城区',
-        require: '有一定装修经验，身体健康',
-        publishDate: '2025-06-03',
-        phone: '15000150000'
-      }
-    ]
+    jobList: [],
+    isLoading: false
   },
 
   onLoad() {
     console.log('招聘页面加载')
+    wx.setNavigationBarTitle({ title: '招聘信息' })
+    this.loadJobList()
   },
 
-  onAreaChange(e) {
-    this.setData({ currentArea: e.currentTarget.dataset.id })
+  loadJobList() {
+    // 平江本地招聘数据（可替换为接口）
+    this.setData({
+      jobList: [
+        { id: 1, title: '客服专员', company: '平江某企业', salary: '3000-5000', area: '平江县城' },
+        { id: 2, title: '电商运营', company: '平江电商园', salary: '4000-6000', area: '平江县城' },
+        { id: 3, title: '家政服务员', company: '平江家政', salary: '2500-4000', area: '全县' }
+      ]
+    })
   },
 
-  onTypeChange(e) {
-    this.setData({ currentType: e.currentTarget.dataset.id })
-  },
-
-  goToDetail(e) {
-    const id = e.currentTarget.dataset.id
-    wx.navigateTo({ url: `/pages/services/detail/detail?id=${id}&type=job` })
-  },
-
+  // 联系招聘
   onContact(e) {
-    const phone = e.currentTarget.dataset.phone
-    wx.makePhoneCall({ phoneNumber: phone })
+    const item = e.currentTarget.dataset.item
+    wx.showModal({
+      title: '联系招聘方',
+      content: `职位：${item.title}\n公司：${item.company}`,
+      confirmText: '拨打电话',
+      success: (res) => {
+        if (res.confirm) {
+          wx.makePhoneCall({ phoneNumber: '0730-1234567' })
+        }
+      }
+    })
   },
 
-  onPublish() {
-    wx.showToast({ title: '发布功能即将上线', icon: 'none' })
+  onShareAppMessage() {
+    return { title: '平江招聘信息', path: '/pages/services/convenience/job/job' }
   }
 })

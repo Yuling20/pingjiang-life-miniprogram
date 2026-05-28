@@ -9,41 +9,13 @@ Page({
       air: '空气良'
     },
     bannerList: [
-      {
-        id: 1,
-        icon: '🚨',
-        title: '停水停电通知',
-        desc: '点击查看最新通知公告',
-        bgColor: '#E74C3C',
-        type: 'water'
-      },
-      {
-        id: 2,
-        icon: '💼',
-        title: '本地招聘信息',
-        desc: '平江最新招聘职位',
-        bgColor: '#2980B9',
-        type: 'job'
-      },
-      {
-        id: 3,
-        icon: '🏠',
-        title: '房屋租赁',
-        desc: '平江本地房源汇总',
-        bgColor: '#27AE60',
-        type: 'rental'
-      },
-      {
-        id: 4,
-        icon: '🔧',
-        title: '家政维修',
-        desc: '专业上门服务',
-        bgColor: '#8E44AD',
-        type: 'homeservice'
-      }
+      { id: 1, icon: '🚨', title: '停水停电通知', desc: '点击查看最新通知公告', bgColor: '#E74C3C', type: 'water' },
+      { id: 2, icon: '💼', title: '本地招聘信息', desc: '平江最新招聘职位', bgColor: '#2980B9', type: 'job' },
+      { id: 3, icon: '🏠', title: '房屋租赁', desc: '平江本地房源汇总', bgColor: '#27AE60', type: 'rental' },
+      { id: 4, icon: '🔧', title: '家政维修', desc: '专业上门服务', bgColor: '#8E44AD', type: 'homeservice' }
     ],
     quickMenuList: [
-      { id: 1, icon: '🏥', name: '医院', type: 'hospital' },
+      { id: 1, icon: '💬', name: '贴吧', type: 'community' },
       { id: 2, icon: '💼', name: '招聘', type: 'job' },
       { id: 3, icon: '🏠', name: '租房', type: 'rental' },
       { id: 4, icon: '🔧', name: '家政', type: 'homeservice' },
@@ -56,7 +28,7 @@ Page({
       { id: 3, icon: '🔧', name: '家政维修', type: 'homeservice', color: '#E67E22' },
       { id: 4, icon: '🚨', name: '停水停电', type: 'water', color: '#E74C3C' },
       { id: 5, icon: '📋', name: '办事指南', type: 'guide', color: '#8E44AD' },
-      { id: 6, icon: '🏥', name: '医院专区', type: 'hospital', color: '#16A085' }
+      { id: 6, icon: '🔜', name: '更多待开发', type: 'more', color: '#95A5A6' }
     ],
     communityList: [
       { id: 1, icon: '📸', name: '随手拍', type: 'photo' },
@@ -72,42 +44,16 @@ Page({
       { id: 3, tag: '热议', title: '平江这家餐厅真的太好吃了！', count: 156 }
     ],
     contentFlow: [
-      {
-        id: 1,
-        tag: '📸',
-        title: '医院建设最新进度',
-        desc: '📸 12人看过',
-        color: '#2980B9'
-      },
-      {
-        id: 2,
-        tag: '❤️',
-        title: '杨园小区邻居随手拍',
-        desc: '❤️ 28人点赞',
-        color: '#E74C3C'
-      },
-      {
-        id: 3,
-        tag: '▶️',
-        title: '住院必备清单分享',
-        desc: '▶️ 156次播放',
-        color: '#8E44AD'
-      },
-      {
-        id: 4,
-        tag: '💼',
-        title: '本地招聘·护工急招',
-        desc: '💼 今日发布',
-        color: '#27AE60'
-      }
+      { id: 1, tag: '📸', title: '医院建设最新进度', desc: '📸 12人看过', color: '#2980B9' },
+      { id: 2, tag: '❤️', title: '杨园小区邻居随手拍', desc: '❤️ 28人点赞', color: '#E74C3C' },
+      { id: 3, tag: '▶️', title: '住院必备清单分享', desc: '▶️ 156次播放', color: '#8E44AD' },
+      { id: 4, tag: '💼', title: '本地招聘·护工急招', desc: '💼 今日发布', color: '#27AE60' }
     ]
   },
-
   onLoad() {
     console.log('首页加载完成');
     this.loadWeather();
   },
-
   loadWeather() {
     this.setData({
       weatherInfo: {
@@ -119,33 +65,34 @@ Page({
       }
     });
   },
-
   onBannerTap(e) {
     const item = e.currentTarget.dataset.item;
     this._doNavigate(item.type);
   },
-
   onBannerChange() {},
-
   navigateQuick(e) {
     const type = e.currentTarget.dataset.type;
     this._doNavigate(type);
   },
-
   navigateToService(e) {
     const type = e.currentTarget.dataset.type;
     this._doNavigate(type);
   },
-
-  // ✅ 已修复：water 指向正确的 water 页面
   _doNavigate(type) {
+    if (type === 'community') {
+      wx.switchTab({ url: '/pages/community/community' });
+      return;
+    }
+    if (type === 'more') {
+      wx.showToast({ title: '更多服务开发中，敬请期待', icon: 'none', duration: 2000 });
+      return;
+    }
     const routeMap = {
       job:         '/pages/services/convenience/job/job',
       rental:      '/pages/services/convenience/rental/rental',
       homeservice: '/pages/services/convenience/homeservice/homeservice',
       water:       '/pages/services/convenience/water/water',
-      guide:       '/pages/services/convenience/guide/guide',
-      hospital:    '/pages/services/convenience/hospital/hospital'
+      guide:       '/pages/services/convenience/guide/guide'
     };
     const url = routeMap[type];
     if (url) {
@@ -154,20 +101,19 @@ Page({
       wx.showToast({ title: '该功能即将上线', icon: 'none' });
     }
   },
-
   navigateCommunity(e) {
     wx.switchTab({ url: '/pages/community/community' });
   },
-
   goToCommunity() {
     wx.switchTab({ url: '/pages/community/community' });
   },
-
   goToConvenience() {
     wx.navigateTo({ url: '/pages/services/convenience/guide/guide' });
   },
-
   goToContentDetail(e) {
     wx.switchTab({ url: '/pages/community/community' });
+  },
+  goToAI() {
+    wx.navigateTo({ url: '/pages/ai/ai' });
   }
 });

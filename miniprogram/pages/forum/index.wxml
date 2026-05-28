@@ -1,0 +1,130 @@
+<!-- pages/forum/index.wxml -->
+<view class="container">
+
+<!-- 顶部导航 -->
+<view class="header">
+  <view class="header-left" bindtap="goSearch">
+    <text class="search-icon">🔍</text>
+    <text class="search-placeholder">搜索平江圈子...</text>
+  </view>
+  <view class="header-right">
+    <view class="notify-btn">
+      <text class="notify-icon">🔔</text>
+    </view>
+  </view>
+</view>
+
+<!-- Tab 切换 -->
+<view class="tab-bar">
+  <view
+    wx:for="{{tabs}}"
+    wx:key="index"
+    class="tab-item {{activeTab === index ? 'tab-active' : ''}}"
+    data-index="{{index}}"
+    bindtap="switchTab"
+  >
+    <text class="tab-text">{{item}}</text>
+    <view wx:if="{{activeTab === index}}" class="tab-line"></view>
+  </view>
+</view>
+
+<!-- 帖子列表 -->
+<scroll-view
+  class="post-list"
+  scroll-y="true"
+  refresher-enabled="true"
+  refresher-triggered="{{isRefreshing}}"
+  bindrefresherrefresh="onRefresh"
+>
+
+  <!-- 单条帖子 -->
+  <view wx:for="{{posts}}" wx:key="id" class="post-card">
+
+    <!-- 左侧头像 -->
+    <view class="post-left">
+      <view class="avatar-wrap">
+        <view class="avatar-placeholder">
+          <text class="avatar-text">{{item.nickname[0]}}</text>
+        </view>
+      </view>
+      <view class="avatar-line"></view>
+    </view>
+
+    <!-- 右侧内容 -->
+    <view class="post-right">
+
+      <!-- 用户信息行 -->
+      <view class="post-header">
+        <view class="user-info">
+          <text class="nickname">{{item.nickname}}</text>
+          <text class="handle">{{item.handle}}</text>
+        </view>
+        <view class="post-meta">
+          <text class="post-time">{{item.time}}</text>
+          <view
+            class="post-tag"
+            style="background:{{tagColors[item.tag] ? tagColors[item.tag].bg : '#f3e5f5'}};color:{{tagColors[item.tag] ? tagColors[item.tag].color : '#7b1fa2'}}"
+          >
+            <text>{{item.tag}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 帖子正文 -->
+      <view class="post-content">
+        <text class="post-text">{{item.content}}</text>
+      </view>
+
+      <!-- 图片区域 -->
+      <view wx:if="{{item.images.length > 0}}" class="post-images">
+        <view
+          wx:for="{{item.images}}"
+          wx:key="*this"
+          wx:for-item="img"
+          class="post-img-wrap"
+        >
+          <view class="post-img-placeholder">
+            <text>🖼️</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 操作栏 -->
+      <view class="post-actions">
+        <!-- 评论 -->
+        <view class="action-item" data-id="{{item.id}}" bindtap="goComment">
+          <text class="action-icon">💬</text>
+          <text class="action-count">{{item.comments}}</text>
+        </view>
+        <!-- 转发 -->
+        <view class="action-item {{item.reposted ? 'action-active-green' : ''}}" data-id="{{item.id}}" bindtap="toggleRepost">
+          <text class="action-icon">🔁</text>
+          <text class="action-count">{{item.reposts}}</text>
+        </view>
+        <!-- 点赞 -->
+        <view class="action-item {{item.liked ? 'action-active-red' : ''}}" data-id="{{item.id}}" bindtap="toggleLike">
+          <text class="action-icon">{{item.liked ? '❤️' : '🤍'}}</text>
+          <text class="action-count">{{item.likes}}</text>
+        </view>
+        <!-- 分享 -->
+        <view class="action-item" data-id="{{item.id}}" bindtap="goShare">
+          <text class="action-icon">📤</text>
+        </view>
+      </view>
+
+    </view>
+  </view>
+
+  <!-- 底部提示 -->
+  <view class="list-bottom">
+    <text class="list-bottom-text">— 已经到底了，去发帖吧 —</text>
+  </view>
+
+</scroll-view>
+
+<!-- 发帖悬浮按钮 -->
+<view class="fab-btn" bindtap="goPublish">
+  <text class="fab-icon">✏️</text>
+</view>
+
+</view>

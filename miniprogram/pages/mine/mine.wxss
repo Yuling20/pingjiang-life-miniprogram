@@ -1,11 +1,8 @@
-/* pages/mine/mine.wxss */
 .page-wrap {
   min-height: 100vh;
   background: #F5F5F5;
   padding-bottom: 120rpx;
 }
-
-/* 用户头部 */
 .user-header {
   background: linear-gradient(135deg, #D4820A, #E8A838);
   padding: 60rpx 30rpx 40rpx;
@@ -13,7 +10,6 @@
   align-items: center;
   gap: 24rpx;
 }
-
 .avatar-wrap {
   width: 100rpx;
   height: 100rpx;
@@ -24,15 +20,8 @@
   justify-content: center;
   flex-shrink: 0;
 }
-
-.avatar-icon {
-  font-size: 52rpx;
-}
-
-.user-info {
-  flex: 1;
-}
-
+.avatar-icon { font-size: 52rpx; }
+.user-info { flex: 1; }
 .user-name {
   display: block;
   font-size: 36rpx;
@@ -40,20 +29,16 @@
   color: #fff;
   margin-bottom: 12rpx;
 }
-
 .login-btn {
   background: rgba(255,255,255,0.25);
   border-radius: 30rpx;
   padding: 8rpx 24rpx;
   display: inline-block;
 }
-
 .login-text {
   font-size: 26rpx;
   color: #fff;
 }
-
-/* 统计卡片 */
 .stats-card {
   background: #fff;
   margin: 16rpx;
@@ -62,33 +47,27 @@
   display: flex;
   justify-content: space-around;
 }
-
 .stat-item {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8rpx;
 }
-
 .stat-value {
   font-size: 40rpx;
   font-weight: bold;
   color: #D4820A;
 }
-
 .stat-label {
   font-size: 26rpx;
   color: #999;
 }
-
-/* 菜单卡片 */
 .menu-card {
   background: #fff;
   margin: 0 16rpx;
   border-radius: 16rpx;
   overflow: hidden;
 }
-
 .menu-item {
   display: flex;
   align-items: center;
@@ -96,43 +75,26 @@
   border-bottom: 1rpx solid #F5F5F5;
   gap: 20rpx;
 }
-
-.menu-item:last-child {
-  border-bottom: none;
-}
-
-.menu-item-hover {
-  background: #FFF8EE;
-}
-
-.menu-icon {
-  font-size: 40rpx;
-}
-
-.menu-info {
-  flex: 1;
-}
-
+.menu-item:last-child { border-bottom: none; }
+.menu-item-hover { background: #FFF8EE; }
+.menu-icon { font-size: 40rpx; }
+.menu-info { flex: 1; }
 .menu-name {
   display: block;
   font-size: 30rpx;
   color: #333;
   margin-bottom: 4rpx;
 }
-
 .menu-desc {
   display: block;
   font-size: 24rpx;
   color: #999;
 }
-
 .menu-arrow {
   font-size: 40rpx;
   color: #CCC;
   font-weight: bold;
 }
-
-/* 底部版权 */
 .footer-tip {
   display: flex;
   flex-direction: column;
@@ -140,12 +102,10 @@
   padding: 40rpx 0 20rpx;
   gap: 8rpx;
 }
-
 .footer-text {
   font-size: 26rpx;
   color: #CCC;
 }
-
 .footer-version {
   font-size: 22rpx;
   color: #DDD;

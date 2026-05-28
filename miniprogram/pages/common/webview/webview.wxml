@@ -1,2 +1,1 @@
-<!-- miniprogram/pages/common/webview/webview.wxml -->
-<web-view src="{{url}}"></web-view>
+<web-view src="{{url}}" bindload="onWebviewLoad" binderror="onWebviewError"></web-view>

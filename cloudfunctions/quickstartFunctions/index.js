@@ -2,7 +2,6 @@ const cloud = require("wx-server-sdk");
 cloud.init({
   env: cloud.DYNAMIC_CURRENT_ENV,
 });
-
 const db = cloud.database();
 // 获取openid
 const getOpenId = async () => {
@@ -14,7 +13,6 @@ const getOpenId = async () => {
     unionid: wxContext.UNIONID,
   };
 };
-
 // 获取小程序二维码
 const getMiniProgramCode = async () => {
   // 获取小程序二维码的buffer
@@ -29,7 +27,6 @@ const getMiniProgramCode = async () => {
   });
   return upload.fileID;
 };
-
 // 创建集合
 const createCollection = async () => {
   try {
@@ -78,13 +75,11 @@ const createCollection = async () => {
     };
   }
 };
-
 // 查询数据
 const selectRecord = async () => {
   // 返回数据库查询结果
   return await db.collection("sales").get();
 };
-
 // 更新数据
 const updateRecord = async (event) => {
   try {
@@ -112,7 +107,6 @@ const updateRecord = async (event) => {
     };
   }
 };
-
 // 新增数据
 const insertRecord = async (event) => {
   try {
@@ -136,7 +130,6 @@ const insertRecord = async (event) => {
     };
   }
 };
-
 // 删除数据
 const deleteRecord = async (event) => {
   try {
@@ -156,14 +149,6 @@ const deleteRecord = async (event) => {
     };
   }
 };
-
-// const getOpenId = require('./getOpenId/index');
-// const getMiniProgramCode = require('./getMiniProgramCode/index');
-// const createCollection = require('./createCollection/index');
-// const selectRecord = require('./selectRecord/index');
-// const updateRecord = require('./updateRecord/index');
-// const fetchGoodsList = require('./fetchGoodsList/index');
-// const genMpQrcode = require('./genMpQrcode/index');
 // 云函数入口函数
 exports.main = async (event, context) => {
   switch (event.type) {

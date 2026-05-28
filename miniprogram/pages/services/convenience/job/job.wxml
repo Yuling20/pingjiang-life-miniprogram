@@ -1,15 +1,20 @@
 <!-- pages/services/convenience/job/job.wxml -->
 <view class="container">
 
-<!-- 页面标题 -->
+<!-- 页面标题 + 右上角按钮 -->
 <view class="page-header">
-  <text class="page-title">💼 招聘信息</text>
-  <text class="page-subtitle">平江本地找好工作更简单</text>
+  <view class="header-left">
+    <text class="page-title">💼 招聘信息</text>
+    <text class="page-subtitle">平江本地找好工作更简单</text>
+  </view>
+  <view class="header-right-btn" bindtap="onPublish">
+    <text class="header-btn-text">➕ 我要招人</text>
+  </view>
 </view>
 
-<!-- ⚠️ 温馨提示（一行简化版） -->
+<!-- ⚠️ 提醒语 -->
 <view class="warning-bar">
-  <text class="warning-text">⚠️ 凡要求先交费的职位，请提高警惕谨防诈骗</text>
+  <text class="warning-text">⚠️ 信息由用户发布，平台不担责，请自行核把关谨防受骗！</text>
 </view>
 
 <!-- 区域筛选 -->
@@ -44,8 +49,6 @@
     wx:for="{{jobList}}"
     wx:key="id"
     class="job-card"
-    bindtap="goToDetail"
-    data-id="{{item.id}}"
     hover-class="card-hover"
   >
     <!-- 顶部：职位 + 薪资 -->
@@ -98,11 +101,6 @@
     <text class="empty-icon">💼</text>
     <text class="empty-text">暂无职位</text>
   </view>
-</view>
-
-<!-- 发布按钮 -->
-<view class="publish-fab" bindtap="onPublish">
-  <text>➕ 我要招人</text>
 </view>
 
 </view>

@@ -1,0 +1,165 @@
+<!-- pages/recruit/publish/index.wxml -->
+<view class="container">
+
+<view class="top-tip">
+  <text class="tip-icon">💼</text>
+  <text class="tip-text">发布招聘信息，快速找到合适人才</text>
+</view>
+
+<!-- 基本信息 -->
+<view class="form-card">
+  <view class="card-title">职位信息</view>
+
+  <view class="form-item">
+    <text class="form-label required">职位名称</text>
+    <input class="form-input" placeholder="如：收银员、厨师、销售员"
+      value="{{jobTitle}}" data-field="jobTitle" bindinput="onInput" maxlength="20" />
+  </view>
+
+  <view class="form-item">
+    <text class="form-label">公司名称</text>
+    <input class="form-input" placeholder="请输入公司或店铺名称"
+      value="{{company}}" data-field="company" bindinput="onInput" maxlength="30" />
+  </view>
+
+  <view class="form-item" bindtap="showPicker" data-type="jobType">
+    <text class="form-label required">工作类型</text>
+    <view class="form-select">
+      <text class="{{jobType ? 'select-value' : 'select-placeholder'}}">
+        {{jobType || '请选择工作类型'}}
+      </text>
+      <text class="arrow">›</text>
+    </view>
+  </view>
+
+  <view class="form-item">
+    <text class="form-label required">薪资待遇</text>
+    <view class="salary-wrap">
+      <input class="form-input flex1" placeholder="如：3000-5000"
+        value="{{salary}}" data-field="salary" bindinput="onInput" />
+      <text class="unit">元/月</text>
+    </view>
+  </view>
+
+  <view class="form-item" bindtap="showPicker" data-type="experience">
+    <text class="form-label">工作经验</text>
+    <view class="form-select">
+      <text class="{{experience ? 'select-value' : 'select-placeholder'}}">
+        {{experience || '请选择经验要求'}}
+      </text>
+      <text class="arrow">›</text>
+    </view>
+  </view>
+
+  <view class="form-item" bindtap="showPicker" data-type="education">
+    <text class="form-label">学历要求</text>
+    <view class="form-select">
+      <text class="{{education ? 'select-value' : 'select-placeholder'}}">
+        {{education || '请选择学历要求'}}
+      </text>
+      <text class="arrow">›</text>
+    </view>
+  </view>
+
+  <view class="form-item">
+    <text class="form-label required">工作地点</text>
+    <input class="form-input" placeholder="如：平江县城关镇XX路"
+      value="{{address}}" data-field="address" bindinput="onInput" />
+  </view>
+</view>
+
+<!-- 福利待遇 -->
+<view class="form-card">
+  <view class="card-title">福利待遇 <text class="card-sub">（最多选6个）</text></view>
+  <view class="welfare-grid">
+    <view
+      class="welfare-tag {{welfare.indexOf(item) > -1 ? 'active' : ''}}"
+      wx:for="{{welfareList}}"
+      wx:key="index"
+      bindtap="toggleWelfare"
+      data-item="{{item}}"
+    >{{item}}</view>
+  </view>
+</view>
+
+<!-- 职位描述 -->
+<view class="form-card">
+  <view class="card-title">职位描述</view>
+  <view class="form-item column">
+    <textarea
+      class="form-textarea"
+      placeholder="请描述职位要求、工作内容、上班时间等信息..."
+      value="{{desc}}"
+      data-field="desc"
+      bindinput="onInput"
+      maxlength="500"
+      auto-height
+    />
+    <text class="word-count">{{desc.length || 0}}/500</text>
+  </view>
+</view>
+
+<!-- 联系方式 -->
+<view class="form-card">
+  <view class="card-title">联系方式</view>
+  <view class="form-item">
+    <text class="form-label required">联系电话</text>
+    <input class="form-input" placeholder="请输入联系电话"
+      value="{{contact}}" data-field="contact" bindinput="onInput" type="number" maxlength="11" />
+  </view>
+</view>
+
+<!-- 底部按钮 -->
+<view class="bottom-btns">
+  <button class="btn-submit" bindtap="submitForm" loading="{{submitting}}">立即发布</button>
+</view>
+
+<!-- 工作类型选择器 -->
+<view class="picker-mask" wx:if="{{showJobTypePicker}}" bindtap="hidePicker" data-type="jobType">
+  <view class="picker-panel" catchtap="">
+    <view class="picker-header">
+      <text class="picker-cancel" bindtap="hidePicker" data-type="jobType">取消</text>
+      <text class="picker-title">选择工作类型</text>
+      <text class="picker-confirm" bindtap="hidePicker" data-type="jobType">确定</text>
+    </view>
+    <picker-view class="picker-view" value="{{[jobTypeIndex]}}" bindchange="onPickerChange" data-type="jobType">
+      <picker-view-column>
+        <view class="picker-item" wx:for="{{jobTypeList}}" wx:key="index">{{item}}</view>
+      </picker-view-column>
+    </picker-view>
+  </view>
+</view>
+
+<!-- 经验选择器 -->
+<view class="picker-mask" wx:if="{{showExperiencePicker}}" bindtap="hidePicker" data-type="experience">
+  <view class="picker-panel" catchtap="">
+    <view class="picker-header">
+      <text class="picker-cancel" bindtap="hidePicker" data-type="experience">取消</text>
+      <text class="picker-title">选择经验要求</text>
+      <text class="picker-confirm" bindtap="hidePicker" data-type="experience">确定</text>
+    </view>
+    <picker-view class="picker-view" value="{{[experienceIndex]}}" bindchange="onPickerChange" data-type="experience">
+      <picker-view-column>
+        <view class="picker-item" wx:for="{{experienceList}}" wx:key="index">{{item}}</view>
+      </picker-view-column>
+    </picker-view>
+  </view>
+</view>
+
+<!-- 学历选择器 -->
+<view class="picker-mask" wx:if="{{showEducationPicker}}" bindtap="hidePicker" data-type="education">
+  <view class="picker-panel" catchtap="">
+    <view class="picker-header">
+      <text class="picker-cancel" bindtap="hidePicker" data-type="education">取消</text>
+      <text class="picker-title">选择学历要求</text>
+      <text class="picker-confirm" bindtap="hidePicker" data-type="education">确定</text>
+    </view>
+    <picker-view class="picker-view" value="{{[educationIndex]}}" bindchange="onPickerChange" data-type="education">
+      <picker-view-column>
+        <view class="picker-item" wx:for="{{educationList}}" wx:key="index">{{item}}</view>
+      </picker-view-column>
+    </picker-view>
+  </view>
+</view>
+
+</view>

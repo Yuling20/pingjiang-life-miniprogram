@@ -1,60 +1,65 @@
-<!-- miniprogram/pages/services/convenience/guide/guide.wxml -->
-<scroll-view scroll-y enable-flex class="page-wrap">
+<!-- pages/services/convenience/guide/guide.wxml -->
+<view class="container">
 
-<!-- 顶部说明 -->
-<view class="top-banner">
-  <text class="banner-icon">🏛️</text>
-  <view class="banner-text-wrap">
-    <text class="banner-title">平江汇 · 办事指南</text>
-    <text class="banner-desc">聚合官方政务平台，一站找到所需</text>
+<!-- 头部 -->
+<view class="header">
+  <text class="title">📋 办事指南</text>
+  <text class="subtitle">平江便民政务服务一站查询</text>
+  <view class="header-tip-row">
+    <text class="header-tip-icon">💡</text>
+    <text class="header-tip-text">🌐 蓝色标签可直接跳转官网；📞 橙色标签点击查看办理指引</text>
   </view>
 </view>
 
-<!-- 分类列表 -->
-<view
-  wx:for="{{guideList}}"
-  wx:key="id"
-  class="category-block"
->
-  <view class="category-header">
-    <text class="category-icon">{{item.icon}}</text>
-    <text class="category-name">{{item.category}}</text>
-  </view>
+<!-- 服务列表 -->
+<view class="list">
+  <view
+    class="item"
+    wx:for="{{services}}"
+    wx:key="id"
+    bindtap="goToService"
+    data-item="{{item}}"
+    hover-class="item-hover"
+  >
+    <!-- 左侧图标 -->
+    <view class="item-left">
+      <text class="icon">{{item.icon}}</text>
+    </view>
 
-  <view class="items-wrap">
-    <view
-      wx:for="{{item.items}}"
-      wx:for-item="sub"
-      wx:key="id"
-      class="guide-item"
-      bindtap="goToGuide"
-      data-url="{{sub.url}}"
-      data-name="{{sub.name}}"
-      hover-class="item-hover"
-    >
-      <view class="guide-left">
-        <text class="guide-item-icon">{{sub.icon}}</text>
+    <!-- 中间内容 -->
+    <view class="item-center">
+      <view class="item-title-row">
+        <text class="item-title">{{item.title}}</text>
+        <text class="tag {{item.type === 'web' ? 'tag-web' : 'tag-phone'}}">
+          {{item.type === 'web' ? '🌐 网上办' : '📞 电话/APP'}}
+        </text>
       </view>
-      <view class="guide-info">
-        <view class="guide-name-row">
-          <text class="guide-name">{{sub.name}}</text>
-          <text
-            wx:if="{{sub.tag}}"
-            class="guide-tag"
-          >{{sub.tag}}</text>
-        </view>
-        <text class="guide-desc">{{sub.desc}}</text>
-      </view>
-      <text class="guide-arrow">›</text>
+      <text class="item-desc">{{item.desc}}</text>
+      <!-- 网络办理提示 -->
+      <text wx:if="{{item.type === 'web'}}" class="item-action-tip web-tip">
+        点击直接跳转官方网站
+      </text>
+      <!-- APP/电话办理提示 -->
+      <text wx:if="{{item.type === 'phone'}}" class="item-action-tip phone-tip">
+        点击查看APP入口与热线
+      </text>
+      <text class="item-phone">📞 {{item.phone}}</text>
+    </view>
+
+    <!-- 右侧箭头 -->
+    <view class="item-right">
+      <text class="arrow">›</text>
     </view>
   </view>
 </view>
 
-<!-- 底部说明 -->
-<view class="bottom-tip">
-  <text class="bottom-tip-icon">ℹ️</text>
-  <text class="bottom-tip-text">以上链接均为官方政府平台，如遇访问问题请直接前往政务大厅办理</text>
+<!-- 底部提示 -->
+<view class="footer">
+  <view class="footer-card">
+    <text class="footer-icon">🏛️</text>
+    <text class="footer-text">以上均为官方渠道，如遇问题请携带相关证件到平江县政务服务大厅现场办理</text>
+  </view>
+  <text class="footer-addr">📍 平江县政务服务大厅：0730-6822000</text>
 </view>
 
-<view style="height: 60rpx;"></view>
-</scroll-view>
+</view>

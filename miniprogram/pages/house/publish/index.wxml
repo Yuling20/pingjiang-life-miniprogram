@@ -1,0 +1,269 @@
+<!-- pages/house/publish/index.wxml -->
+<view class="container">
+
+<!-- 顶部提示 -->
+<view class="top-tip">
+  <text class="tip-icon">🏠</text>
+  <text class="tip-text">发布房源信息，快速找到租客/买家</text>
+</view>
+
+<!-- 表单区域 -->
+<view class="form-card">
+  <view class="card-title">基本信息</view>
+
+  <!-- 标题 -->
+  <view class="form-item">
+    <text class="form-label required">标题</text>
+    <input
+      class="form-input"
+      placeholder="如：平江城区精装2室1厅出租"
+      value="{{title}}"
+      data-field="title"
+      bindinput="onInput"
+      maxlength="50"
+    />
+  </view>
+
+  <!-- 房屋类型 -->
+  <view class="form-item" bindtap="showPicker" data-type="houseType">
+    <text class="form-label required">房屋类型</text>
+    <view class="form-select">
+      <text class="{{houseType ? 'select-value' : 'select-placeholder'}}">
+        {{houseType || '请选择房屋类型'}}
+      </text>
+      <text class="arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 租赁类型 -->
+  <view class="form-item" bindtap="showPicker" data-type="rentType">
+    <text class="form-label required">租售类型</text>
+    <view class="form-select">
+      <text class="{{rentType ? 'select-value' : 'select-placeholder'}}">
+        {{rentType || '请选择租售类型'}}
+      </text>
+      <text class="arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 面积 -->
+  <view class="form-item">
+    <text class="form-label required">建筑面积</text>
+    <view class="input-unit-wrap">
+      <input
+        class="form-input flex1"
+        placeholder="请输入面积"
+        value="{{area}}"
+        data-field="area"
+        bindinput="onInput"
+        type="number"
+      />
+      <text class="unit">m²</text>
+    </view>
+  </view>
+
+  <!-- 价格 -->
+  <view class="form-item">
+    <text class="form-label required">价格</text>
+    <view class="input-unit-wrap">
+      <input
+        class="form-input flex1"
+        placeholder="请输入价格"
+        value="{{price}}"
+        data-field="price"
+        bindinput="onInput"
+        type="number"
+      />
+      <text class="unit">元/月</text>
+    </view>
+  </view>
+
+  <!-- 楼层 -->
+  <view class="form-item">
+    <text class="form-label">楼层</text>
+    <view class="floor-wrap">
+      <input
+        class="form-input floor-input"
+        placeholder="所在楼层"
+        value="{{floor}}"
+        data-field="floor"
+        bindinput="onInput"
+        type="number"
+      />
+      <text class="floor-sep">/</text>
+      <input
+        class="form-input floor-input"
+        placeholder="总楼层"
+        value="{{totalFloor}}"
+        data-field="totalFloor"
+        bindinput="onInput"
+        type="number"
+      />
+      <text class="unit">层</text>
+    </view>
+  </view>
+
+  <!-- 朝向 -->
+  <view class="form-item" bindtap="showPicker" data-type="toward">
+    <text class="form-label">朝向</text>
+    <view class="form-select">
+      <text class="{{toward ? 'select-value' : 'select-placeholder'}}">
+        {{toward || '请选择朝向'}}
+      </text>
+      <text class="arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 装修 -->
+  <view class="form-item" bindtap="showPicker" data-type="decoration">
+    <text class="form-label">装修情况</text>
+    <view class="form-select">
+      <text class="{{decoration ? 'select-value' : 'select-placeholder'}}">
+        {{decoration || '请选择装修情况'}}
+      </text>
+      <text class="arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 地址 -->
+  <view class="form-item">
+    <text class="form-label required">详细地址</text>
+    <input
+      class="form-input"
+      placeholder="如：平江县城关镇XX小区XX栋"
+      value="{{address}}"
+      data-field="address"
+      bindinput="onInput"
+    />
+  </view>
+</view>
+
+<!-- 房源描述 -->
+<view class="form-card">
+  <view class="card-title">房源描述</view>
+  <view class="form-item column">
+    <text class="form-label required">详细描述</text>
+    <textarea
+      class="form-textarea"
+      placeholder="请详细描述房屋情况，如：配套设施、周边环境、入住要求等..."
+      value="{{desc}}"
+      data-field="desc"
+      bindinput="onInput"
+      maxlength="500"
+      auto-height
+    />
+    <text class="word-count">{{desc.length || 0}}/500</text>
+  </view>
+</view>
+
+<!-- 房源图片 -->
+<view class="form-card">
+  <view class="card-title">房源图片 <text class="card-sub">（最多9张）</text></view>
+  <view class="image-grid">
+    <block wx:for="{{images}}" wx:key="index">
+      <view class="image-item">
+        <image
+          src="{{item}}"
+          class="preview-image"
+          mode="aspectFill"
+          bindtap="previewImage"
+          data-index="{{index}}"
+        />
+        <view class="delete-btn" bindtap="deleteImage" data-index="{{index}}">×</view>
+      </view>
+    </block>
+    <view class="add-image-btn" bindtap="chooseImage" wx:if="{{images.length < 9}}">
+      <text class="add-icon">+</text>
+      <text class="add-text">添加图片</text>
+    </view>
+  </view>
+</view>
+
+<!-- 联系方式 -->
+<view class="form-card">
+  <view class="card-title">联系方式</view>
+  <view class="form-item">
+    <text class="form-label required">联系电话</text>
+    <input
+      class="form-input"
+      placeholder="请输入联系电话"
+      value="{{contact}}"
+      data-field="contact"
+      bindinput="onInput"
+      type="number"
+      maxlength="11"
+    />
+  </view>
+</view>
+
+<!-- 底部按钮 -->
+<view class="bottom-btns">
+  <button class="btn-draft" bindtap="saveDraft">存草稿</button>
+  <button class="btn-submit" bindtap="submitForm" loading="{{submitting}}">立即发布</button>
+</view>
+
+<!-- 房屋类型选择器 -->
+<view class="picker-mask" wx:if="{{showHouseTypePicker}}" bindtap="hidePicker" data-type="houseType">
+  <view class="picker-panel" catchtap="">
+    <view class="picker-header">
+      <text class="picker-cancel" bindtap="hidePicker" data-type="houseType">取消</text>
+      <text class="picker-title">选择房屋类型</text>
+      <text class="picker-confirm" bindtap="hidePicker" data-type="houseType">确定</text>
+    </view>
+    <picker-view class="picker-view" value="{{[houseTypeIndex]}}" bindchange="onPickerChange" data-type="houseType">
+      <picker-view-column>
+        <view class="picker-item" wx:for="{{houseTypeList}}" wx:key="index">{{item}}</view>
+      </picker-view-column>
+    </picker-view>
+  </view>
+</view>
+
+<!-- 租售类型选择器 -->
+<view class="picker-mask" wx:if="{{showRentTypePicker}}" bindtap="hidePicker" data-type="rentType">
+  <view class="picker-panel" catchtap="">
+    <view class="picker-header">
+      <text class="picker-cancel" bindtap="hidePicker" data-type="rentType">取消</text>
+      <text class="picker-title">选择租售类型</text>
+      <text class="picker-confirm" bindtap="hidePicker" data-type="rentType">确定</text>
+    </view>
+    <picker-view class="picker-view" value="{{[rentTypeIndex]}}" bindchange="onPickerChange" data-type="rentType">
+      <picker-view-column>
+        <view class="picker-item" wx:for="{{rentTypeList}}" wx:key="index">{{item}}</view>
+      </picker-view-column>
+    </picker-view>
+  </view>
+</view>
+
+<!-- 朝向选择器 -->
+<view class="picker-mask" wx:if="{{showTowardPicker}}" bindtap="hidePicker" data-type="toward">
+  <view class="picker-panel" catchtap="">
+    <view class="picker-header">
+      <text class="picker-cancel" bindtap="hidePicker" data-type="toward">取消</text>
+      <text class="picker-title">选择朝向</text>
+      <text class="picker-confirm" bindtap="hidePicker" data-type="toward">确定</text>
+    </view>
+    <picker-view class="picker-view" value="{{[towardIndex]}}" bindchange="onPickerChange" data-type="toward">
+      <picker-view-column>
+        <view class="picker-item" wx:for="{{towardList}}" wx:key="index">{{item}}</view>
+      </picker-view-column>
+    </picker-view>
+  </view>
+</view>
+
+<!-- 装修选择器 -->
+<view class="picker-mask" wx:if="{{showDecorationPicker}}" bindtap="hidePicker" data-type="decoration">
+  <view class="picker-panel" catchtap="">
+    <view class="picker-header">
+      <text class="picker-cancel" bindtap="hidePicker" data-type="decoration">取消</text>
+      <text class="picker-title">选择装修情况</text>
+      <text class="picker-confirm" bindtap="hidePicker" data-type="decoration">确定</text>
+    </view>
+    <picker-view class="picker-view" value="{{[decorationIndex]}}" bindchange="onPickerChange" data-type="decoration">
+      <picker-view-column>
+        <view class="picker-item" wx:for="{{decorationList}}" wx:key="index">{{item}}</view>
+      </picker-view-column>
+    </picker-view>
+  </view>
+</view>
+
+</view>

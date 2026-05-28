@@ -1,6 +1,5 @@
 {
-  "navigationBarTitleText": "详情",
-  "navigationBarBackgroundColor": "#FF6B35",
-  "navigationBarTextStyle": "white",
-  "usingComponents": {}
+  "navigationBarTitleText": "官方平台",
+  "navigationBarBackgroundColor": "#FF8C00",
+  "navigationBarTextStyle": "white"
 }
