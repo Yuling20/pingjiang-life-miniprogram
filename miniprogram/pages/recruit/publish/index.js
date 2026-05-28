@@ -1,112 +1,144 @@
 // pages/recruit/publish/index.js
 Page({
   data: {
-    jobTitle: '',
-    company: '',
-    salary: '',
-    salaryUnit: '月',
-    jobType: '',
+    step: 1, // 当前步骤 1或2
+    // 步骤1数据
+    jobType: 'full', // full/campus/intern/parttime
+    jobTypes: [
+      { key: 'full', label: '社招全职' },
+      { key: 'campus', label: '应届校园招聘' },
+      { key: 'intern', label: '实习生招聘' },
+      { key: 'parttime', label: '兼职招聘' }
+    ],
+    jobName: '',
+    jobDesc: '',
+    // 步骤2数据
+    category: '',
+    cityName: '平江县',
+    salary: { min: '', max: '', unit: '月' },
+    salaryUnits: ['月', '年', '天', '小时'],
     experience: '',
+    experienceOptions: ['不限', '1年以内', '1-3年', '3-5年', '5年以上'],
     education: '',
-    address: '',
-    desc: '',
+    educationOptions: ['不限', '初中及以下', '高中/中专', '大专', '本科', '硕士及以上'],
+    headcount: '',
     welfare: [],
-    contact: '',
-    welfareList: ['五险一金', '包住', '包吃', '节日福利', '带薪年假', '弹性工作', '周末双休', '绩效奖金'],
-    jobTypeList: ['全职', '兼职', '实习', '临时工'],
-    experienceList: ['经验不限', '1年以下', '1-3年', '3-5年', '5年以上'],
-    educationList: ['学历不限', '初中及以下', '高中/中专', '大专', '本科', '本科以上'],
-    showJobTypePicker: false,
-    showExperiencePicker: false,
-    showEducationPicker: false,
-    jobTypeIndex: 0,
-    experienceIndex: 0,
-    educationIndex: 0,
-    submitting: false
+    commonWelfare: ['五险一金', '双休', '包住', '包吃', '带薪年假', '绩效奖金', '节日福利', '弹性上班', '股票期权', '培训机会'],
+    contactName: '',
+    contactPhone: ''
   },
 
-  onLoad() {},
+  // 选择招聘类型
+  selectJobType(e) {
+    this.setData({ jobType: e.currentTarget.dataset.key })
+  },
 
-  showPicker(e) {
-    const type = e.currentTarget.dataset.type
-    const map = {
-      jobType: 'showJobTypePicker',
-      experience: 'showExperiencePicker',
-      education: 'showEducationPicker'
+  onJobNameInput(e) { this.setData({ jobName: e.detail.value }) },
+  onJobDescInput(e) { this.setData({ jobDesc: e.detail.value }) },
+  onContactNameInput(e) { this.setData({ contactName: e.detail.value }) },
+  onContactPhoneInput(e) { this.setData({ contactPhone: e.detail.value }) },
+  onSalaryMinInput(e) {
+    this.setData({ salary: { ...this.data.salary, min: e.detail.value } })
+  },
+  onSalaryMaxInput(e) {
+    this.setData({ salary: { ...this.data.salary, max: e.detail.value } })
+  },
+
+  // AI辅助填写
+  aiHelper() {
+    if (!this.data.jobName) {
+      wx.showToast({ title: '请先填写职位名称', icon: 'none' })
+      return
     }
-    if (map[type]) this.setData({ [map[type]]: true })
+    wx.showLoading({ title: 'AI生成中...' })
+    setTimeout(() => {
+      wx.hideLoading()
+      const templates = {
+        '销售': `岗位职责：
+1. 负责公司产品的市场推广和销售工作
+2. 开发维护客户关系，完成月度销售目标
+3. 收集市场信息，分析竞争对手动态
+
+任职要求：
+1. 具备良好的沟通能力和团队协作精神
+2. 有销售经验者优先
+3. 吃苦耐劳，责任心强`,
+        default: `岗位职责：
+1. 按时完成领导分配的各项工作任务
+2. 积极配合团队成员协作完成工作
+3. 不断学习提升自身专业技能
+
+任职要求：
+1. 具备相关工作经验，有责任心
+2. 具备良好的沟通协调能力
+3. 工作认真负责，执行力强`
+      }
+      const content = Object.keys(templates).find(k => this.data.jobName.includes(k))
+        ? templates[this.data.jobName]
+        : templates.default
+      this.setData({ jobDesc: content })
+    }, 1500)
   },
 
-  hidePicker(e) {
-    const type = e.currentTarget.dataset.type
-    const map = {
-      jobType: 'showJobTypePicker',
-      experience: 'showExperiencePicker',
-      education: 'showEducationPicker'
-    }
-    if (map[type]) this.setData({ [map[type]]: false })
+  // 选择薪资单位
+  selectSalaryUnit(e) {
+    this.setData({ salary: { ...this.data.salary, unit: e.currentTarget.dataset.unit } })
   },
 
-  onPickerChange(e) {
-    const type = e.currentTarget.dataset.type
-    const index = e.detail.value
-    const listMap = {
-      jobType: 'jobTypeList',
-      experience: 'experienceList',
-      education: 'educationList'
-    }
-    const indexMap = {
-      jobType: 'jobTypeIndex',
-      experience: 'experienceIndex',
-      education: 'educationIndex'
-    }
-    const list = this.data[listMap[type]]
-    const key = type.charAt(0).toUpperCase() + type.slice(1)
-    this.setData({
-      [type]: list[index],
-      [indexMap[type]]: index,
-      [`show${key}Picker`]: false
-    })
+  // 选择经验要求
+  selectExperience(e) {
+    this.setData({ experience: e.currentTarget.dataset.val })
   },
 
-  onInput(e) {
-    const field = e.currentTarget.dataset.field
-    this.setData({ [field]: e.detail.value })
+  // 选择学历要求
+  selectEducation(e) {
+    this.setData({ education: e.currentTarget.dataset.val })
   },
 
+  // 选择福利
   toggleWelfare(e) {
     const item = e.currentTarget.dataset.item
     let welfare = [...this.data.welfare]
-    const idx = welfare.indexOf(item)
-    if (idx > -1) {
-      welfare.splice(idx, 1)
+    const index = welfare.indexOf(item)
+    if (index > -1) {
+      welfare.splice(index, 1)
     } else {
-      if (welfare.length >= 6) {
-        wx.showToast({ title: '最多选6个福利', icon: 'none' })
-        return
-      }
       welfare.push(item)
     }
     this.setData({ welfare })
   },
 
-  submitForm() {
-    const { jobTitle, company, salary, jobType, address, desc, contact, submitting } = this.data
+  onHeadcountInput(e) { this.setData({ headcount: e.detail.value }) },
 
-    if (submitting) return
-    if (!jobTitle) return wx.showToast({ title: '请填写职位名称', icon: 'none' })
-    if (!salary) return wx.showToast({ title: '请填写薪资', icon: 'none' })
-    if (!jobType) return wx.showToast({ title: '请选择工作类型', icon: 'none' })
-    if (!address) return wx.showToast({ title: '请填写工作地点', icon: 'none' })
-    if (!desc) return wx.showToast({ title: '请填写职位描述', icon: 'none' })
-    if (!contact) return wx.showToast({ title: '请填写联系方式', icon: 'none' })
+  // 下一步
+  nextStep() {
+    if (!this.data.jobName.trim()) {
+      wx.showToast({ title: '请填写职位名称', icon: 'none' })
+      return
+    }
+    this.setData({ step: 2 })
+    wx.pageScrollTo({ scrollTop: 0 })
+  },
 
-    this.setData({ submitting: true })
+  // 上一步
+  prevStep() {
+    this.setData({ step: 1 })
+    wx.pageScrollTo({ scrollTop: 0 })
+  },
+
+  // 提交发布
+  submitPublish() {
+    if (!this.data.salary.min || !this.data.salary.max) {
+      wx.showToast({ title: '请填写薪资范围', icon: 'none' })
+      return
+    }
+    if (!this.data.contactName || !this.data.contactPhone) {
+      wx.showToast({ title: '请填写联系方式', icon: 'none' })
+      return
+    }
     wx.showLoading({ title: '发布中...' })
-
     setTimeout(() => {
       wx.hideLoading()
-      this.setData({ submitting: false })
       wx.showToast({ title: '发布成功！', icon: 'success' })
       setTimeout(() => wx.navigateBack(), 1500)
     }, 1500)

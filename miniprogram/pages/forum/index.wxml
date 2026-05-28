@@ -1,104 +1,161 @@
-<!-- pages/forum/publish/index.wxml -->
+<!-- pages/forum/index.wxml -->
 <view class="container">
-
-<!-- 顶部导航 -->
-<view class="header">
-  <view class="back-btn" bindtap="goBack">
-    <text class="back-icon">✕</text>
-  </view>
-  <text class="header-title">发帖</text>
-  <view
-    class="publish-btn {{content.length >= 5 && !isPublishing ? 'publish-btn-active' : ''}}"
-    bindtap="publish"
-  >
-    <text class="publish-btn-text">{{isPublishing ? '发布中...' : '发布'}}</text>
-  </view>
-</view>
-
-<!-- 用户信息 -->
-<view class="user-row">
-  <view class="user-avatar">
-    <text class="user-avatar-text">我</text>
-  </view>
-  <view class="user-info">
-    <text class="user-name">平江市民</text>
-    <view class="visibility-selector">
-      <text class="visibility-text">🌍 所有人可见</text>
-      <text class="visibility-arrow">▼</text>
-    </view>
-  </view>
-</view>
-
-<!-- 内容输入区 -->
-<view class="content-area">
-  <textarea
-    class="content-input"
-    value="{{content}}"
-    placeholder="分享你在平江的生活、求职信息、房源..."
-    placeholder-class="content-placeholder"
-    maxlength="500"
-    auto-height="true"
-    bindinput="onContentInput"
-  />
-
-  <!-- 图片预览 -->
-  <view wx:if="{{images.length > 0}}" class="image-preview">
-    <view wx:for="{{images}}" wx:key="*this" class="img-item">
-      <image class="preview-img" src="{{item}}" mode="aspectFill"/>
-      <view class="img-delete" data-index="{{index}}" bindtap="deleteImage">
-        <text class="img-delete-icon">✕</text>
+  <!-- 顶部导航 -->
+  <view class="header">
+    <view class="tabs">
+      <view 
+        wx:for="{{tabs}}" 
+        wx:key="index"
+        class="tab {{activeTab === index ? 'tab-active' : ''}}"
+        bindtap="onTabChange"
+        data-index="{{index}}">
+        <text>{{item}}</text>
+        <view wx:if="{{activeTab === index}}" class="tab-line"></view>
       </view>
     </view>
-    <!-- 继续添加图片 -->
-    <view wx:if="{{images.length < 9}}" class="img-add-more" bindtap="chooseImage">
-      <text class="img-add-icon">+</text>
+    <view class="header-right">
+      <image src="/images/icons/search.png" class="icon-btn" mode="aspectFit"/>
     </view>
   </view>
-</view>
 
-<!-- 字数统计 -->
-<view class="char-count-row">
-  <view class="char-bar">
-    <view class="char-progress" style="width:{{contentLength/500*100}}%"></view>
+  <!-- 帖子列表 -->
+  <scroll-view 
+    class="feed-list" 
+    scroll-y 
+    refresher-enabled
+    bindrefresherrefresh="onPullDownRefresh"
+    bindscrolltolower="onReachBottom">
+
+    <block wx:for="{{posts}}" wx:key="id">
+      <view class="post-card" bindtap="onPostTap" data-id="{{item.id}}">
+        
+        <!-- 用户信息行 -->
+        <view class="post-header">
+          <image class="post-avatar" src="{{item.author.avatar}}" mode="aspectFill"/>
+          <view class="post-author-info">
+            <text class="post-nickname">{{item.author.nickname}}</text>
+            <view class="post-meta">
+              <text class="post-location">📍 {{item.author.location}}</text>
+              <text class="post-time"> · {{item.time}}</text>
+            </view>
+          </view>
+          <view class="follow-btn">
+            <text>关注</text>
+          </view>
+        </view>
+
+        <!-- 帖子内容 -->
+        <view class="post-content">
+          <text class="post-text">{{item.content}}</text>
+        </view>
+
+        <!-- 标签 -->
+        <view class="post-tags" wx:if="{{item.tags.length > 0}}">
+          <text 
+            wx:for="{{item.tags}}" 
+            wx:for-item="tag"
+            wx:key="index"
+            class="post-tag"># {{tag}}</text>
+        </view>
+
+        <!-- 图片区域 -->
+        <view class="post-images {{item.images.length === 1 ? 'single-img' : item.images.length === 2 ? 'double-img' : 'grid-img'}}" 
+              wx:if="{{item.images.length > 0}}">
+          <image 
+            wx:for="{{item.images}}" 
+            wx:for-item="img"
+            wx:key="index"
+            src="{{img}}" 
+            mode="aspectFill"
+            class="post-image"
+            catchtap="previewImage"
+            data-src="{{img}}"
+            data-urls="{{item.images}}"/>
+        </view>
+
+        <!-- 操作栏 -->
+        <view class="post-actions" catchtap="stopProp">
+          <view class="action-btn" catchtap="onComment" data-id="{{item.id}}">
+            <text class="action-icon">💬</text>
+            <text class="action-count">{{item.comments}}</text>
+          </view>
+          <view class="action-btn {{item.isLiked ? 'liked' : ''}}" catchtap="onLike" data-id="{{item.id}}">
+            <text class="action-icon">{{item.isLiked ? '❤️' : '🤍'}}</text>
+            <text class="action-count {{item.isLiked ? 'liked-count' : ''}}">{{item.likes}}</text>
+          </view>
+          <view class="action-btn">
+            <text class="action-icon">↗️</text>
+            <text class="action-text">分享</text>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <!-- 加载状态 -->
+    <view class="load-more" wx:if="{{loading}}">
+      <text>加载中...</text>
+    </view>
+    <view class="load-more" wx:if="{{!hasMore && posts.length > 0}}">
+      <text>— 没有更多了 —</text>
+    </view>
+    <view style="height: 160rpx;"></view>
+  </scroll-view>
+
+  <!-- 发布按钮（仿Soul悬浮按钮） -->
+  <view class="publish-fab" bindtap="openPublish">
+    <text class="publish-fab-icon">✏️</text>
+    <text class="publish-fab-text">发布</text>
   </view>
-  <text class="char-count {{contentLength > 450 ? 'char-warn' : ''}}">{{500 - contentLength}}</text>
-</view>
 
-<!-- 底部工具栏 -->
-<view class="toolbar">
-  <!-- 添加图片 -->
-  <view class="tool-item" bindtap="chooseImage">
-    <text class="tool-icon">🖼️</text>
-    <text class="tool-text">图片({{images.length}}/9)</text>
-  </view>
+  <!-- 发布弹窗（仿朋友圈/Soul发布界面） -->
+  <view class="publish-mask" wx:if="{{showPublish}}" bindtap="closePublish"></view>
+  <view class="publish-panel {{showPublish ? 'publish-panel-show' : ''}}">
+    
+    <!-- 弹窗顶部 -->
+    <view class="publish-top">
+      <text class="publish-cancel" bindtap="closePublish">取消</text>
+      <text class="publish-title">发布瞬间</text>
+      <view class="publish-btn {{publishContent ? 'publish-btn-active' : ''}}" bindtap="publishPost">
+        <text>发布</text>
+      </view>
+    </view>
 
-  <!-- 话题标签 -->
-  <view class="tool-item" bindtap="toggleTagPicker">
-    <text class="tool-icon">🏷️</text>
-    <text class="tool-text">{{selectedTag ? '#' + selectedTag : '话题'}}</text>
-  </view>
+    <!-- 内容输入 -->
+    <textarea 
+      class="publish-textarea"
+      value="{{publishContent}}"
+      bindinput="onContentInput"
+      placeholder="发布超过10个字的帖子能获得更多流量哦 ✨"
+      maxlength="500"
+      auto-focus
+      adjust-position/>
 
-  <!-- 位置 -->
-  <view class="tool-item">
-    <text class="tool-icon">📍</text>
-    <text class="tool-text">平江县</text>
-  </view>
-</view>
+    <!-- 图片预览区 -->
+    <view class="publish-images" wx:if="{{publishImages.length > 0}}">
+      <view 
+        wx:for="{{publishImages}}" 
+        wx:key="index"
+        class="publish-img-wrap">
+        <image src="{{item}}" class="publish-img" mode="aspectFill"/>
+        <view class="remove-img" catchtap="removeImage" data-index="{{index}}">✕</view>
+      </view>
+    </view>
 
-<!-- 标签选择浮层 -->
-<view wx:if="{{showTagPicker}}" class="tag-picker">
-  <view class="tag-picker-title">选择话题</view>
-  <view class="tag-grid">
-    <view
-      wx:for="{{tags}}"
-      wx:key="*this"
-      class="tag-chip {{selectedTag === item ? 'tag-chip-selected' : ''}}"
-      data-tag="{{item}}"
-      bindtap="selectTag"
-    >
-      <text>#{{item}}</text>
+    <!-- 底部工具栏 -->
+    <view class="publish-toolbar">
+      <view class="toolbar-btn" bindtap="chooseImage">
+        <text class="toolbar-icon">🖼️</text>
+        <text>相册</text>
+      </view>
+      <view class="toolbar-btn">
+        <text class="toolbar-icon">📍</text>
+        <text>位置</text>
+      </view>
+      <view class="toolbar-btn">
+        <text class="toolbar-icon">😊</text>
+        <text>表情</text>
+      </view>
+      <view class="word-count">{{publishContent.length}}/500</view>
     </view>
   </view>
-</view>
-
 </view>

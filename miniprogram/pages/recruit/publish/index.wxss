@@ -1,194 +1,290 @@
 /* pages/recruit/publish/index.wxss */
-.container {
-  background: #f5f5f5;
-  min-height: 100vh;
-  padding-bottom: 120rpx;
-}
+page { background: #f5f5f5; }
 
-.top-tip {
-  background: linear-gradient(135deg, #FF6B35, #ff8c5a);
-  padding: 24rpx 30rpx;
+.container { padding-bottom: 40rpx; }
+
+/* 顶部 */
+.header {
   display: flex;
   align-items: center;
-  gap: 12rpx;
-}
-
-.tip-icon { font-size: 32rpx; }
-.tip-text { color: #fff; font-size: 26rpx; }
-
-.form-card {
+  justify-content: space-between;
   background: #fff;
-  border-radius: 16rpx;
-  margin: 20rpx 24rpx 0;
-  padding: 30rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.06);
-}
-
-.card-title {
-  font-size: 30rpx;
-  font-weight: bold;
-  color: #333;
-  margin-bottom: 24rpx;
-  padding-bottom: 16rpx;
+  padding: 20rpx 30rpx;
   border-bottom: 1rpx solid #f0f0f0;
 }
 
-.card-sub { font-size: 24rpx; color: #999; font-weight: normal; }
-
-.form-item {
+.back-btn {
+  width: 60rpx;
+  font-size: 48rpx;
+  color: #333;
   display: flex;
   align-items: center;
-  min-height: 88rpx;
-  border-bottom: 1rpx solid #f5f5f5;
-  padding: 16rpx 0;
 }
 
-.form-item.column {
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.form-item:last-child { border-bottom: none; }
-
-.form-label {
-  font-size: 28rpx;
+.header-title {
+  font-size: 32rpx;
+  font-weight: bold;
   color: #333;
-  min-width: 160rpx;
-  flex-shrink: 0;
 }
 
-.form-label.required::before {
-  content: '*';
-  color: #ff4444;
-  margin-right: 4rpx;
+/* 步骤条 */
+.steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 30rpx;
+  background: #fff;
+  margin-bottom: 16rpx;
+  gap: 0;
+}
+
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.step-circle {
+  width: 56rpx;
+  height: 56rpx;
+  border-radius: 50%;
+  background: #e0e0e0;
+  color: #999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26rpx;
+  font-weight: bold;
+}
+
+.step-active .step-circle {
+  background: linear-gradient(135deg, #00b4db, #0083b0);
+  color: #fff;
+}
+
+.step-label { font-size: 22rpx; color: #999; }
+.step-active .step-label { color: #0083b0; font-weight: bold; }
+
+.step-line {
+  flex: 1;
+  height: 4rpx;
+  background: #e0e0e0;
+  margin: 0 20rpx;
+  margin-bottom: 30rpx;
+}
+
+.step-line-active { background: linear-gradient(90deg, #00b4db, #0083b0); }
+
+/* 卡片区块 */
+.section {
+  background: #fff;
+  padding: 30rpx;
+  margin-bottom: 16rpx;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+}
+
+.section-title.required::before {
+  content: '* ';
+  color: #ff4d4f;
+}
+
+.section-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+/* 招聘类型 */
+.type-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+  margin-bottom: 20rpx;
+}
+
+.type-item {
+  padding: 24rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 26rpx;
+  color: #666;
+}
+
+.type-active {
+  border-color: #0083b0;
+  background: #e8f4f8;
+  color: #0083b0;
+  font-weight: bold;
+}
+
+.type-check {
+  width: 36rpx;
+  height: 36rpx;
+  background: #0083b0;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tips-text {
+  font-size: 22rpx;
+  color: #ff9800;
+  background: #fff8e1;
+  padding: 16rpx;
+  border-radius: 8rpx;
+}
+
+/* 输入框 */
+.input-wrap {
+  display: flex;
+  align-items: center;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 10rpx;
+  padding: 0 20rpx;
+  background: #fafafa;
 }
 
 .form-input {
   flex: 1;
+  height: 88rpx;
   font-size: 28rpx;
   color: #333;
-  text-align: right;
 }
 
-.form-select {
-  flex: 1;
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 8rpx;
-}
-
-.select-value { font-size: 28rpx; color: #333; }
-.select-placeholder { font-size: 28rpx; color: #bbb; }
-.arrow { color: #bbb; font-size: 36rpx; }
-
-.salary-wrap {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 8rpx;
-}
-
-.flex1 { flex: 1; }
-.unit { font-size: 26rpx; color: #999; flex-shrink: 0; }
-
-/* 福利标签 */
-.welfare-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16rpx;
-  margin-top: 8rpx;
-}
-
-.welfare-tag {
-  padding: 12rpx 24rpx;
-  border: 2rpx solid #e0e0e0;
-  border-radius: 32rpx;
-  font-size: 26rpx;
-  color: #666;
-  background: #fafafa;
-}
-
-.welfare-tag.active {
-  border-color: #FF6B35;
-  color: #FF6B35;
-  background: #fff5f0;
-}
+.input-count { font-size: 22rpx; color: #ccc; }
+.input-unit { font-size: 26rpx; color: #666; }
 
 .form-textarea {
   width: 100%;
+  min-height: 240rpx;
   font-size: 28rpx;
   color: #333;
-  min-height: 200rpx;
-  background: #f9f9f9;
-  border-radius: 8rpx;
-  padding: 16rpx;
+  line-height: 1.7;
+  background: #fafafa;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 10rpx;
+  padding: 20rpx;
   box-sizing: border-box;
-  line-height: 1.6;
 }
 
-.word-count {
-  font-size: 24rpx;
-  color: #bbb;
-  text-align: right;
-  width: 100%;
-  margin-top: 8rpx;
-}
-
-.bottom-btns {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  padding: 20rpx 24rpx;
-  background: #fff;
-  box-shadow: 0 -2rpx 12rpx rgba(0,0,0,0.08);
-}
-
-.btn-submit {
-  width: 100%;
-  height: 88rpx;
-  background: linear-gradient(135deg, #FF6B35, #ff8c5a);
-  color: #fff;
-  border-radius: 44rpx;
-  font-size: 32rpx;
-  border: none;
-  line-height: 88rpx;
-}
-
-.picker-mask {
-  position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
-  z-index: 999;
+/* AI帮写按钮 */
+.ai-btn {
   display: flex;
-  align-items: flex-end;
-}
-
-.picker-panel {
-  width: 100%;
-  background: #fff;
-  border-radius: 24rpx 24rpx 0 0;
-}
-
-.picker-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
-  padding: 24rpx 30rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  gap: 8rpx;
+  padding: 12rpx 24rpx;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 30rpx;
+  color: #fff;
+  font-size: 24rpx;
 }
 
-.picker-cancel { font-size: 28rpx; color: #999; }
-.picker-title { font-size: 30rpx; font-weight: bold; color: #333; }
-.picker-confirm { font-size: 28rpx; color: #FF6B35; }
-.picker-view { height: 400rpx; }
-.picker-item {
+.ai-icon { font-size: 26rpx; }
+
+/* 选择行 */
+.select-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24rpx 20rpx;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 10rpx;
+  background: #fafafa;
+}
+
+.select-value { font-size: 28rpx; color: #333; }
+.select-arrow { font-size: 36rpx; color: #ccc; }
+
+/* 薪资 */
+.salary-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.salary-input {
+  flex: 1;
+  height: 88rpx;
+  background: #fafafa;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 10rpx;
+  padding: 0 20rpx;
+  font-size: 28rpx;
+  text-align: center;
+}
+
+.salary-sep { font-size: 28rpx; color: #999; flex-shrink: 0; }
+
+.salary-units {
+  display: flex;
+  gap: 8rpx;
+  flex-shrink: 0;
+}
+
+.unit-item {
+  padding: 12rpx 20rpx;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.unit-active {
+  border-color: #0083b0;
+  background: #e8f4f8;
+  color: #0083b0;
+}
+
+/* 标签组 */
+.tag-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+}
+
+.tag-item {
+  padding: 14rpx 28rpx;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 30rpx;
+  font-size: 26rpx;
+  color: #666;
+}
+
+.tag-active {
+  border-color: #0083b0;
+  background: #e8f4f8;
+  color: #0083b0;
+  font-weight: bold;
+}
+
+/* 底部按钮 */
+.bottom-btn-wrap {
+  padding: 30rpx;
+}
+
+.next-btn, .submit-btn {
+  height: 96rpx;
+  border-radius: 48rpx;
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 80rpx;
-  font-size: 30rpx;
-  color: #333;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #fff;
+  background: linear-gradient(135deg, #00b4db, #0083b0);
+  box-shadow: 0 8rpx 24rpx rgba(0,131,176,0.35);
 }
