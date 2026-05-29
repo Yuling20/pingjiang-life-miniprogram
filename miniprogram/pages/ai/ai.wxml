@@ -1,95 +1,77 @@
-<!-- pages/ai/ai.wxml -->
-<view class="ai-container">
-
-<!-- 顶部标题栏 -->
-<view class="ai-header">
-  <view class="header-info">
-    <text class="header-title">平江汇 AI小助手</text>
-    <text class="header-sub">智能答疑解惑 · 智慧服务平江</text>
-  </view>
-  <view class="clear-btn" bindtap="onClear">清空</view>
-</view>
-
-<!-- 聊天消息区域 -->
-<scroll-view
-  class="chat-area"
-  scroll-y
-  scroll-into-view="{{scrollToView}}"
-  scroll-with-animation>
-
-  <block wx:for="{{messages}}" wx:key="id">
-
-    <!-- AI消息（左侧） -->
-    <view wx:if="{{item.role === 'assistant'}}" class="msg-row msg-left" id="{{item.id}}">
-      <view class="avatar avatar-ai">汇</view>
-      <view class="bubble {{item.isError ? 'bubble-error' : 'bubble-ai'}}">
-        <text class="msg-text" user-select="{{true}}">{{item.content}}</text>
-        <text class="msg-time">{{item.time}}</text>
-      </view>
+<view class="chat-container">
+  <!-- 对话记录区域 -->
+  <scroll-view
+    class="message-list"
+    scroll-y="true"
+    scroll-top="{{scrollTop}}"
+    scroll-with-animation="true"
+  >
+    <!-- 欢迎语（无对话时显示） -->
+    <view wx:if="{{messages.length === 0}}" class="welcome-box">
+      <text class="welcome-emoji">🤖</text>
+      <text class="welcome-title">你好！我是AI助手</text>
+      <text class="welcome-sub">有什么问题尽管问我～</text>
     </view>
 
-    <!-- 用户消息（右侧） -->
-    <view wx:if="{{item.role === 'user'}}" class="msg-row msg-right" id="{{item.id}}">
-      <view class="bubble bubble-user">
-        <text class="msg-text">{{item.content}}</text>
-        <text class="msg-time">{{item.time}}</text>
-      </view>
-      <view class="avatar avatar-user">我</view>
-    </view>
-
-  </block>
-
-  <!-- 加载动画 -->
-  <view wx:if="{{loading}}" class="msg-row msg-left">
-    <view class="avatar avatar-ai">汇</view>
-    <view class="bubble bubble-ai loading-bubble">
-      <view class="dot-wrap">
-        <view class="dot dot1"/>
-        <view class="dot dot2"/>
-        <view class="dot dot3"/>
-      </view>
-    </view>
-  </view>
-
-  <!-- 底部占位，防止被输入框遮挡 -->
-  <view style="height: 30rpx;"/>
-
-</scroll-view>
-
-<!-- 快捷回复 -->
-<scroll-view class="quick-area" scroll-x enable-flex>
-  <view class="quick-list">
+    <!-- 消息气泡 -->
     <view
-      class="quick-item"
-      wx:for="{{quickReplies}}"
-      wx:for-item="reply"
-      wx:key="*this"
-      data-text="{{reply}}"
-      bindtap="onQuickReply">
-      {{reply}}
+      wx:for="{{messages}}"
+      wx:key="id"
+      class="message-row {{item.role === 'user' ? 'row-user' : 'row-ai'}}"
+    >
+      <!-- AI头像 -->
+      <view wx:if="{{item.role === 'assistant'}}" class="avatar ai-avatar">
+        <text>🤖</text>
+      </view>
+
+      <!-- 气泡内容 -->
+      <view class="bubble {{item.role === 'user' ? 'bubble-user' : 'bubble-ai'}}">
+        <text class="bubble-text" selectable="true">{{item.content}}</text>
+      </view>
+
+      <!-- 用户头像 -->
+      <view wx:if="{{item.role === 'user'}}" class="avatar user-avatar">
+        <text>😊</text>
+      </view>
+    </view>
+
+    <!-- 加载中气泡 -->
+    <view wx:if="{{loading}}" class="message-row row-ai">
+      <view class="avatar ai-avatar"><text>🤖</text></view>
+      <view class="bubble bubble-ai bubble-loading">
+        <view class="dot-box">
+          <view class="dot dot1"></view>
+          <view class="dot dot2"></view>
+          <view class="dot dot3"></view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 底部占位，让最新消息不被输入框遮挡 -->
+    <view style="height: 160rpx;"></view>
+  </scroll-view>
+
+  <!-- 底部输入区域 -->
+  <view class="input-bar">
+    <textarea
+      class="input-box"
+      value="{{inputText}}"
+      bindinput="onInput"
+      placeholder="输入你的问题..."
+      placeholder-class="input-placeholder"
+      maxlength="500"
+      auto-height="true"
+      confirm-type="send"
+      bindconfirm="onSend"
+      disabled="{{loading}}"
+    />
+    <view
+      class="send-btn {{(inputText.trim().length > 0 && !loading) ? 'send-active' : 'send-disabled'}}"
+      bindtap="onSend"
+    >
+      <text wx:if="{{!loading}}">发送</text>
+      <text wx:else>等待</text>
     </view>
   </view>
-</scroll-view>
-
-<!-- 输入区域 -->
-<view class="input-area">
-  <input
-    class="input-box"
-    value="{{inputValue}}"
-    placeholder="请输入你的问题..."
-    placeholder-class="input-placeholder"
-    confirm-type="send"
-    bindinput="onInput"
-    bindconfirm="onSend"
-    disabled="{{loading}}"
-    maxlength="200"
-    cursor-spacing="20"/>
-  <button
-    class="send-btn {{loading ? 'btn-disabled' : ''}}"
-    bindtap="onSend"
-    disabled="{{loading}}">
-    {{loading ? '...' : '发送'}}
-  </button>
-</view>
 
 </view>

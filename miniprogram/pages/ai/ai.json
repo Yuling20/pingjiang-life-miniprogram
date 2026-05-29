@@ -1,7 +1,6 @@
 {
-  "navigationBarTitleText": "AI小助手",
-  "navigationBarBackgroundColor": "#FF8C00",
-  "navigationBarTextStyle": "white",
-  "backgroundColor": "#f4f6f9",
+  "navigationBarTitleText": "AI助手",
+  "navigationBarBackgroundColor": "#FFFFFF",
+  "navigationBarTextStyle": "black",
   "usingComponents": {}
 }

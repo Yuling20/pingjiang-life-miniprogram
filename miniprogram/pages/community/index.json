@@ -1,9 +1,0 @@
-{
-  "usingComponents": {},
-  "navigationBarTitleText": "平江贴吧",
-  "navigationBarBackgroundColor": "#8B5E3C",
-  "navigationBarTextStyle": "white",
-  "backgroundColor": "#FFF8F0",
-  "enablePullDownRefresh": true,
-  "backgroundTextStyle": "dark"
-}
