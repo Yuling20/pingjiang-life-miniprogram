@@ -1,0 +1,162 @@
+<!--pages/community/follow/index.wxml-->
+<view class="page-wrap">
+
+<!-- Tab 切换栏 -->
+<view class="tab-bar">
+  <view
+    class="tab-item {{activeTab === 0 ? 'tab-active' : ''}}"
+    bindtap="switchTab"
+    data-tab="0"
+  >
+    <text class="tab-text">关注</text>
+    <text class="tab-num">{{followList.length}}</text>
+  </view>
+  <view
+    class="tab-item {{activeTab === 1 ? 'tab-active' : ''}}"
+    bindtap="switchTab"
+    data-tab="1"
+  >
+    <text class="tab-text">粉丝</text>
+    <text class="tab-num">{{fansList.length}}</text>
+  </view>
+</view>
+
+<!-- 搜索栏 -->
+<view class="search-bar">
+  <view class="search-wrap">
+    <text class="search-icon">🔍</text>
+    <input
+      class="search-input"
+      placeholder="搜索昵称..."
+      placeholder-class="search-ph"
+      value="{{searchVal}}"
+      bindinput="onSearch"
+      confirm-type="search"
+    />
+    <view class="search-clear" wx:if="{{searchVal}}" bindtap="clearSearch">
+      <text class="clear-text">✕</text>
+    </view>
+  </view>
+</view>
+
+<!-- 关注列表 -->
+<view class="user-list" wx:if="{{activeTab === 0}}">
+  <view
+    class="user-card"
+    wx:for="{{filteredFollow}}"
+    wx:key="userId"
+  >
+    <!-- 用户基础信息 -->
+    <view
+      class="user-base"
+      bindtap="goUser"
+      data-id="{{item.userId}}"
+    >
+      <view class="avatar-wrap">
+        <image class="u-avatar" src="{{item.avatar}}" mode="aspectFill"/>
+        <view class="vip-dot" wx:if="{{item.isVip}}"/>
+      </view>
+      <view class="u-meta">
+        <view class="u-name-row">
+          <text class="u-name">{{item.nickname}}</text>
+          <text class="u-badge" wx:if="{{item.badge}}">{{item.badge}}</text>
+        </view>
+        <text class="u-bio">{{item.bio || '这个人很懒，什么都没写~'}}</text>
+        <text class="u-stats">帖子 {{item.postCount}} · 粉丝 {{item.fansCount}}</text>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="u-action">
+      <!-- 互相关注标识 -->
+      <text class="mutual-tag" wx:if="{{item.isMutual}}">互关</text>
+      <!-- 取关按钮 -->
+      <view
+        class="follow-btn btn-followed"
+        bindtap="unfollow"
+        data-id="{{item.userId}}"
+        data-index="{{index}}"
+      >
+        <text class="follow-btn-text">已关注</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 关注列表为空 -->
+  <view class="empty-tip" wx:if="{{filteredFollow.length === 0}}">
+    <text class="empty-icon">🧑‍🤝‍🧑</text>
+    <text class="empty-text" wx:if="{{searchVal}}">没有找到相关用户</text>
+    <text class="empty-text" wx:else>还没有关注任何人，去社区发现有趣的人吧</text>
+    <view class="empty-btn" bindtap="goCommunity" wx:if="{{!searchVal}}">
+      <text class="empty-btn-text">去逛社区</text>
+    </view>
+  </view>
+</view>
+
+<!-- 粉丝列表 -->
+<view class="user-list" wx:if="{{activeTab === 1}}">
+  <view
+    class="user-card"
+    wx:for="{{filteredFans}}"
+    wx:key="userId"
+  >
+    <!-- 用户基础信息 -->
+    <view
+      class="user-base"
+      bindtap="goUser"
+      data-id="{{item.userId}}"
+    >
+      <view class="avatar-wrap">
+        <image class="u-avatar" src="{{item.avatar}}" mode="aspectFill"/>
+        <view class="vip-dot" wx:if="{{item.isVip}}"/>
+      </view>
+      <view class="u-meta">
+        <view class="u-name-row">
+          <text class="u-name">{{item.nickname}}</text>
+          <text class="u-badge" wx:if="{{item.badge}}">{{item.badge}}</text>
+        </view>
+        <text class="u-bio">{{item.bio || '这个人很懒，什么都没写~'}}</text>
+        <text class="u-stats">帖子 {{item.postCount}} · 粉丝 {{item.fansCount}}</text>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="u-action">
+      <!-- 互相关注标识 -->
+      <text class="mutual-tag" wx:if="{{item.isMutual}}">互关</text>
+      <!-- 回关/已关注切换 -->
+      <view
+        class="follow-btn {{item.isFollowed ? 'btn-followed' : 'btn-follow'}}"
+        bindtap="toggleFanFollow"
+        data-id="{{item.userId}}"
+        data-index="{{index}}"
+        data-followed="{{item.isFollowed}}"
+      >
+        <text class="follow-btn-text">{{item.isFollowed ? '已关注' : '+ 回关'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 粉丝列表为空 -->
+  <view class="empty-tip" wx:if="{{filteredFans.length === 0}}">
+    <text class="empty-icon">💌</text>
+    <text class="empty-text" wx:if="{{searchVal}}">没有找到相关粉丝</text>
+    <text class="empty-text" wx:else>还没有粉丝，多发帖子吸引更多人关注你吧</text>
+    <view class="empty-btn" bindtap="goPublish" wx:if="{{!searchVal}}">
+      <text class="empty-btn-text">去发帖</text>
+    </view>
+  </view>
+</view>
+
+<!-- 加载状态 -->
+<view class="load-tip" wx:if="{{isLoading}}">
+  <text class="load-text">加载中...</text>
+</view>
+<view class="load-tip" wx:if="{{!hasMore && !isLoading && (activeTab===0 ? followList.length : fansList.length) > 0}}">
+  <text class="load-text">— 已经到底了 —</text>
+</view>
+
+<!-- 底部安全距离 -->
+<view style="height: 60rpx;"/>
+
+</view>

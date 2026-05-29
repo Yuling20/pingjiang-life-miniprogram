@@ -1,0 +1,115 @@
+<!--pages/community/publish/index.wxml-->
+<view class="page-wrap">
+
+<!-- 顶部操作栏 -->
+<view class="top-bar">
+  <view class="cancel-btn" bindtap="onCancel">取消</view>
+  <view class="page-title">发布帖子</view>
+  <view class="submit-btn {{canSubmit?'':'submit-disabled'}}" bindtap="onSubmit">发布</view>
+</view>
+
+<!-- 授权提示条（未授权时显示） -->
+<view class="auth-bar" wx:if="{{!isAuthed}}" bindtap="requestAuth">
+  <text class="auth-icon">🔒</text>
+  <text class="auth-text">发帖需实名授权，点击完成授权 →</text>
+</view>
+
+<!-- 正文输入区 -->
+<view class="content-section">
+  <textarea
+    class="content-input"
+    placeholder="分享你在平江的所见所闻，和街坊们聊聊吧..."
+    placeholder-class="input-placeholder"
+    maxlength="500"
+    auto-height
+    bindinput="onContentInput"
+    value="{{content}}"
+  />
+  <view class="word-count">
+    <text class="word-num {{content.length>=450?'warn':''}}">{{content.length}}</text>
+    <text class="word-total">/500</text>
+  </view>
+</view>
+
+<!-- 话题标签区 -->
+<view class="section">
+  <view class="section-title">
+    <text class="section-label">📌 添加话题</text>
+    <text class="section-hint">最多3个</text>
+  </view>
+  <view class="tag-row">
+    <!-- 已添加的标签 -->
+    <view class="tag-chip" wx:for="{{tags}}" wx:key="index">
+      <text class="tag-chip-text">#{{item}}</text>
+      <view class="tag-del" bindtap="removeTag" data-index="{{index}}">×</view>
+    </view>
+    <!-- 输入新标签 -->
+    <view class="tag-input-wrap" wx:if="{{tags.length < 3}}">
+      <input
+        class="tag-input"
+        placeholder="输入话题..."
+        value="{{tagInput}}"
+        bindinput="onTagInput"
+        bindconfirm="addTag"
+        confirm-type="done"
+        maxlength="10"
+      />
+      <view class="tag-add-btn" bindtap="addTag">+ 添加</view>
+    </view>
+  </view>
+  <!-- 预设热门话题 -->
+  <view class="hot-tags">
+    <text class="hot-label">热门：</text>
+    <view
+      class="hot-tag"
+      wx:for="{{hotTags}}"
+      wx:key="index"
+      bindtap="addHotTag"
+      data-tag="{{item}}"
+    >#{{item}}</view>
+  </view>
+</view>
+
+<!-- 图片上传区 -->
+<view class="section" wx:if="{{!videoPath}}">
+  <view class="section-title">
+    <text class="section-label">🖼️ 添加图片</text>
+    <text class="section-hint">最多9张，有图片时不可添加视频</text>
+  </view>
+  <view class="media-grid">
+    <!-- 已选图片 -->
+    <view class="media-item" wx:for="{{images}}" wx:key="index">
+      <image class="media-img" src="{{item}}" mode="aspectFill" bindtap="previewImg" data-src="{{item}}" data-list="{{images}}"/>
+      <view class="media-del" bindtap="removeImage" data-index="{{index}}">×</view>
+    </view>
+    <!-- 添加按钮 -->
+    <view class="media-add" bindtap="chooseImage" wx:if="{{images.length < 9}}">
+      <text class="media-add-icon">+</text>
+      <text class="media-add-text">添加图片</text>
+    </view>
+  </view>
+</view>
+
+<!-- 视频上传区 -->
+<view class="section" wx:if="{{images.length === 0}}">
+  <view class="section-title">
+    <text class="section-label">🎬 添加视频</text>
+    <text class="section-hint">最多1个，有视频时不可添加图片</text>
+  </view>
+  <view class="video-upload-wrap" wx:if="{{!videoPath}}" bindtap="chooseVideo">
+    <text class="video-add-icon">▶</text>
+    <text class="video-add-text">点击选择视频</text>
+  </view>
+  <view class="video-preview-wrap" wx:else>
+    <video class="preview-video" src="{{videoPath}}" controls show-center-play-btn/>
+    <view class="video-del-btn" bindtap="removeVideo">删除视频</view>
+  </view>
+</view>
+
+<!-- 发布规范提示 -->
+<view class="rule-tip">
+  <text class="rule-icon">⚠️</text>
+  <text class="rule-text">请遵守社区规范，禁止发布广告、低俗、违法内容，违规将被封禁</text>
+</view>
+
+</view>

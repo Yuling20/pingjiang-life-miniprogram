@@ -1,22 +1,366 @@
-page{background:#f5f5f5}
-.container{padding:0 0 120rpx 0}
-.banner{background:linear-gradient(135deg,#e6820e,#f5a623);padding:40rpx 30rpx;display:flex;flex-direction:row;align-items:center}
-.banner-icon{font-size:64rpx;margin-right:20rpx}
-.banner-text{display:flex;flex-direction:column}
-.banner-title{color:#fff;font-size:40rpx;font-weight:bold}
-.banner-sub{color:rgba(255,255,255,0.85);font-size:26rpx;margin-top:6rpx}
-.post-list{padding:20rpx}
-.post-card{background:#fff;border-radius:20rpx;padding:30rpx;margin-bottom:20rpx;box-shadow:0 2rpx 12rpx rgba(0,0,0,0.06)}
-.post-header{display:flex;flex-direction:row;align-items:center;margin-bottom:18rpx}
-.avatar{font-size:52rpx;margin-right:16rpx}
-.post-meta{display:flex;flex-direction:column}
-.nickname{font-size:30rpx;font-weight:bold;color:#333}
-.post-time{font-size:24rpx;color:#999;margin-top:4rpx}
-.post-content{font-size:32rpx;color:#444;line-height:1.7;display:block;margin-bottom:24rpx}
-.post-actions{display:flex;flex-direction:row;gap:30rpx}
-.action-btn{display:flex;align-items:center;padding:10rpx 24rpx;background:#f8f8f8;border-radius:30rpx;font-size:28rpx;color:#666}
-.action-btn.liked{background:#fff0e0}
-.fab{position:fixed;right:36rpx;bottom:160rpx;background:#e6820e;border-radius:60rpx;padding:20rpx 36rpx;display:flex;flex-direction:row;align-items:center;box-shadow:0 6rpx 20rpx rgba(230,130,14,0.4)}
-.fab-icon{font-size:36rpx;margin-right:10rpx}
-.fab-text{color:#fff;font-size:30rpx;font-weight:bold}
-.footer-tip{text-align:center;padding:30rpx;font-size:26rpx;color:#aaa}
+/* pages/community/community.wxss */
+/* 平江贴吧首页样式 - 米黄棉麻配色，适配30-50岁用户 */
+
+/* ===== 页面容器 ===== */
+.community-page {
+  min-height: 100vh;
+  background-color: #F5F0E8;
+  padding-bottom: 140rpx;
+}
+
+/* ===== 公告栏 ===== */
+.notice-bar {
+  display: flex;
+  align-items: center;
+  background-color: #FFF8EE;
+  border-bottom: 2rpx solid #F0E5D8;
+  padding: 20rpx 24rpx;
+}
+
+.notice-icon {
+  font-size: 32rpx;
+  margin-right: 12rpx;
+  flex-shrink: 0;
+}
+
+.notice-text {
+  flex: 1;
+  font-size: 26rpx;
+  color: #8B7355;
+  line-height: 1.5;
+}
+
+.notice-close {
+  width: 48rpx;
+  height: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.close-x {
+  font-size: 40rpx;
+  color: #AAAAAA;
+  line-height: 1;
+}
+
+/* ===== 顶部功能栏 ===== */
+.top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: #FFF8EE;
+  padding: 0 24rpx;
+  border-bottom: 2rpx solid #F0E5D8;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+/* Tab 组 */
+.tab-group {
+  display: flex;
+  align-items: center;
+}
+
+.tab-item {
+  position: relative;
+  padding: 24rpx 28rpx;
+  margin-right: 8rpx;
+}
+
+.tab-text {
+  font-size: 30rpx;
+  color: #999999;
+  font-weight: 400;
+}
+
+.tab-active .tab-text {
+  font-size: 32rpx;
+  color: #D4820A;
+  font-weight: bold;
+}
+
+.tab-underline {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40rpx;
+  height: 6rpx;
+  background-color: #D4820A;
+  border-radius: 3rpx;
+}
+
+/* 关注入口按钮 */
+.follow-btn {
+  background-color: #FFF3E0;
+  border: 2rpx solid #D4820A;
+  border-radius: 32rpx;
+  padding: 10rpx 24rpx;
+}
+
+.follow-btn-text {
+  font-size: 26rpx;
+  color: #D4820A;
+  font-weight: 500;
+}
+
+/* ===== 帖子列表 ===== */
+.post-list {
+  padding: 16rpx;
+}
+
+/* 帖子卡片 */
+.post-card {
+  background-color: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 4rpx 12rpx rgba(139, 115, 85, 0.08);
+}
+
+/* 帖子头部 */
+.post-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.user-avatar {
+  width: 88rpx;
+  height: 88rpx;
+  border-radius: 50%;
+  margin-right: 20rpx;
+  border: 2rpx solid #F0E5D8;
+  flex-shrink: 0;
+}
+
+.user-meta {
+  flex: 1;
+}
+
+.user-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-bottom: 6rpx;
+}
+
+.user-name {
+  font-size: 30rpx;
+  color: #333333;
+  font-weight: bold;
+}
+
+/* VIP标识 */
+.vip-badge {
+  font-size: 20rpx;
+  color: #FFFFFF;
+  background: linear-gradient(135deg, #FFB300, #FF8F00);
+  border-radius: 8rpx;
+  padding: 2rpx 10rpx;
+  font-weight: bold;
+}
+
+/* 用户标签 */
+.user-badge {
+  font-size: 20rpx;
+  color: #D4820A;
+  background-color: #FFF3E0;
+  border: 2rpx solid #D4820A;
+  border-radius: 8rpx;
+  padding: 2rpx 10rpx;
+}
+
+.post-time {
+  font-size: 24rpx;
+  color: #AAAAAA;
+}
+
+/* 关注/已关注按钮 */
+.follow-tag {
+  border-radius: 32rpx;
+  padding: 10rpx 20rpx;
+  flex-shrink: 0;
+  margin-left: 16rpx;
+}
+
+.not-followed {
+  background-color: #D4820A;
+}
+
+.followed {
+  background-color: #EEEEEE;
+}
+
+.follow-tag-text {
+  font-size: 24rpx;
+  font-weight: 500;
+}
+
+.not-followed .follow-tag-text {
+  color: #FFFFFF;
+}
+
+.followed .follow-tag-text {
+  color: #999999;
+}
+
+/* ===== 帖子正文 ===== */
+.post-body {
+  margin-bottom: 20rpx;
+}
+
+.post-content {
+  font-size: 30rpx;
+  color: #333333;
+  line-height: 1.7;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+/* 话题标签 */
+.post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.post-tag {
+  font-size: 26rpx;
+  color: #1989FA;
+  background-color: #E8F4FF;
+  border-radius: 8rpx;
+  padding: 4rpx 14rpx;
+}
+
+/* 图片区 */
+.post-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-bottom: 12rpx;
+}
+
+.img-single {
+  width: 100%;
+  height: 360rpx;
+  border-radius: 12rpx;
+  object-fit: cover;
+}
+
+.img-grid {
+  width: 220rpx;
+  height: 220rpx;
+  border-radius: 8rpx;
+  object-fit: cover;
+}
+
+/* 视频区 */
+.post-video-wrap {
+  width: 100%;
+  margin-bottom: 12rpx;
+}
+
+.post-video {
+  width: 100%;
+  height: 380rpx;
+  border-radius: 12rpx;
+}
+
+/* ===== 互动操作栏 ===== */
+.post-footer {
+  display: flex;
+  align-items: center;
+  padding-top: 20rpx;
+  border-top: 2rpx solid #F5F0E8;
+  gap: 4rpx;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  padding: 8rpx 16rpx;
+  border-radius: 32rpx;
+  background-color: #F5F0E8;
+  margin-right: 8rpx;
+}
+
+.action-icon {
+  font-size: 30rpx;
+  margin-right: 6rpx;
+}
+
+.action-text {
+  font-size: 26rpx;
+  color: #666666;
+}
+
+.action-vip {
+  color: #FF8F00;
+  font-weight: bold;
+}
+
+.action-liked .action-text {
+  color: #E53935;
+}
+
+/* 举报按钮右对齐 */
+.action-report {
+  margin-left: auto;
+  margin-right: 0;
+  background-color: transparent;
+  padding: 8rpx;
+}
+
+/* ===== 加载更多 ===== */
+.load-more {
+  text-align: center;
+  padding: 32rpx 0;
+}
+
+.load-more-text {
+  font-size: 26rpx;
+  color: #BBBBBB;
+}
+
+/* ===== 悬浮发帖按钮 ===== */
+.fab-btn {
+  position: fixed;
+  right: 40rpx;
+  bottom: 160rpx;
+  width: 120rpx;
+  height: 120rpx;
+  background: linear-gradient(135deg, #D4820A 0%, #B8700A 100%);
+  border-radius: 60rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(212, 130, 10, 0.4);
+  z-index: 999;
+}
+
+.fab-icon {
+  font-size: 48rpx;
+  color: #FFFFFF;
+  line-height: 1;
+  font-weight: bold;
+}
+
+.fab-text {
+  font-size: 22rpx;
+  color: #FFFFFF;
+  margin-top: 4rpx;
+}

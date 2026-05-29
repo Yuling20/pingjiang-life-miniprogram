@@ -11,7 +11,11 @@
     "pages/services/convenience/guide/guide",
     "pages/services/convenience/hospital/hospital",
     "pages/common/webview/webview",
-    "pages/ai/ai"
+    "pages/ai/ai",
+    "pages/community/publish/index",
+    "pages/community/comment/index",
+    "pages/community/user/index",
+    "pages/community/follow/index"
   ],
   "window": {
     "backgroundTextStyle": "light",

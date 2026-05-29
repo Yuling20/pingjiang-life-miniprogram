@@ -1,8 +1,6 @@
 {
-  "navigationBarTitleText": "平江贴吧",
+  "navigationBarTitleText": "评论详情",
   "navigationBarBackgroundColor": "#FFF8EE",
   "navigationBarTextStyle": "black",
-  "enablePullDownRefresh": true,
-  "backgroundTextStyle": "dark",
   "usingComponents": {}
 }

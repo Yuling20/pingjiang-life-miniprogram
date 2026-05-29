@@ -1,0 +1,137 @@
+/* pages/community/follow/index.wxss */
+page { background: #F5F0E8; }
+
+.page-wrap { min-height: 100vh; }
+
+/* Tab 切换栏 */
+.tab-bar {
+  display: flex; background: #FFF8EE;
+  border-bottom: 2rpx solid #F0E5D8;
+  position: sticky; top: 0; z-index: 10;
+}
+.tab-item {
+  flex: 1; display: flex; align-items: center;
+  justify-content: center; gap: 8rpx;
+  padding: 28rpx 0; position: relative;
+}
+.tab-text { font-size: 30rpx; color: #999; }
+.tab-num {
+  font-size: 24rpx; color: #BBB;
+  background: #F0E5D8; padding: 2rpx 12rpx;
+  border-radius: 20rpx;
+}
+.tab-active .tab-text { color: #D4820A; font-weight: bold; }
+.tab-active .tab-num { color: #FFFFFF; background: #D4820A; }
+.tab-active::after {
+  content: ''; position: absolute;
+  bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 60rpx; height: 6rpx;
+  background: #D4820A; border-radius: 4rpx;
+}
+
+/* 搜索栏 */
+.search-bar {
+  padding: 16rpx 24rpx; background: #F5F0E8;
+}
+.search-wrap {
+  display: flex; align-items: center;
+  background: #FFFFFF; border-radius: 40rpx;
+  padding: 14rpx 24rpx; gap: 12rpx;
+  box-shadow: 0 2rpx 8rpx rgba(139,115,85,0.08);
+}
+.search-icon { font-size: 28rpx; flex-shrink: 0; }
+.search-input { flex: 1; font-size: 28rpx; color: #333; }
+.search-ph { font-size: 28rpx; color: #CCC; }
+.search-clear { padding: 4rpx; }
+.clear-text { font-size: 26rpx; color: #BBB; }
+
+/* 用户列表 */
+.user-list { padding: 16rpx; }
+
+/* 用户卡片 */
+.user-card {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  background: #FFFFFF; border-radius: 16rpx;
+  padding: 24rpx; margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(139,115,85,0.08);
+}
+.user-base { display: flex; align-items: center; flex: 1; overflow: hidden; }
+
+/* 头像 */
+.avatar-wrap { position: relative; flex-shrink: 0; margin-right: 20rpx; }
+.u-avatar {
+  width: 96rpx; height: 96rpx; border-radius: 50%;
+  border: 3rpx solid #F0E5D8;
+}
+.vip-dot {
+  position: absolute; bottom: 2rpx; right: 2rpx;
+  width: 22rpx; height: 22rpx; border-radius: 50%;
+  background: linear-gradient(135deg, #D4820A, #E8A040);
+  border: 2rpx solid #FFFFFF;
+}
+
+/* 用户信息 */
+.u-meta { display: flex; flex-direction: column; gap: 6rpx; overflow: hidden; flex: 1; }
+.u-name-row { display: flex; align-items: center; gap: 10rpx; }
+.u-name {
+  font-size: 30rpx; color: #333; font-weight: bold;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 200rpx;
+}
+.u-badge {
+  font-size: 20rpx; color: #D4820A;
+  background: #FFF3E0; padding: 2rpx 10rpx;
+  border-radius: 10rpx; flex-shrink: 0;
+}
+.u-bio {
+  font-size: 24rpx; color: #999;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 340rpx;
+}
+.u-stats { font-size: 22rpx; color: #CCC; }
+
+/* 操作按钮 */
+.u-action {
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 8rpx;
+  flex-shrink: 0; margin-left: 16rpx;
+}
+.mutual-tag {
+  font-size: 22rpx; color: #D4820A;
+  background: #FFF3E0; padding: 2rpx 12rpx;
+  border-radius: 10rpx;
+}
+.follow-btn {
+  padding: 12rpx 28rpx; border-radius: 30rpx;
+  display: flex; align-items: center; justify-content: center;
+  min-width: 120rpx;
+}
+.btn-follow {
+  background: linear-gradient(90deg, #D4820A, #E8A040);
+  box-shadow: 0 2rpx 8rpx rgba(212,130,10,0.25);
+}
+.btn-followed {
+  background: #F0E5D8; border: 1rpx solid #DDD;
+}
+.follow-btn-text { font-size: 26rpx; font-weight: bold; color: #FFFFFF; }
+.btn-followed .follow-btn-text { color: #999; }
+
+/* 空状态 */
+.empty-tip {
+  display: flex; flex-direction: column;
+  align-items: center; padding: 100rpx 0; gap: 20rpx;
+}
+.empty-icon { font-size: 80rpx; }
+.empty-text { font-size: 28rpx; color: #BBB; text-align: center; padding: 0 60rpx; }
+.empty-btn {
+  background: linear-gradient(90deg, #D4820A, #E8A040);
+  padding: 18rpx 60rpx; border-radius: 40rpx;
+  margin-top: 10rpx;
+  box-shadow: 0 4rpx 16rpx rgba(212,130,10,0.25);
+}
+.empty-btn-text { font-size: 28rpx; color: #FFFFFF; font-weight: bold; }
+
+/* 加载提示 */
+.load-tip { text-align: center; padding: 30rpx; }
+.load-text { font-size: 26rpx; color: #BBB; }
