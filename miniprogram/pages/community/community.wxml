@@ -1,173 +1,133 @@
 <!--pages/community/community.wxml-->
-<!-- 平江贴吧首页 -->
+<view class="page-wrap">
 
-<view class="community-page">
-
-<!-- ===== 可关闭公告栏 ===== -->
-<view class="notice-bar" wx:if="{{showNotice}}">
-  <text class="notice-icon">📢</text>
-  <text class="notice-text">{{noticeText}}</text>
-  <view class="notice-close" bindtap="closeNotice">
-    <text class="close-x">×</text>
+<!-- 顶部搜索栏 -->
+<view class="top-bar">
+  <view class="search-box" bindtap="goSearch">
+    <text class="search-icon">🔍</text>
+    <text class="search-ph">搜索平江话题、帖子...</text>
+  </view>
+  <view class="post-btn" bindtap="goPublish">
+    <text class="post-btn-text">+ 发帖</text>
   </view>
 </view>
 
-<!-- ===== 顶部功能栏（Tab + 关注入口） ===== -->
-<view class="top-bar">
-  <view class="tab-group">
+<!-- 话题分类 Tab -->
+<scroll-view class="tab-scroll" scroll-x enable-flex>
+  <view class="tab-list">
     <view
       class="tab-item {{activeTab === index ? 'tab-active' : ''}}"
       wx:for="{{tabs}}"
-      wx:key="index"
-      data-index="{{index}}"
+      wx:key="id"
       bindtap="switchTab"
+      data-index="{{index}}"
     >
-      <text class="tab-text">{{item}}</text>
-      <view class="tab-underline" wx:if="{{activeTab === index}}"></view>
+      <text class="tab-text">{{item.label}}</text>
     </view>
   </view>
+</scroll-view>
 
-  <!-- 关注入口按钮 -->
-  <view class="follow-btn" bindtap="goFollow">
-    <text class="follow-btn-text">我的关注</text>
-  </view>
-</view>
-
-<!-- ===== 帖子列表 ===== -->
+<!-- 帖子列表 -->
 <view class="post-list">
-  <block wx:for="{{posts}}" wx:key="id">
-    <view class="post-card">
-
-      <!-- 帖子头部：头像 + 昵称 + 关注按钮 -->
-      <view class="post-header">
-        <view class="user-info" bindtap="goUserPage" data-userid="{{item.userId}}">
-          <image class="user-avatar" src="{{item.avatar}}" mode="aspectFill" />
-          <view class="user-meta">
-            <view class="user-name-row">
-              <text class="user-name">{{item.nickname}}</text>
-              <!-- VIP标识（预留付费扩展） -->
-              <text class="vip-badge" wx:if="{{item.isVip}}">V{{item.vipLevel}}</text>
-              <!-- 用户标签 -->
-              <text class="user-badge" wx:if="{{item.badge}}">{{item.badge}}</text>
-            </view>
-            <text class="post-time">{{item.time}}</text>
-          </view>
-        </view>
-
-        <!-- 关注/已关注按钮 -->
-        <view
-          class="follow-tag {{item.isFollowed ? 'followed' : 'not-followed'}}"
-          bindtap="toggleFollow"
-          data-id="{{item.id}}"
-        >
-          <text class="follow-tag-text">{{item.isFollowed ? '已关注' : '+ 关注'}}</text>
+  <view
+    class="post-card"
+    wx:for="{{posts}}"
+    wx:key="id"
+    bindtap="goDetail"
+    data-id="{{item.id}}"
+  >
+    <!-- 帖子头部：头像 + 昵称 + 时间 -->
+    <view class="card-header">
+      <view
+        class="author-info"
+        catchtap="goUser"
+        data-id="{{item.userId}}"
+      >
+        <image class="author-avatar" src="{{item.avatar}}" mode="aspectFill"/>
+        <view class="author-meta">
+          <text class="author-name">{{item.nickname}}</text>
+          <text class="post-time">{{item.time}}</text>
         </view>
       </view>
-
-      <!-- 帖子正文 -->
-      <view class="post-body">
-        <text class="post-content">{{item.content}}</text>
-
-        <!-- 话题标签 -->
-        <view class="post-tags" wx:if="{{item.tags && item.tags.length > 0}}">
-          <text
-            class="post-tag"
-            wx:for="{{item.tags}}"
-            wx:for-item="tag"
-            wx:key="index"
-          >{{tag}}</text>
-        </view>
-
-        <!-- 图片区（最多9张） -->
-        <view class="post-images" wx:if="{{item.images && item.images.length > 0}}">
-          <image
-            class="post-img {{item.images.length === 1 ? 'img-single' : 'img-grid'}}"
-            wx:for="{{item.images}}"
-            wx:for-item="img"
-            wx:key="index"
-            src="{{img}}"
-            mode="aspectFill"
-          />
-        </view>
-
-        <!-- 视频区 -->
-        <view class="post-video-wrap" wx:if="{{item.video}}">
-          <video
-            class="post-video"
-            src="{{item.video}}"
-            controls
-            show-fullscreen-btn
-            enable-progress-gesture
-          />
-        </view>
+      <!-- 置顶标签 -->
+      <view class="top-tag" wx:if="{{item.isTop}}">
+        <text class="top-tag-text">置顶</text>
       </view>
-
-      <!-- 帖子底部：互动操作栏 -->
-      <view class="post-footer">
-
-        <!-- 点赞 -->
-        <view
-          class="action-btn {{item.isLiked ? 'action-liked' : ''}}"
-          bindtap="toggleLike"
-          data-id="{{item.id}}"
-        >
-          <text class="action-icon">{{item.isLiked ? '❤️' : '🤍'}}</text>
-          <text class="action-text">{{item.likes}}</text>
-        </view>
-
-        <!-- 评论 -->
-        <view class="action-btn" bindtap="goComment" data-id="{{item.id}}">
-          <text class="action-icon">💬</text>
-          <text class="action-text">{{item.comments}}</text>
-        </view>
-
-        <!-- 转发 -->
-        <view class="action-btn" bindtap="goShare" data-id="{{item.id}}">
-          <text class="action-icon">↗️</text>
-          <text class="action-text">{{item.shares}}</text>
-        </view>
-
-        <!-- 私信（VIP标识） -->
-        <view
-          class="action-btn"
-          bindtap="goMessage"
-          data-id="{{item.id}}"
-          data-isvip="{{item.isVip}}"
-        >
-          <text class="action-icon">✉️</text>
-          <text class="action-text action-vip" wx:if="{{item.isVip}}">VIP私信</text>
-          <text class="action-text" wx:else>私信</text>
-        </view>
-
-        <!-- 举报（右侧对齐） -->
-        <view class="action-btn action-report" bindtap="reportPost" data-id="{{item.id}}">
-          <text class="action-icon">⚑</text>
-        </view>
-
+      <!-- 话题标签 -->
+      <view class="topic-tag" wx:if="{{item.topic}}">
+        <text class="topic-tag-text"># {{item.topic}}</text>
       </view>
     </view>
-  </block>
 
-  <!-- 加载更多 / 没有更多 -->
-  <view class="load-more" wx:if="{{!hasMore && posts.length > 0}}">
-    <text class="load-more-text">— 已经到底啦 —</text>
+    <!-- 帖子正文 -->
+    <text class="post-content">{{item.content}}</text>
+
+    <!-- 图片缩略（最多展示3张） -->
+    <view class="img-grid" wx:if="{{item.images.length > 0}}">
+      <image
+        class="grid-img grid-img-{{item.images.length > 3 ? 3 : item.images.length}}"
+        wx:for="{{item.images}}"
+        wx:for-item="img"
+        wx:key="index"
+        wx:if="{{index < 3}}"
+        src="{{img}}"
+        mode="aspectFill"
+        catchtap="previewImg"
+        data-src="{{img}}"
+        data-list="{{item.images}}"
+      />
+      <!-- 超过3张显示数量角标 -->
+      <view class="img-more" wx:if="{{item.images.length > 3}}">
+        <text class="img-more-text">+{{item.images.length - 3}}</text>
+      </view>
+    </view>
+
+    <!-- 互动数据栏 -->
+    <view class="card-footer">
+      <view class="footer-item">
+        <text class="footer-icon">🗨️</text>
+        <text class="footer-num">{{item.comments}} 评论</text>
+      </view>
+      <view
+        class="footer-item"
+        catchtap="toggleLike"
+        data-id="{{item.id}}"
+        data-index="{{index}}"
+      >
+        <text class="footer-icon">{{item.isLiked ? '❤️' : '🤍'}}</text>
+        <text class="footer-num {{item.isLiked ? 'liked' : ''}}">{{item.likes}}</text>
+      </view>
+      <view class="footer-item" catchtap="sharePost" data-item="{{item}}">
+        <text class="footer-icon">↗️</text>
+        <text class="footer-num">转发</text>
+      </view>
+    </view>
   </view>
-  <view class="load-more" wx:if="{{isLoading}}">
-    <text class="load-more-text">加载中...</text>
+
+  <!-- 空状态 -->
+  <view class="empty-tip" wx:if="{{posts.length === 0 && !isLoading}}">
+    <text class="empty-icon">📭</text>
+    <text class="empty-text">暂无帖子，来发第一帖吧！</text>
+    <view class="empty-post-btn" bindtap="goPublish">
+      <text class="empty-post-text">+ 立即发帖</text>
+    </view>
   </view>
+
+  <!-- 加载状态 -->
+  <view class="load-tip" wx:if="{{isLoading}}">
+    <text class="load-text">加载中...</text>
+  </view>
+  <view class="load-tip" wx:if="{{!hasMore && posts.length > 0 && !isLoading}}">
+    <text class="load-text">— 已经到底了 —</text>
+  </view>
+
+  <!-- 底部安全距离 -->
+  <view style="height: 120rpx;"/>
 </view>
 
-<!-- ===== 悬浮发帖按钮 ===== -->
-<view class="fab-btn" bindtap="goPublish">
-  <text class="fab-icon">+</text>
-  <text class="fab-text">发帖</text>
+<!-- 悬浮发帖按钮 -->
+<view class="fab" bindtap="goPublish">
+  <text class="fab-icon">✏️</text>
 </view>
-
-<!-- ===== 海报 Canvas（隐藏，用于生成分享海报） ===== -->
-<canvas
-  id="posterCanvas"
-  type="2d"
-  style="position:fixed;left:-9999rpx;top:-9999rpx;width:750rpx;height:1050rpx;"
-/>
 
 </view>

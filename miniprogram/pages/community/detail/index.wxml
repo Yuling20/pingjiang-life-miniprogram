@@ -1,0 +1,173 @@
+<!--pages/community/detail/index.wxml-->
+<view class="page-wrap">
+
+<!-- 帖子正文卡片 -->
+<view class="post-card" wx:if="{{post.id}}">
+
+  <!-- 作者信息 -->
+  <view class="author-row" bindtap="goUser" data-id="{{post.userId}}">
+    <image class="author-avatar" src="{{post.avatar}}" mode="aspectFill"/>
+    <view class="author-meta">
+      <view class="author-name-row">
+        <text class="author-name">{{post.nickname}}</text>
+        <text class="author-badge" wx:if="{{post.badge}}">{{post.badge}}</text>
+      </view>
+      <text class="post-time">{{post.time}} · 来自平江</text>
+    </view>
+    <!-- 关注按钮 -->
+    <view
+      class="follow-btn {{post.isFollowed ? 'btn-followed' : 'btn-follow'}}"
+      catchtap="toggleFollow"
+      data-id="{{post.userId}}"
+    >
+      <text class="follow-btn-text">{{post.isFollowed ? '已关注' : '+ 关注'}}</text>
+    </view>
+  </view>
+
+  <!-- 话题标签 -->
+  <view class="topic-row" wx:if="{{post.topic}}">
+    <text class="topic-chip"># {{post.topic}}</text>
+  </view>
+
+  <!-- 正文内容 -->
+  <text class="post-content">{{post.content}}</text>
+
+  <!-- 图片展示 -->
+  <view class="img-grid" wx:if="{{post.images.length > 0}}">
+    <image
+      class="detail-img"
+      wx:for="{{post.images}}"
+      wx:for-item="img"
+      wx:key="index"
+      src="{{img}}"
+      mode="aspectFill"
+      bindtap="previewImg"
+      data-src="{{img}}"
+      data-list="{{post.images}}"
+    />
+  </view>
+
+  <!-- 互动数据栏 -->
+  <view class="post-stats">
+    <view class="stat-item">
+      <text class="stat-icon">👁️</text>
+      <text class="stat-val">{{post.views}} 浏览</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-icon">🗨️</text>
+      <text class="stat-val">{{post.comments}} 评论</text>
+    </view>
+    <view class="stat-item" bindtap="toggleLike">
+      <text class="stat-icon">{{post.isLiked ? '❤️' : '🤍'}}</text>
+      <text class="stat-val {{post.isLiked ? 'liked' : ''}}">{{post.likes}}</text>
+    </view>
+  </view>
+</view>
+
+<!-- 评论区标题 -->
+<view class="comment-bar">
+  <text class="comment-bar-title">评论区</text>
+  <text class="comment-bar-count">{{comments.length}} 条</text>
+</view>
+
+<!-- 评论列表 -->
+<view class="comment-list">
+  <view class="comment-card" wx:for="{{comments}}" wx:key="id">
+
+    <!-- 评论头部 -->
+    <view class="comment-header" bindtap="goUser" data-id="{{item.userId}}">
+      <image class="c-avatar" src="{{item.avatar}}" mode="aspectFill"/>
+      <view class="c-meta">
+        <text class="c-name">{{item.nickname}}</text>
+        <text class="c-time">{{item.time}}</text>
+      </view>
+      <!-- 楼层 -->
+      <text class="c-floor">{{index + 1}}楼</text>
+    </view>
+
+    <!-- 评论内容 -->
+    <text class="c-content">{{item.content}}</text>
+
+    <!-- 评论操作 -->
+    <view class="c-footer">
+      <view
+        class="c-like"
+        bindtap="likeComment"
+        data-id="{{item.id}}"
+        data-index="{{index}}"
+      >
+        <text class="c-like-icon">{{item.isLiked ? '❤️' : '🤍'}}</text>
+        <text class="c-like-num {{item.isLiked ? 'liked' : ''}}">{{item.likes}}</text>
+      </view>
+      <view
+        class="c-reply-btn"
+        bindtap="goReply"
+        data-id="{{item.id}}"
+        data-name="{{item.nickname}}"
+      >
+        <text class="c-reply-text">回复</text>
+      </view>
+      <view
+        class="c-report-btn"
+        bindtap="reportComment"
+        data-id="{{item.id}}"
+      >
+        <text class="c-report-text">举报</text>
+      </view>
+    </view>
+
+    <!-- 二级回复列表 -->
+    <view class="reply-list" wx:if="{{item.replies && item.replies.length > 0}}">
+      <view class="reply-item" wx:for="{{item.replies}}" wx:for-item="reply" wx:key="id">
+        <text class="reply-name">{{reply.nickname}}：</text>
+        <text class="reply-content">{{reply.content}}</text>
+      </view>
+      <view
+        class="reply-more"
+        wx:if="{{item.replyTotal > item.replies.length}}"
+        bindtap="loadMoreReply"
+        data-id="{{item.id}}"
+        data-index="{{index}}"
+      >
+        <text class="reply-more-text">展开更多回复（{{item.replyTotal - item.replies.length}}条）</text>
+      </view>
+    </view>
+
+  </view>
+
+  <!-- 空评论提示 -->
+  <view class="empty-tip" wx:if="{{comments.length === 0 && !isLoading}}">
+    <text class="empty-icon">💬</text>
+    <text class="empty-text">还没有评论，快来抢沙发！</text>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="load-tip" wx:if="{{isLoading}}">
+    <text class="load-text">加载中...</text>
+  </view>
+
+  <!-- 底部安全距离 -->
+  <view style="height: 140rpx;"/>
+</view>
+
+<!-- 底部评论输入栏 -->
+<view class="bottom-bar">
+  <view class="input-wrap" bindtap="goComment">
+    <text class="input-ph">说点什么...</text>
+  </view>
+  <view class="bottom-actions">
+    <view bindtap="toggleLike" class="bottom-action-item">
+      <text class="bottom-action-icon">{{post.isLiked ? '❤️' : '🤍'}}</text>
+      <text class="bottom-action-num">{{post.likes}}</text>
+    </view>
+    <view bindtap="goComment" class="bottom-action-item">
+      <text class="bottom-action-icon">🗨️</text>
+      <text class="bottom-action-num">{{post.comments}}</text>
+    </view>
+    <view bindtap="sharePost" class="bottom-action-item">
+      <text class="bottom-action-icon">↗️</text>
+    </view>
+  </view>
+</view>
+
+</view>

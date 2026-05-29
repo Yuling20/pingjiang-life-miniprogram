@@ -15,7 +15,8 @@
     "pages/community/publish/index",
     "pages/community/comment/index",
     "pages/community/user/index",
-    "pages/community/follow/index"
+    "pages/community/follow/index",
+    "pages/community/detail/index"
   ],
   "window": {
     "backgroundTextStyle": "light",
