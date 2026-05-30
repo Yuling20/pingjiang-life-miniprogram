@@ -984,3 +984,12 @@ page {
 .bottom-safe-pad {
   height: 40rpx;
 }
+/* 新增：长期、短期 标签样式 */
+.type-long {
+  background: #E8F4FF;
+  color: #1565C0;
+}
+.type-short {
+  background: #FFF3E0;
+  color: #E65100;
+}
