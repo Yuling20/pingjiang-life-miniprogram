@@ -1,105 +1,462 @@
 <!-- pages/services/convenience/job/job.wxml -->
-<view class="container">
+<view class="page-container">
 
-<!-- 页面标题 + 右上角按钮 -->
-<view class="page-header">
+<!-- ===== 顶部标题栏 ===== -->
+<view class="top-header">
   <view class="header-left">
-    <text class="page-title">💼 招聘信息</text>
-    <text class="page-subtitle">平江本地找好工作更简单</text>
+    <text class="page-title">招聘信息</text>
+    <text class="page-subtitle">平江本地求职优选平台</text>
   </view>
-  <view class="header-right-btn" bindtap="onPublish">
-    <text class="header-btn-text">➕ 我要招人</text>
+  <view class="header-actions">
+    <view class="action-btn resume-btn" bindtap="openResume">
+      <text class="action-icon">📄</text>
+      <text class="action-text">我的简历</text>
+    </view>
+    <view class="action-btn publish-btn" bindtap="openPublish">
+      <text class="action-icon">➕</text>
+      <text class="action-text">发布职位</text>
+    </view>
   </view>
 </view>
 
-<!-- ⚠️ 提醒语 -->
-<view class="warning-bar">
-  <text class="warning-text">⚠️ 信息由用户发布，平台不担责，请自行核把关谨防受骗！</text>
+<!-- 实名提示条 -->
+<view class="realname-tip" wx:if="{{!isRealName}}" bindtap="doRealNameAuth">
+  <text class="tip-icon">🔐</text>
+  <text class="tip-text">完成实名认证后可发布职位、查看联系方式</text>
+  <text class="tip-arrow">›</text>
 </view>
 
-<!-- 区域筛选 -->
-<scroll-view class="filter-scroll" scroll-x="{{true}}" enable-flex="{{true}}">
-  <view class="filter-row">
-    <view
-      wx:for="{{areaList}}"
-      wx:key="id"
-      class="filter-chip {{currentArea === item.id ? 'chip-active' : ''}}"
-      bindtap="onAreaChange"
-      data-id="{{item.id}}"
-    >{{item.name}}</view>
-  </view>
-</scroll-view>
+<!-- 风险提示 -->
+<view class="risk-banner">
+  <text class="risk-icon">⚠️</text>
+  <text class="risk-text">平台不担保线下交易安全，谨防诈骗，建议通过平台安全通道联系</text>
+</view>
 
-<!-- 岗位类型筛选 -->
-<scroll-view class="filter-scroll" scroll-x="{{true}}" enable-flex="{{true}}">
-  <view class="filter-row">
-    <view
-      wx:for="{{jobTypeList}}"
-      wx:key="id"
-      class="filter-chip {{currentType === item.id ? 'chip-active' : ''}}"
-      bindtap="onTypeChange"
-      data-id="{{item.id}}"
-    >{{item.name}}</view>
-  </view>
-</scroll-view>
-
-<!-- 职位列表 -->
-<view class="list-wrap">
+<!-- ===== 类型筛选栏 ===== -->
+<scroll-view class="filter-bar" scroll-x enable-flex>
   <view
-    wx:for="{{jobList}}"
-    wx:key="id"
-    class="job-card"
-    hover-class="card-hover"
+    wx:for="{{filterTypes}}"
+    wx:key="value"
+    class="filter-item {{filterType === item.value ? 'filter-active' : ''}}"
+    bindtap="onFilterChange"
+    data-type="{{item.value}}"
   >
-    <!-- 顶部：职位 + 薪资 -->
-    <view class="job-top">
-      <view class="job-left">
-        <text class="job-title">{{item.title}}</text>
-        <text class="job-salary">{{item.salary}}</text>
-      </view>
-      <view class="job-type-tag">{{item.type}}</view>
-    </view>
+    {{item.label}}
+  </view>
+</scroll-view>
 
-    <!-- 图片区 -->
-    <view class="card-img">
-      <text class="img-tip">暂无企业图片</text>
-    </view>
+<!-- ===== 列表内容 ===== -->
+<scroll-view class="list-scroll" scroll-y>
 
-    <!-- 详情 -->
-    <view class="job-body">
-      <view class="info-row">
-        <text class="info-label">招聘人数：</text>
-        <text class="info-val">{{item.count}}人</text>
-      </view>
-      <view class="info-row">
-        <text class="info-label">📍</text>
-        <text class="info-val">{{item.company}} · {{item.location}}</text>
-      </view>
-      <view class="info-row">
-        <text class="info-label">岗位要求：</text>
-        <text class="info-val">{{item.require}}</text>
-      </view>
-      <view class="info-row">
-        <text class="info-label">发布：</text>
-        <text class="info-val">{{item.publishDate}}</text>
-      </view>
-    </view>
-
-    <!-- 底部按钮 -->
-    <view class="job-footer">
-      <view class="contact-btn" catchtap="onContact" data-phone="{{item.phone}}">
-        立即联系
-      </view>
-    </view>
-
-    <!-- 底部警示 -->
-    <view class="card-warn">⚠️ 请您核实信息，不要提前付费，谨防诈骗</view>
+  <!-- 加载中 -->
+  <view class="loading-wrap" wx:if="{{isLoading}}">
+    <text class="loading-text">加载中...</text>
   </view>
 
   <!-- 空状态 -->
-  <view wx:if="{{jobList.length === 0}}" class="empty-wrap">
-    <text class="empty-icon">💼</text>
-    <text class="empty-text">暂无职位</text>
+  <view class="empty-wrap" wx:elif="{{jobList.length === 0}}">
+    <text class="empty-icon">🔍</text>
+    <text class="empty-text">暂无该类型职位信息</text>
+  </view>
+
+  <!-- 职位列表 -->
+  <block wx:else>
+    <view
+      wx:for="{{jobList}}"
+      wx:key="id"
+      class="job-card"
+      bindtap="openDetail"
+      data-job="{{item}}"
+    >
+      <!-- 卡片头部 -->
+      <view class="card-header">
+        <view class="company-avatar">{{item.avatar}}</view>
+        <view class="card-header-info">
+          <view class="job-title-row">
+            <text class="job-title">{{item.title}}</text>
+            <view class="type-tag type-{{item.type}}">{{item.typeLabel}}</view>
+            <view class="vip-tag" wx:if="{{item.isVip}}">VIP</view>
+          </view>
+          <text class="company-name">{{item.company}}</text>
+        </view>
+        <view class="job-salary">{{item.salary}}</view>
+      </view>
+
+      <!-- 卡片信息 -->
+      <view class="card-body">
+        <view class="info-row">
+          <text class="info-icon">📍</text>
+          <text class="info-text">{{item.address}}</text>
+        </view>
+        <view class="info-row">
+          <text class="info-icon">📅</text>
+          <text class="info-text">{{item.publishTime}} · {{item.viewCount}}人浏览</text>
+        </view>
+      </view>
+
+      <!-- 卡片底部 -->
+      <view class="card-footer">
+        <text class="desc-preview">{{item.description}}</text>
+        <view class="contact-hint {{item.isVip ? 'contact-vip' : 'contact-normal'}}">
+          <text wx:if="{{item.isVip}}">📞 平台安全通话</text>
+          <text wx:else>💬 平台内沟通</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <view class="list-bottom-pad"></view>
+</scroll-view>
+
+<!-- ===================== 详情弹窗 ===================== -->
+<view class="modal-mask" wx:if="{{showDetail}}" bindtap="closeDetail">
+  <view class="modal-sheet" catchtap="stopPropagation">
+    <view class="sheet-handle"></view>
+
+    <!-- 详情头部 -->
+    <view class="detail-header">
+      <view class="detail-avatar">{{currentJob.avatar}}</view>
+      <view class="detail-header-info">
+        <view class="detail-title-row">
+          <text class="detail-title">{{currentJob.title}}</text>
+          <view class="type-tag type-{{currentJob.type}}">{{currentJob.typeLabel}}</view>
+        </view>
+        <text class="detail-company">{{currentJob.company}}</text>
+        <text class="detail-salary">💰 {{currentJob.salary}}</text>
+      </view>
+    </view>
+
+    <scroll-view class="detail-scroll" scroll-y>
+      <!-- 基本信息 -->
+      <view class="detail-section">
+        <view class="section-title">📍 工作地点</view>
+        <text class="section-content">{{currentJob.address}}</text>
+      </view>
+
+      <view class="detail-section">
+        <view class="section-title">📝 职位描述</view>
+        <text class="section-content">{{currentJob.description}}</text>
+      </view>
+
+      <view class="detail-section">
+        <view class="section-title">✅ 任职要求</view>
+        <text class="section-content">{{currentJob.requirement}}</text>
+      </view>
+
+      <!-- 联系方式权限控制 -->
+      <view class="detail-section">
+        <view class="section-title">👤 联系招聘方</view>
+        <view class="contact-section">
+          <view class="contact-person">
+            <text class="contact-name">{{currentJob.contactName}}</text>
+            <view class="vip-badge" wx:if="{{currentJob.isVip}}">
+              <text>VIP商户</text>
+            </view>
+          </view>
+          <!-- VIP显示安全通话，非VIP显示站内消息 -->
+          <view class="contact-desc" wx:if="{{currentJob.isVip}}">
+            <text class="contact-desc-text vip-desc">✅ VIP商户已认证，支持平台安全通话保护隐私</text>
+          </view>
+          <view class="contact-desc" wx:else>
+            <text class="contact-desc-text normal-desc">💬 该商户为普通用户，仅支持平台内消息沟通，联系方式不对外显示</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 风险提示 -->
+      <view class="risk-notice">
+        <text class="risk-notice-icon">⚠️</text>
+        <text class="risk-notice-text">平台温馨提示：请通过平台安全渠道沟通，切勿提前转账汇款，谨防招聘诈骗。平台不对线下交易结果承担任何责任。</text>
+      </view>
+    </scroll-view>
+
+    <!-- 底部按钮 -->
+    <view class="detail-footer">
+      <view class="footer-btn cancel-btn" bindtap="closeDetail">关闭</view>
+      <view
+        class="footer-btn contact-btn {{currentJob.isVip ? 'contact-btn-vip' : 'contact-btn-normal'}}"
+        bindtap="onContactTap"
+      >
+        <text wx:if="{{currentJob.isVip}}">📞 立即联系</text>
+        <text wx:else>💬 平台内沟通</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- ===================== 发布弹窗 ===================== -->
+<view class="modal-mask" wx:if="{{showPublish}}" bindtap="closePublish">
+  <view class="modal-sheet publish-sheet" catchtap="stopPropagation">
+    <view class="sheet-handle"></view>
+
+    <!-- 发布标题 -->
+    <view class="sheet-title-row">
+      <view class="sheet-back" wx:if="{{publishStep === 2}}" bindtap="backPublishStep1">‹ 返回</view>
+      <text class="sheet-title">发布职位</text>
+      <view class="step-indicator">{{publishStep}}/2</view>
+    </view>
+
+    <!-- 步骤一：选择类型 -->
+    <view class="publish-step" wx:if="{{publishStep === 1}}">
+      <text class="step-label">请选择招聘类型</text>
+      <view class="type-grid">
+        <view
+          wx:for="{{jobTypes}}"
+          wx:key="value"
+          class="type-option {{publishForm.type === item.value ? 'type-option-active' : ''}}"
+          bindtap="selectJobType"
+          data-value="{{item.value}}"
+          data-label="{{item.label}}"
+        >
+          <text class="type-option-icon">{{item.icon}}</text>
+          <text class="type-option-label">{{item.label}}</text>
+        </view>
+      </view>
+      <view class="step-next-btn" bindtap="goPublishStep2">下一步</view>
+    </view>
+
+    <!-- 步骤二：填写信息 -->
+    <scroll-view class="publish-scroll" scroll-y wx:elif="{{publishStep === 2}}">
+      <view class="selected-type-tag">
+        <text>{{publishForm.typeLabel}}</text>
+      </view>
+
+      <!-- 职位名称 -->
+      <view class="form-item">
+        <view class="form-label required">职位名称</view>
+        <input
+          class="form-input {{publishErrors.title ? 'input-error' : ''}}"
+          placeholder="请输入职位名称，如：前台收银员"
+          value="{{publishForm.title}}"
+          bindinput="onPublishInput"
+          data-field="title"
+          maxlength="30"
+        />
+        <text class="error-tip" wx:if="{{publishErrors.title}}">{{publishErrors.title}}</text>
+      </view>
+
+      <!-- 薪资范围 -->
+      <view class="form-item">
+        <view class="form-label required">薪资范围</view>
+        <input
+          class="form-input {{publishErrors.salary ? 'input-error' : ''}}"
+          placeholder="如：3500-4500元/月 或 150元/天"
+          value="{{publishForm.salary}}"
+          bindinput="onPublishInput"
+          data-field="salary"
+          maxlength="30"
+        />
+        <text class="error-tip" wx:if="{{publishErrors.salary}}">{{publishErrors.salary}}</text>
+      </view>
+
+      <!-- 工作地址 -->
+      <view class="form-item">
+        <view class="form-label required">工作地址</view>
+        <view class="address-input-wrap">
+          <input
+            class="form-input address-input {{publishErrors.address ? 'input-error' : ''}}"
+            placeholder="请输入或选择工作地点"
+            value="{{publishForm.address}}"
+            bindinput="onPublishInput"
+            data-field="address"
+            maxlength="80"
+          />
+          <view class="address-btns">
+            <view class="addr-btn" bindtap="getLocation">📍 定位</view>
+            <view class="addr-btn" bindtap="chooseLocation">🗺️ 地图</view>
+          </view>
+        </view>
+        <text class="error-tip" wx:if="{{publishErrors.address}}">{{publishErrors.address}}</text>
+      </view>
+
+      <!-- 职位描述 -->
+      <view class="form-item">
+        <view class="form-label required">职位描述</view>
+        <textarea
+          class="form-textarea {{publishErrors.description ? 'input-error' : ''}}"
+          placeholder="请描述工作内容、工作时间等信息&#10;注意：请勿填写任何联系方式"
+          value="{{publishForm.description}}"
+          bindinput="onPublishInput"
+          data-field="description"
+          maxlength="500"
+          auto-height
+        />
+        <text class="error-tip" wx:if="{{publishErrors.description}}">{{publishErrors.description}}</text>
+      </view>
+
+      <!-- 任职要求 -->
+      <view class="form-item">
+        <view class="form-label required">任职要求</view>
+        <textarea
+          class="form-textarea {{publishErrors.requirement ? 'input-error' : ''}}"
+          placeholder="请填写学历、经验、技能等要求&#10;注意：请勿填写任何联系方式"
+          value="{{publishForm.requirement}}"
+          bindinput="onPublishInput"
+          data-field="requirement"
+          maxlength="500"
+          auto-height
+        />
+        <text class="error-tip" wx:if="{{publishErrors.requirement}}">{{publishErrors.requirement}}</text>
+      </view>
+
+      <!-- 违规提示 -->
+      <view class="publish-rule-tip">
+        <text class="rule-icon">🚫</text>
+        <text class="rule-text">严禁在发布内容中填写电话、微信、QQ等联系方式，违规内容将被自动拦截，请通过平台提供的安全通道与应聘者联系。</text>
+      </view>
+
+      <!-- 风险声明 -->
+      <view class="publish-risk-tip">
+        <text class="risk-icon">⚠️</text>
+        <text class="risk-text">平台不担保线下招聘安全，谨防诈骗，平台不承担任何线下交易责任。</text>
+      </view>
+
+      <view class="submit-btn" bindtap="submitPublish">
+        <text wx:if="{{!isSubmitting}}">确认发布</text>
+        <text wx:else>发布中...</text>
+      </view>
+      <view class="bottom-safe-pad"></view>
+    </scroll-view>
+  </view>
+</view>
+
+<!-- ===================== 简历弹窗 ===================== -->
+<view class="modal-mask" wx:if="{{showResume}}" bindtap="closeResume">
+  <view class="modal-sheet resume-sheet" catchtap="stopPropagation">
+    <view class="sheet-handle"></view>
+
+    <!-- 简历标题 -->
+    <view class="sheet-title-row">
+      <view class="sheet-back" wx:if="{{showResumePreview}}" bindtap="backResumeEdit">‹ 返回编辑</view>
+      <text class="sheet-title">{{showResumePreview ? '简历预览' : '我的简历'}}</text>
+      <view class="sheet-close" bindtap="closeResume">✕</view>
+    </view>
+
+    <!-- 简历编辑 -->
+    <scroll-view class="resume-scroll" scroll-y wx:if="{{!showResumePreview}}">
+
+      <view class="resume-section-title">📋 基本信息</view>
+
+      <view class="form-item">
+        <view class="form-label required">姓名</view>
+        <input class="form-input {{resumeErrors.name ? 'input-error' : ''}}" placeholder="请输入您的真实姓名" value="{{resumeForm.name}}" bindinput="onResumeInput" data-field="name" maxlength="10" />
+        <text class="error-tip" wx:if="{{resumeErrors.name}}">{{resumeErrors.name}}</text>
+      </view>
+
+      <view class="form-row">
+        <view class="form-item form-half">
+          <view class="form-label">性别</view>
+          <picker mode="selector" range="{{genderOptions}}" value="{{genderIndex}}" bindchange="onGenderChange">
+            <view class="form-picker">
+              <text>{{resumeForm.gender || '请选择'}}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+        </view>
+        <view class="form-item form-half">
+          <view class="form-label">年龄</view>
+          <input class="form-input" placeholder="如：25" value="{{resumeForm.age}}" bindinput="onResumeInput" data-field="age" type="number" maxlength="3" />
+        </view>
+      </view>
+
+      <view class="form-item">
+        <view class="form-label required">联系电话</view>
+        <input class="form-input {{resumeErrors.phone ? 'input-error' : ''}}" placeholder="请输入手机号" value="{{resumeForm.phone}}" bindinput="onResumeInput" data-field="phone" type="number" maxlength="11" />
+        <text class="error-tip" wx:if="{{resumeErrors.phone}}">{{resumeErrors.phone}}</text>
+      </view>
+
+      <view class="form-item">
+        <view class="form-label">邮箱</view>
+        <input class="form-input" placeholder="请输入邮箱地址（选填）" value="{{resumeForm.email}}" bindinput="onResumeInput" data-field="email" maxlength="50" />
+      </view>
+
+      <view class="resume-section-title">🎓 教育背景</view>
+
+      <view class="form-row">
+        <view class="form-item form-half">
+          <view class="form-label required">最高学历</view>
+          <picker mode="selector" range="{{educationOptions}}" value="{{educationIndex}}" bindchange="onEducationChange">
+            <view class="form-picker {{resumeErrors.education ? 'input-error' : ''}}">
+              <text>{{resumeForm.education || '请选择'}}</text>
+              <text class="picker-arrow">▼</text>
+            </view>
+          </picker>
+          <text class="error-tip" wx:if="{{resumeErrors.education}}">{{resumeErrors.education}}</text>
+        </view>
+        <view class="form-item form-half">
+          <view class="form-label">专业</view>
+          <input class="form-input" placeholder="所学专业" value="{{resumeForm.major}}" bindinput="onResumeInput" data-field="major" maxlength="20" />
+        </view>
+      </view>
+
+      <view class="form-item">
+        <view class="form-label">毕业院校</view>
+        <input class="form-input" placeholder="请输入毕业院校" value="{{resumeForm.school}}" bindinput="onResumeInput" data-field="school" maxlength="30" />
+      </view>
+
+      <view class="resume-section-title">💼 工作经历</view>
+      <view class="form-item">
+        <textarea class="form-textarea" placeholder="请描述您的工作经历（时间、公司、职位、主要职责）" value="{{resumeForm.workExp}}" bindinput="onResumeInput" data-field="workExp" maxlength="800" auto-height />
+      </view>
+
+      <view class="resume-section-title">🔧 技能特长</view>
+      <view class="form-item">
+        <textarea class="form-textarea" placeholder="如：熟练使用Office办公软件、有驾照等" value="{{resumeForm.skills}}" bindinput="onResumeInput" data-field="skills" maxlength="300" auto-height />
+      </view>
+
+      <view class="resume-section-title">🙋 自我介绍</view>
+      <view class="form-item">
+        <textarea class="form-textarea" placeholder="简要介绍您的优势和求职意向" value="{{resumeForm.selfIntro}}" bindinput="onResumeInput" data-field="selfIntro" maxlength="300" auto-height />
+      </view>
+
+      <view class="resume-footer-btns">
+        <view class="resume-save-btn" bindtap="saveResume">💾 保存草稿</view>
+        <view class="resume-preview-btn" bindtap="previewResume">👁️ 预览简历</view>
+      </view>
+      <view class="bottom-safe-pad"></view>
+    </scroll-view>
+
+    <!-- 简历预览 -->
+    <scroll-view class="resume-scroll" scroll-y wx:else>
+      <view class="preview-card">
+        <view class="preview-name-row">
+          <text class="preview-name">{{resumeForm.name}}</text>
+          <text class="preview-gender">{{resumeForm.gender}} {{resumeForm.age ? resumeForm.age + '岁' : ''}}</text>
+        </view>
+        <view class="preview-contact">
+          <text>📱 {{resumeForm.phone}}</text>
+          <text wx:if="{{resumeForm.email}}">  ✉️ {{resumeForm.email}}</text>
+        </view>
+
+        <view class="preview-divider"></view>
+
+        <view class="preview-section" wx:if="{{resumeForm.education}}">
+          <view class="preview-section-title">🎓 教育背景</view>
+          <text class="preview-section-content">{{resumeForm.education}} · {{resumeForm.school}} · {{resumeForm.major}}</text>
+        </view>
+
+        <view class="preview-section" wx:if="{{resumeForm.workExp}}">
+          <view class="preview-section-title">💼 工作经历</view>
+          <text class="preview-section-content">{{resumeForm.workExp}}</text>
+        </view>
+
+        <view class="preview-section" wx:if="{{resumeForm.skills}}">
+          <view class="preview-section-title">🔧 技能特长</view>
+          <text class="preview-section-content">{{resumeForm.skills}}</text>
+        </view>
+
+        <view class="preview-section" wx:if="{{resumeForm.selfIntro}}">
+          <view class="preview-section-title">🙋 自我介绍</view>
+          <text class="preview-section-content">{{resumeForm.selfIntro}}</text>
+        </view>
+      </view>
+
+      <view class="resume-footer-btns">
+        <view class="resume-save-btn" bindtap="saveResume">💾 保存简历</view>
+        <view class="resume-export-btn" bindtap="exportResume">📤 导出简历</view>
+      </view>
+      <view class="bottom-safe-pad"></view>
+    </scroll-view>
   </view>
 </view>
 

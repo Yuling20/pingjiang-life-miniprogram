@@ -1,5 +1,7 @@
 {
   "navigationBarTitleText": "招聘信息",
-  "navigationBarBackgroundColor": "#2ecc71",
-  "navigationBarTextStyle": "white"
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#F5F0E8",
+  "usingComponents": {}
 }

@@ -1,33 +1,180 @@
+<!-- pages/mine/mine.wxml -->
 <view class="page-wrap">
-  <view class="user-header">
-    <view class="avatar-wrap">
-      <text class="avatar-icon">{{userInfo.avatarIcon}}</text>
-    </view>
-    <view class="user-info">
-      <text class="user-name">{{userInfo.nickName}}</text>
-      <view class="login-btn" bindtap="onLogin">
-        <text class="login-text">点击登录 / 注册</text>
+
+<!-- ══════════════ 顶部用户卡片 ══════════════ -->
+<view class="user-card">
+  <view class="avatar-wrap">
+    <text class="avatar-emoji">🧑</text>
+  </view>
+  <view class="user-info">
+    <block wx:if="{{hasLogin}}">
+      <text class="nickname">{{userInfo.nickName || '平江用户'}}</text>
+      <view class="realname-badge {{realNameInfo && realNameInfo.verified ? 'verified' : 'unverified'}}">
+        <text>{{realNameInfo && realNameInfo.verified ? '✅ 已实名' : '⚠️ 未实名'}}</text>
       </view>
-    </view>
+    </block>
+    <block wx:else>
+      <text class="nickname unlogin">点击登录</text>
+      <text class="sub-tip">登录后享受更多服务</text>
+    </block>
   </view>
-  <view class="stats-card">
-    <view wx:for="{{stats}}" wx:key="label" class="stat-item">
-      <text class="stat-value">{{item.value}}</text>
-      <text class="stat-label">{{item.label}}</text>
-    </view>
-  </view>
-  <view class="menu-card">
-    <view wx:for="{{menuList}}" wx:key="id" class="menu-item" bindtap="onMenuTap" data-type="{{item.type}}" hover-class="menu-item-hover">
+  <button
+    wx:if="{{!hasLogin}}"
+    class="btn-login"
+    bindtap="onLogin"
+  >登录</button>
+  <button
+    wx:if="{{hasLogin}}"
+    class="btn-logout"
+    bindtap="onLogout"
+  >退出</button>
+</view>
+
+<!-- ══════════════ 菜单列表 ══════════════ -->
+<view class="menu-card">
+  <view
+    class="menu-item"
+    wx:for="{{menuList}}"
+    wx:key="id"
+    data-id="{{item.id}}"
+    bindtap="onMenuTap"
+  >
+    <view class="menu-left">
       <text class="menu-icon">{{item.icon}}</text>
-      <view class="menu-info">
-        <text class="menu-name">{{item.name}}</text>
-        <text class="menu-desc">{{item.desc}}</text>
+      <text class="menu-label">{{item.label}}</text>
+      <!-- 实名状态 badge -->
+      <view
+        wx:if="{{item.id === 'realname'}}"
+        class="inline-badge {{realNameInfo && realNameInfo.verified ? 'green' : 'red'}}"
+      >
+        <text>{{realNameInfo && realNameInfo.verified ? realNameInfo.name : '未认证'}}</text>
       </view>
-      <text class="menu-arrow">›</text>
     </view>
+    <text class="menu-arrow">›</text>
   </view>
-  <view class="footer-tip">
-    <text class="footer-text">平江汇生活 · 平江人自己的平台</text>
-    <text class="footer-version">Version 1.0.0</text>
+</view>
+
+<!-- ══════════════ 实名认证面板 ══════════════ -->
+<view class="realname-panel {{showRealNamePanel ? 'panel-open' : ''}}">
+  <view wx:if="{{showRealNamePanel}}">
+    <view class="panel-title">
+      <text class="panel-title-text">🪪 实名认证</text>
+      <text class="panel-close" bindtap="onToggleRealNamePanel">✕</text>
+    </view>
+    <view class="risk-tip">
+      <text>⚠️ 实名信息仅用于平台安全验证，不会对外泄露。</text>
+    </view>
+
+    <!-- 两种认证方式 -->
+    <view class="auth-options">
+
+      <!-- 微信一键实名 -->
+      <view class="auth-option-card" bindtap="onWechatAuth">
+        <view class="auth-option-header">
+          <text class="auth-icon">🔐</text>
+          <view>
+            <text class="auth-title">微信一键实名</text>
+            <text class="auth-desc">{{wechatVerified ? '微信已实名，可快速授权' : '微信未完成实名，请手动认证'}}</text>
+          </view>
+        </view>
+        <view class="auth-btn {{wechatVerified ? 'btn-primary' : 'btn-disabled'}}">
+          <text>{{wechatVerified ? '微信一键实名' : '当前不可用'}}</text>
+        </view>
+      </view>
+
+      <!-- 手动实名 -->
+      <view class="auth-option-card" bindtap="onShowManualForm">
+        <view class="auth-option-header">
+          <text class="auth-icon">📝</text>
+          <view>
+            <text class="auth-title">手动实名认证</text>
+            <text class="auth-desc">填写姓名、身份证号、手机号完成认证</text>
+          </view>
+        </view>
+        <view class="auth-btn btn-secondary">
+          <text>手动实名认证</text>
+        </view>
+      </view>
+
+    </view>
+
+    <!-- 手动表单 -->
+    <view class="manual-form {{showManualForm ? '' : 'hidden'}}">
+      <view class="form-title">填写认证信息</view>
+      <view class="form-item">
+        <text class="form-label">姓名 *</text>
+        <input
+          class="form-input"
+          placeholder="请输入真实姓名"
+          value="{{manualForm.name}}"
+          bindinput="onInputName"
+        />
+      </view>
+      <view class="form-item">
+        <text class="form-label">身份证号 *</text>
+        <input
+          class="form-input"
+          placeholder="请输入18位身份证号"
+          value="{{manualForm.idCard}}"
+          bindinput="onInputIdCard"
+          maxlength="18"
+        />
+      </view>
+      <view class="form-item">
+        <text class="form-label">手机号 *</text>
+        <input
+          class="form-input"
+          placeholder="请输入11位手机号"
+          value="{{manualForm.phone}}"
+          bindinput="onInputPhone"
+          type="number"
+          maxlength="11"
+        />
+      </view>
+      <button class="btn-submit" bindtap="onSubmitManual">提交认证</button>
+    </view>
+
   </view>
+</view>
+
+<!-- ══════════════ 微信实名弹窗 ══════════════ -->
+<view class="mask {{showAuthDialog ? 'mask-show' : ''}}" bindtap="onCancelAuth">
+  <view class="dialog" catchtap="{{true}}">
+
+    <!-- step 0: 确认授权 -->
+    <block wx:if="{{authDialogStep === 0}}">
+      <view class="dialog-icon">🔐</view>
+      <view class="dialog-title">微信一键实名</view>
+      <view class="dialog-desc">即将调用微信授权 + 人脸识别完成实名认证，信息仅用于平台安全验证。</view>
+      <view class="dialog-btns">
+        <button class="dialog-btn cancel" bindtap="onCancelAuth">取消</button>
+        <button class="dialog-btn confirm" bindtap="onConfirmAuth">确认授权</button>
+      </view>
+    </block>
+
+    <!-- step 1: 识别中 -->
+    <block wx:if="{{authDialogStep === 1}}">
+      <view class="dialog-icon anim-pulse">🤳</view>
+      <view class="dialog-title">人脸识别中...</view>
+      <view class="dialog-desc">请保持光线充足，正对摄像头</view>
+    </block>
+
+    <!-- step 2: 成功 -->
+    <block wx:if="{{authDialogStep === 2}}">
+      <view class="dialog-icon">✅</view>
+      <view class="dialog-title">实名认证成功！</view>
+      <view class="dialog-desc">您的实名信息已通过验证，可正常使用平台全部功能。</view>
+      <view class="dialog-btns">
+        <button class="dialog-btn confirm full" bindtap="onAuthSuccess">完成</button>
+      </view>
+    </block>
+
+  </view>
+</view>
+
+<!-- ══════════════ 底部版权 ══════════════ -->
+<view class="footer">
+  <text>平江汇生活 · 便民服务平台</text>
+</view>
+
 </view>
