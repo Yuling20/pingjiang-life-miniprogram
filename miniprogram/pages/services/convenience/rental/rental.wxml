@@ -1,109 +1,367 @@
 <!-- pages/services/convenience/rental/rental.wxml -->
-<view class="container">
+<view class="page-wrap">
 
-<!-- 页面标题 + 右上角按钮 -->
-<view class="page-header">
-  <view class="header-left">
-    <text class="page-title">🏠 房屋租赁</text>
-    <text class="page-subtitle">平江本地租房 安心租住</text>
+<!-- ══════════════ 顶部 Banner ══════════════ -->
+<view class="top-banner">
+  <view class="banner-text">
+    <text class="banner-title">平江本地租房 安心租住</text>
+    <text class="banner-sub">⚠️信息由用户发布，须自行核验谨防受骗，平台概不负责</text>
   </view>
-  <view class="header-right-btn" bindtap="onPublish">
-    <text class="header-btn-text">➕ 我要发房</text>
-  </view>
+  <button class="btn-publish-entry" bindtap="onPublishHouse">🏠 我要发房</button>
 </view>
 
-<!-- ⚠️ 提醒语 -->
-<view class="warning-bar">
-  <text class="warning-text">⚠️ 信息由用户发布，须自行核验谨防受骗，平台概不负责</text>
-</view>
-
-<!-- 区域筛选 -->
-<scroll-view class="filter-scroll" scroll-x="{{true}}" enable-flex="{{true}}">
-  <view class="filter-row">
-    <view
-      wx:for="{{areaList}}"
-      wx:key="id"
-      class="filter-chip {{currentArea === item.id ? 'chip-active' : ''}}"
-      bindtap="onAreaChange"
-      data-id="{{item.id}}"
-    >{{item.name}}</view>
-  </view>
+<!-- ══════════════ 区域筛选 ══════════════ -->
+<scroll-view scroll-x class="filter-bar" enhanced="{{true}}" show-scrollbar="{{false}}">
+  <view
+    class="filter-tag {{activeArea === item ? 'filter-tag-active' : ''}}"
+    wx:for="{{areas}}"
+    wx:key="*this"
+    data-area="{{item}}"
+    bindtap="onAreaTab"
+  >{{item}}</view>
 </scroll-view>
 
 <!-- 类型筛选 -->
-<scroll-view class="filter-scroll" scroll-x="{{true}}" enable-flex="{{true}}">
-  <view class="filter-row">
-    <view
-      wx:for="{{typeList}}"
-      wx:key="id"
-      class="filter-chip {{currentType === item.id ? 'chip-active' : ''}}"
-      bindtap="onTypeChange"
-      data-id="{{item.id}}"
-    >{{item.name}}</view>
-  </view>
-</scroll-view>
-
-<!-- 房源列表 -->
-<view class="list-wrap">
+<view class="type-bar">
   <view
-    wx:for="{{rentalList}}"
-    wx:key="id"
-    class="rental-card"
-    hover-class="card-hover"
-  >
+    class="type-tag {{activeType === item ? 'type-tag-active' : ''}}"
+    wx:for="{{types}}"
+    wx:key="*this"
+    data-type="{{item}}"
+    bindtap="onTypeTab"
+  >{{item}}</view>
+</view>
+
+<!-- ══════════════ 房源列表 ══════════════ -->
+<view class="house-list">
+  <view class="empty-tip" wx:if="{{filteredList.length === 0}}">
+    <text>暂无符合条件的房源</text>
+  </view>
+
+  <view class="house-card" wx:for="{{filteredList}}" wx:key="id">
     <!-- 图片区 -->
-    <view class="card-img">
-      <view class="img-placeholder">
-        <text class="img-tip">暂无房源图片</text>
+    <view class="house-img-wrap">
+      <image
+        wx:if="{{item.images && item.images.length > 0}}"
+        class="house-img"
+        src="{{item.images[0]}}"
+        mode="aspectFill"
+      />
+      <view wx:else class="house-img-placeholder">
+        <text>暂无房源图片</text>
       </view>
+      <view class="tag-type">{{item.type}}</view>
+      <view class="tag-vip" wx:if="{{item.isVip}}">VIP</view>
     </view>
 
     <!-- 信息区 -->
-    <view class="card-body">
-      <!-- 标题行 -->
-      <view class="card-title-row">
-        <text class="card-title">{{item.title}}</text>
-        <view class="card-type-tag">{{item.type}}</view>
+    <view class="house-info">
+      <view class="house-title-row">
+        <text class="house-title">{{item.title}}</text>
       </view>
-
-      <!-- 价格 + 户型 -->
-      <view class="price-row">
-        <text class="price-main">{{item.price}}元/月</text>
-        <text class="price-sub">{{item.room}} / {{item.toilet}}</text>
+      <view class="house-price-row">
+        <text class="house-price">{{item.price}}元/月</text>
+        <text class="house-room">{{item.room}}</text>
       </view>
-
-      <!-- 地址 -->
-      <view class="addr-row">
-        <text class="addr-text">📍 {{item.area}}</text>
+      <view class="house-area">
+        <text>📍 {{item.area}}</text>
       </view>
-
-      <!-- 描述 -->
-      <text class="card-desc">{{item.desc}}</text>
+      <view class="house-desc">{{item.desc}}</view>
 
       <!-- 标签 -->
-      <view class="tag-row">
-        <view class="tag-item" wx:for="{{item.tags}}" wx:key="*this" wx:for-item="tag">
-          {{tag}}
-        </view>
+      <view class="house-tags" wx:if="{{item.tags && item.tags.length > 0}}">
+        <text
+          class="house-tag"
+          wx:for="{{item.tags}}"
+          wx:for-item="tag"
+          wx:key="*this"
+        >{{tag}}</text>
       </view>
 
-      <!-- 底部：发布时间 + 按钮 -->
-      <view class="card-footer">
-        <text class="publish-date">发布：{{item.publishDate}}</text>
-        <view class="contact-btn" catchtap="onContact" data-phone="{{item.phone}}">
-          联系房东
-        </view>
+      <view class="house-footer">
+        <text class="publish-time">发布：{{item.publishTime}}</text>
+        <button class="btn-contact" data-item="{{item}}" bindtap="onContact">
+          {{item.isVip ? '联系房东' : '平台内沟通'}}
+        </button>
       </view>
+      <view class="anti-fraud-tip">⚠️请当面核实合同，核实房东证件，谨防诈骗</view>
+    </view>
+  </view>
+</view>
+
+<!-- ══════════════ 发布弹窗遮罩 ══════════════ -->
+<view class="publish-mask {{showPublishModal ? 'mask-show' : ''}}" bindtap="onClosePublish">
+  <view class="publish-drawer" catchtap="onModalContentTap">
+
+    <!-- 弹窗顶栏 -->
+    <view class="drawer-header">
+      <text class="drawer-close" bindtap="onClosePublish">✕</text>
+      <text class="drawer-title">{{publishForm.rentType}}发布</text>
+      <text class="drawer-subtitle">轻轻松松，上架房源 🛎️</text>
     </view>
 
-    <!-- 底部警示 -->
-    <view class="card-warn">⚠️ 请当面核实合同，核实房东证件，谨防诈骗</view>
-  </view>
+    <!-- 可滚动内容区 -->
+    <scroll-view scroll-y class="drawer-body" enhanced="{{true}}">
 
-  <!-- 空状态 -->
-  <view wx:if="{{rentalList.length === 0}}" class="empty-wrap">
-    <text class="empty-icon">🏠</text>
-    <text class="empty-text">暂无房源</text>
+      <!-- ── 出租方式 ── -->
+      <view class="form-section">
+        <text class="section-label">出租方式</text>
+        <view class="rent-type-row">
+          <view
+            class="rent-type-btn {{publishForm.rentType === item ? 'rent-type-active' : ''}}"
+            wx:for="{{rentTypes}}"
+            wx:key="*this"
+            data-type="{{item}}"
+            bindtap="onRentTypeChange"
+          >{{item}}</view>
+        </view>
+      </view>
+
+      <!-- ── 基础信息 ── -->
+      <view class="form-section">
+        <view class="section-title-bar">
+          <text class="section-title">基础信息</text>
+        </view>
+
+        <!-- 所在城市 -->
+        <view class="form-row">
+          <text class="form-key"><text class="required">*</text>所在城市</text>
+          <input
+            class="form-val-input"
+            placeholder="请填写"
+            value="{{publishForm.city}}"
+            bindinput="onInputCity"
+          />
+        </view>
+
+        <!-- 所在小区 -->
+        <view class="form-row">
+          <text class="form-key"><text class="required">*</text>所在小区</text>
+          <input
+            class="form-val-input"
+            placeholder="请填写"
+            value="{{publishForm.community}}"
+            bindinput="onInputCommunity"
+          />
+        </view>
+
+        <!-- 房屋面积 -->
+        <view class="form-row">
+          <text class="form-key"><text class="required">*</text>房屋面积</text>
+          <view class="form-val-right">
+            <input
+              class="form-val-input-sm"
+              placeholder="若不清楚，可填大概"
+              value="{{publishForm.area}}"
+              type="digit"
+              bindinput="onInputArea"
+            />
+            <text class="unit">㎡</text>
+          </view>
+        </view>
+
+        <!-- 房屋户型 -->
+        <picker mode="selector" range="{{roomTypeOptions}}" bindchange="onPickerRoomType">
+          <view class="form-row">
+            <text class="form-key"><text class="required">*</text>房屋户型</text>
+            <view class="form-picker">
+              <text class="{{publishForm.roomType ? 'picker-val' : 'picker-placeholder'}}">
+                {{publishForm.roomType || '请选择'}}
+              </text>
+              <text class="picker-arrow">›</text>
+            </view>
+          </view>
+        </picker>
+
+        <!-- 房屋朝向 -->
+        <picker mode="selector" range="{{directionOptions}}" bindchange="onPickerDirection">
+          <view class="form-row">
+            <text class="form-key"><text class="required">*</text>房屋朝向</text>
+            <view class="form-picker">
+              <text class="{{publishForm.direction ? 'picker-val' : 'picker-placeholder'}}">
+                {{publishForm.direction || '请选择'}}
+              </text>
+              <text class="picker-arrow">›</text>
+            </view>
+          </view>
+        </picker>
+
+        <!-- 入住时间 -->
+        <picker mode="selector" range="{{moveInOptions}}" bindchange="onPickerMoveIn">
+          <view class="form-row">
+            <text class="form-key"><text class="required">*</text>入住时间</text>
+            <view class="form-picker">
+              <text class="{{publishForm.moveInTime ? 'picker-val' : 'picker-placeholder'}}">
+                {{publishForm.moveInTime || '请选择'}}
+              </text>
+              <text class="picker-arrow">›</text>
+            </view>
+          </view>
+        </picker>
+
+        <!-- 期望租金 -->
+        <view class="form-row">
+          <text class="form-key"><text class="required">*</text>期望租金</text>
+          <view class="form-val-right">
+            <input
+              class="form-val-input-sm"
+              placeholder="请填写"
+              value="{{publishForm.price}}"
+              type="digit"
+              bindinput="onInputPrice"
+            />
+            <text class="unit">元/月</text>
+          </view>
+        </view>
+
+        <!-- 付款方式 -->
+        <picker mode="selector" range="{{payTypeOptions}}" bindchange="onPickerPayType">
+          <view class="form-row form-row-last">
+            <text class="form-key"><text class="required">*</text>付款方式</text>
+            <view class="form-picker">
+              <text class="{{publishForm.payType ? 'picker-val' : 'picker-placeholder'}}">
+                {{publishForm.payType || '请选择'}}
+              </text>
+              <text class="picker-arrow">›</text>
+            </view>
+          </view>
+        </picker>
+      </view>
+
+      <!-- ── 展示信息 ── -->
+      <view class="form-section">
+        <view class="section-title-bar">
+          <text class="section-title">展示信息</text>
+          <text class="section-sub">补充以下信息，房源曝光提升30%</text>
+        </view>
+
+        <!-- 房源图片 -->
+        <view class="img-section">
+          <view class="img-section-header">
+            <text class="img-label">房源图片</text>
+            <text class="img-tip">图片规范</text>
+          </view>
+          <view class="img-tip-bar">遵守图片上传规范，杜绝房源下架风险</view>
+
+          <view class="img-grid">
+            <!-- 已选图片 -->
+            <view
+              class="img-thumb"
+              wx:for="{{publishForm.images}}"
+              wx:key="*this"
+              wx:for-index="idx"
+            >
+              <image
+                class="thumb-img"
+                src="{{item}}"
+                mode="aspectFill"
+                data-idx="{{idx}}"
+                bindtap="onPreviewImage"
+              />
+              <view class="thumb-del" data-idx="{{idx}}" bindtap="onDeleteImage">✕</view>
+            </view>
+            <!-- 上传按钮 -->
+            <view
+              class="img-add-btn"
+              wx:if="{{publishForm.images.length < 9}}"
+              bindtap="onChooseImage"
+            >
+              <text class="img-add-icon">＋</text>
+              <text class="img-add-text">添加图片</text>
+              <text class="img-add-count">{{publishForm.images.length}}/9</text>
+            </view>
+          </view>
+          <view class="img-hint">添加室内图，出租更快~</view>
+        </view>
+
+        <!-- 房源标签 -->
+        <view class="tag-section">
+          <view class="tag-section-header">
+            <text class="tag-label">房源标签</text>
+            <view class="tag-add-btn" bindtap="onOpenTagModal">
+              <text>补充符合你房屋的标签 ({{publishForm.tags.length}}/10)</text>
+              <text class="tag-add-arrow"> 补充›</text>
+            </view>
+          </view>
+          <view class="tag-desc">丰富信息，可以更快的找到合适租客</view>
+          <view class="selected-tags" wx:if="{{publishForm.tags.length > 0}}">
+            <view
+              class="selected-tag"
+              wx:for="{{publishForm.tags}}"
+              wx:key="*this"
+              wx:for-index="idx"
+            >
+              <text>{{item}}</text>
+              <text class="tag-remove" data-idx="{{idx}}" bindtap="onRemoveTag">×</text>
+            </view>
+          </view>
+        </view>
+
+        <!-- 房源描述 -->
+        <view class="desc-section">
+          <view class="desc-header">
+            <text class="desc-label">房源描述</text>
+            <text class="desc-tip" bindtap="onViewAgreement">填写规范›</text>
+          </view>
+          <view class="desc-tip-bar">遵守房源描述规范，杜绝房源下架风险</view>
+          <textarea
+            class="desc-textarea"
+            placeholder="请描述房源情况、周边配套等信息..."
+            value="{{publishForm.desc}}"
+            bindinput="onInputDesc"
+            maxlength="300"
+          />
+          <view class="desc-count">{{descCount}}/300</view>
+        </view>
+      </view>
+
+      <!-- ── 协议与发布 ── -->
+      <view class="publish-footer">
+        <view class="agreement-row" bindtap="onToggleAgreed">
+          <view class="checkbox {{publishForm.agreed ? 'checked' : ''}}">
+            <text wx:if="{{publishForm.agreed}}">✓</text>
+          </view>
+          <view class="agreement-text">
+            <text>我承诺房源真实并同意</text>
+            <text class="agreement-link" catchtap="onViewAgreement">《个人用户租房房源展示服务协议》</text>
+          </view>
+        </view>
+
+        <button
+          class="btn-submit {{!publishForm.agreed || isPublishing ? 'btn-disabled' : ''}}"
+          disabled="{{!publishForm.agreed || isPublishing}}"
+          bindtap="onSubmitPublish"
+        >
+          <text wx:if="{{isPublishing}}">⏳ 发布中...</text>
+          <text wx:else>立即免费发布</text>
+        </button>
+      </view>
+
+      <!-- 底部安全距离 -->
+      <view style="height: 60rpx;"></view>
+    </scroll-view>
+  </view>
+</view>
+
+<!-- ══════════════ 标签选择弹窗 ══════════════ -->
+<view class="tag-mask {{showTagModal ? 'mask-show' : ''}}" bindtap="onCloseTagModal">
+  <view class="tag-modal" catchtap="onModalContentTap">
+    <view class="tag-modal-header">
+      <text class="tag-modal-title">选择房源标签</text>
+      <text class="tag-modal-sub">已选 {{publishForm.tags.length}}/10</text>
+      <text class="tag-modal-close" bindtap="onCloseTagModal">完成</text>
+    </view>
+    <scroll-view scroll-y class="tag-modal-body">
+      <view class="all-tags">
+        <view
+          class="all-tag {{publishForm.tags.indexOf(item) >= 0 ? 'all-tag-active' : ''}}"
+          wx:for="{{allTags}}"
+          wx:key="*this"
+          data-tag="{{item}}"
+          bindtap="onToggleTag"
+        >{{item}}</view>
+      </view>
+    </scroll-view>
   </view>
 </view>
 
