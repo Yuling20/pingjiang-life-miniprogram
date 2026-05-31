@@ -17,7 +17,8 @@
     "pages/community/comment/index",
     "pages/community/user/index",
     "pages/community/follow/index",
-    "pages/community/detail/index"
+    "pages/community/detail/index",
+    "pages/services/convenience/elder/elder"
   ],
   "window": {
     "backgroundTextStyle": "light",
