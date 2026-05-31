@@ -1,88 +1,200 @@
-<scroll-view scroll-y enable-flex class="page-wrap">
+<view class="page-wrap">
+  <!-- 顶部风险提示横幅 -->
+  <view class="top-banner">
+    <text class="banner-icon">⚠️</text>
+    <text class="banner-text">通知由相关单位官方发布，如有疑问请拨打报修热线核实</text>
+  </view>
 
-<!-- 顶部说明 -->
-<view class="top-tip">
-  <text class="tip-icon">📢</text>
-  <text class="tip-text">信息来源均为官方平台，点击直接拨打热线，或按提示搜索官方小程序查询</text>
+  <!-- 类型筛选 Tab -->
+  <view class="filter-tabs">
+    <view
+      class="filter-tab {{currentFilter === 'all' ? 'tab-active' : ''}}"
+      data-type="all"
+      bindtap="onSwitchFilter"
+    >全部</view>
+    <view
+      class="filter-tab {{currentFilter === 'water' ? 'tab-active tab-water-active' : ''}}"
+      data-type="water"
+      bindtap="onSwitchFilter"
+    >💧 停水</view>
+    <view
+      class="filter-tab {{currentFilter === 'electric' ? 'tab-active tab-electric-active' : ''}}"
+      data-type="electric"
+      bindtap="onSwitchFilter"
+    >⚡ 停电</view>
+  </view>
+
+  <!-- 最新通知 -->
+  <view class="section-wrap">
+    <view class="section-label">📋 最新通知</view>
+    <view wx:if="{{filteredNotices.length === 0}}" class="empty-box">
+      <text class="empty-emoji">🎉</text>
+      <text class="empty-text">当前无停水停电通知\n供水供电运行正常</text>
+    </view>
+    <view
+      wx:for="{{filteredNotices}}"
+      wx:key="id"
+      class="notice-card"
+      data-id="{{item.id}}"
+      bindtap="onViewDetail"
+    >
+      <view class="card-top">
+        <view class="type-badge {{item.type === 'water' ? 'badge-water' : 'badge-electric'}}">
+          <text>{{item.type === 'water' ? '💧 停水' : '⚡ 停电'}}</text>
+        </view>
+        <view class="status-badge status-{{item.status}}">
+          <text>
+            {{item.status === 'ongoing' ? '⏳ 进行中'
+              : item.status === 'upcoming' ? '🔔 即将停止'
+              : '✅ 已恢复'}}
+          </text>
+        </view>
+      </view>
+      <view class="card-title">{{item.title}}</view>
+      <view class="info-row">
+        <text class="info-icon-text">📍</text>
+        <text class="info-content">{{item.area}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-icon-text">🕐</text>
+        <text class="info-content">{{item.startTime}} 至 {{item.endTime}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-icon-text">📌</text>
+        <text class="info-content">{{item.reason}}</text>
+      </view>
+      <view class="card-foot">
+        <text class="publish-date">发布：{{item.publishDate}}</text>
+        <text class="view-detail-link">查看详情 ›</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 报修热线 -->
+  <view class="section-wrap">
+    <view class="section-label">📞 报修热线</view>
+    <view class="card-block">
+      <view
+        wx:for="{{repairLines}}"
+        wx:key="id"
+        class="repair-row {{index < repairLines.length - 1 ? 'row-divider' : ''}}"
+      >
+        <view class="repair-left">
+          <text class="repair-icon">{{item.icon}}</text>
+          <view class="repair-info">
+            <text class="repair-name">{{item.name}}</text>
+            <text class="repair-phone">{{item.phone}}</text>
+          </view>
+        </view>
+        <view
+          class="call-btn"
+          data-phone="{{item.phone}}"
+          data-name="{{item.name}}"
+          catchtap="onCallRepair"
+        >拨打</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 官方查询入口（已修改） -->
+  <view class="section-wrap">
+    <view class="section-label">🔗 官方查询入口</view>
+    <view class="card-block">
+      <!-- 条目1：润恒自来水公众号 -->
+      <view class="official-row row-divider" bindtap="onOpenWaterOA">
+        <view class="official-left">
+          <view class="official-icon-wrap icon-wrap-water">
+            <text class="official-icon">🚰</text>
+          </view>
+          <view class="official-info">
+            <text class="official-name">平江县润恒自来水有限公司</text>
+            <text class="official-desc">关注公众号 · 查看停水公告</text>
+          </view>
+        </view>
+        <view class="official-right">
+          <text class="official-badge badge-water-oa">公众号</text>
+          <text class="official-arrow">›</text>
+        </view>
+      </view>
+
+      <!-- 条目2：国网电力公众号 -->
+      <view class="official-row" bindtap="onOpenElectricWeb">
+        <view class="official-left">
+          <view class="official-icon-wrap icon-wrap-electric">
+            <text class="official-icon">⚡</text>
+          </view>
+          <view class="official-info">
+            <text class="official-name">国网湖南省电力有限公司</text>
+            <text class="official-desc">关注公众号 · 查看停电公告</text>
+          </view>
+        </view>
+        <view class="official-right">
+          <text class="official-badge badge-electric-oa">公众号</text>
+          <text class="official-arrow">›</text>
+        </view>
+      </view>
+    </view>
+    <view class="oa-notice">
+      💡 点击公众号入口后，将自动复制名称并引导你在微信搜一搜中查找关注
+    </view>
+  </view>
+
+  <view class="page-bottom"></view>
 </view>
 
-<!-- 本地公告 -->
-<view class="section-card">
-  <view class="section-header">
-    <text class="section-title">📋 近期通知</text>
-    <text class="section-sub">社区整理·仅供参考</text>
-  </view>
+<!-- 详情弹窗 -->
+<view
+  class="modal-mask {{showDetailModal ? 'mask-show' : ''}}"
+  bindtap="onCloseModal"
+>
   <view
-    wx:for="{{localNotices}}"
-    wx:key="id"
-    class="notice-card"
-    style="border-left-color: {{item.color}};"
+    class="modal-box"
+    catchtap="onModalContentTap"
+    wx:if="{{currentNotice}}"
   >
-    <view class="notice-top">
-      <view class="notice-badge" style="background: {{item.color}};">
-        <text>{{item.icon}} {{item.type}}</text>
+    <view class="modal-head">
+      <view class="type-badge {{currentNotice.type === 'water' ? 'badge-water' : 'badge-electric'}}">
+        <text>{{currentNotice.type === 'water' ? '💧 停水通知' : '⚡ 停电通知'}}</text>
       </view>
-      <text wx:if="{{item.isNew}}" class="new-tag">NEW</text>
-      <text class="notice-area">{{item.area}}</text>
+      <text class="modal-close-icon" bindtap="onCloseModal">✕</text>
     </view>
-    <view class="notice-time">🕐 {{item.time}} · {{item.reason}}</view>
-    <view class="notice-desc">{{item.desc}}</view>
+    <view class="modal-title">{{currentNotice.title}}</view>
+    <view class="modal-detail-list">
+      <view class="modal-detail-row">
+        <text class="detail-label">影响区域</text>
+        <text class="detail-value">{{currentNotice.area}}</text>
+      </view>
+      <view class="modal-detail-row">
+        <text class="detail-label">停止时间</text>
+        <text class="detail-value">{{currentNotice.startTime}}</text>
+      </view>
+      <view class="modal-detail-row">
+        <text class="detail-label">恢复时间</text>
+        <text class="detail-value">{{currentNotice.endTime}}</text>
+      </view>
+      <view class="modal-detail-row">
+        <text class="detail-label">原因说明</text>
+        <text class="detail-value">{{currentNotice.reason}}</text>
+      </view>
+      <view class="modal-detail-row">
+        <text class="detail-label">当前状态</text>
+        <text class="detail-value status-text status-text-{{currentNotice.status}}">
+          {{currentNotice.status === 'ongoing' ? '⏳ 进行中'
+            : currentNotice.status === 'upcoming' ? '🔔 即将停止'
+            : '✅ 已恢复'}}
+        </text>
+      </view>
+      <view class="modal-detail-row">
+        <text class="detail-label">温馨提示</text>
+        <text class="detail-value tip-value">{{currentNotice.tips}}</text>
+      </view>
+      <view class="modal-detail-row no-border">
+        <text class="detail-label">报修热线</text>
+        <text class="detail-value phone-value" data-phone="{{currentNotice.contact}}" data-name="报修热线" bindtap="onCallRepair">
+          📞 {{currentNotice.contact}}
+        </text>
+      </view>
+    </view>
+    <button class="modal-close-btn" bindtap="onCloseModal">关闭</button>
   </view>
 </view>
-
-<!-- 报修电话 -->
-<view class="section-card">
-  <view class="section-header">
-    <text class="section-title">📞 报修热线</text>
-    <text class="section-sub">点击直接拨打</text>
-  </view>
-  <view class="phone-list">
-    <view class="phone-item" bindtap="callRepair" data-phone="95598">
-      <text class="phone-icon">⚡</text>
-      <view class="phone-info">
-        <text class="phone-name">电力报修 · 国网客服</text>
-        <text class="phone-num">95598</text>
-      </view>
-      <view class="call-btn">拨打</view>
-    </view>
-    <view class="phone-item" bindtap="callRepair" data-phone="0730-6822345">
-      <text class="phone-icon">💧</text>
-      <view class="phone-info">
-        <text class="phone-name">平江自来水公司</text>
-        <text class="phone-num">0730-6822345</text>
-      </view>
-      <view class="call-btn">拨打</view>
-    </view>
-  </view>
-</view>
-
-<!-- 官方平台入口 -->
-<view class="section-card">
-  <view class="section-header">
-    <text class="section-title">🔗 官方查询入口</text>
-    <text class="section-sub">点击查看详情</text>
-  </view>
-  <view
-    wx:for="{{officialLinks}}"
-    wx:key="id"
-    class="official-item"
-    style="background: {{item.bgColor}};"
-    bindtap="goToOfficial"
-    data-item="{{item}}"
-    hover-class="item-hover"
-  >
-    <view class="official-icon" style="color: {{item.color}};">{{item.icon}}</view>
-    <view class="official-info">
-      <view class="official-title-row">
-        <text class="official-title">{{item.title}}</text>
-        <text class="official-tag" style="background: {{item.color}};">{{item.tag}}</text>
-      </view>
-      <text class="official-desc">{{item.desc}}</text>
-      <text class="official-phone" style="color: {{item.color}};">📞 热线：{{item.phone}}</text>
-    </view>
-    <text class="official-arrow" style="color: {{item.color}};">›</text>
-  </view>
-</view>
-
-<view style="height: 60rpx;"></view>
-</scroll-view>
