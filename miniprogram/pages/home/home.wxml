@@ -15,6 +15,8 @@
       </view>
     </view>
   </view>
+
+  <!-- 轮播横幅 -->
   <swiper class="banner-swiper" autoplay="{{true}}" interval="4000" circular="{{true}}" indicator-dots="{{true}}" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#ffffff" bindchange="onBannerChange">
     <swiper-item wx:for="{{bannerList}}" wx:key="id">
       <view class="banner-card" style="background-color: {{item.bgColor}};" bindtap="onBannerTap" data-item="{{item}}">
@@ -27,12 +29,9 @@
       </view>
     </swiper-item>
   </swiper>
-  <scroll-view class="quick-menu" scroll-x="{{true}}" enable-flex="{{true}}">
-    <view wx:for="{{quickMenuList}}" wx:key="id" class="quick-item" bindtap="navigateQuick" data-type="{{item.type}}" hover-class="quick-item-hover">
-      <view class="quick-icon-wrap">{{item.icon}}</view>
-      <text class="quick-name">{{item.name}}</text>
-    </view>
-  </scroll-view>
+  <!-- ↑ 轮播结束，横向快捷入口栏已删除 -->
+
+  <!-- 便民服务板块（直接衔接轮播下方） -->
   <view class="section-card">
     <view class="section-header">
       <text class="section-title">便民服务</text>
@@ -49,6 +48,7 @@
       </view>
     </view>
   </view>
+
   <view class="section-card">
     <view class="section-header">
       <text class="section-title">平江贴吧</text>
@@ -65,6 +65,7 @@
       </view>
     </view>
   </view>
+
   <view class="section-card section-locked">
     <view class="section-header">
       <text class="section-title">商城板块</text>
@@ -72,6 +73,7 @@
     </view>
     <view class="locked-tip">平江本地商城，敬请期待</view>
   </view>
+
   <view class="section-card">
     <view class="section-header">
       <text class="section-title">平江热帖</text>
@@ -85,6 +87,7 @@
       <text class="article-count">{{item.count}}人参与</text>
     </view>
   </view>
+
   <view class="content-section">
     <view class="section-header content-section-header">
       <text class="section-title">══ 精选内容 ══</text>
@@ -102,6 +105,7 @@
     </view>
     <view class="load-more">加载更多...</view>
   </view>
+
   <view style="height: 120rpx;"></view>
   <view class="float-ai" bindtap="goToAI">
     <text class="float-ai-icon">🤖</text>
