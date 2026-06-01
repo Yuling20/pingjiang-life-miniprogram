@@ -4,8 +4,10 @@ const app = getApp()
 Page({
   data: {
     searchKeyword: '',
-    categories: ['全部', '邻里互助', '二手交易', '宠物', '美食', '活动'],
+    // ✅ 替换为新的社区分类列表
+    categories: ['全部', '扯闲谈', '宠物', '美食', '活动', '游玩', '二手交易', '求助互助'],
     currentCategory: 0,
+    activeCategory: '全部', // 新增：当前激活的分类名称
     posts: [],
     filteredPosts: [],
     showShareMenu: false,
@@ -15,6 +17,18 @@ Page({
     posterLoading: false,
     isRealNameVerified: true,
     isAndroid: false,
+
+    // ✅ 替换为新的分类标签颜色映射（低饱和度护眼配色）
+    categoryColorMap: {
+      '全部':   { bg: '#f0f0f0', text: '#888888' },
+      '扯闲谈': { bg: '#e8f4e8', text: '#4a8a5a' },
+      '宠物':   { bg: '#fce8f5', text: '#a0508a' },
+      '美食':   { bg: '#faf5e0', text: '#8a7030' },
+      '活动':   { bg: '#faeee8', text: '#a05838' },
+      '游玩':   { bg: '#e8f0fa', text: '#3a6090' },
+      '二手交易':{ bg: '#f0ece0', text: '#807040' },
+      '求助互助':{ bg: '#e8f5fa', text: '#307880' },
+    }
   },
 
   onLoad() {
@@ -28,6 +42,18 @@ Page({
     this._checkRealName()
   },
 
+  onShow() {
+    // ✅ 升级为新的首页分类参数读取逻辑
+    // 读取首页传入的分类筛选参数
+    const app = getApp();
+    const initCategory = app.globalData.communityInitCategory;
+    if (initCategory !== undefined && initCategory !== null) {
+      this.setData({ activeCategory: initCategory || '全部' });
+      this.filterPostsByCategory(initCategory);
+      app.globalData.communityInitCategory = null; // 用完清空
+    }
+  },
+
   // ==================== 初始化 ====================
 
   _loadMockPosts() {
@@ -38,9 +64,9 @@ Page({
         avatarEmoji: '😊',
         nickname: '张小明',
         time: '10分钟前',
-        category: '邻里互助',
+        category: '求助互助',
         content: '小区门口捡到一只橘猫，有失主吗？已送到物业处。',
-        tags: ['#邻里互助', '#宠物'],
+        tags: ['#求助互助', '#宠物'],
         images: [],
         likeCount: 12,
         commentCount: 5,
@@ -108,9 +134,9 @@ Page({
         avatarEmoji: '👩',
         nickname: '刘阿姨',
         time: '昨天',
-        category: '邻里互助',
+        category: '求助互助',
         content: '有没有人知道附近哪里可以修鞋？谢谢大家！',
-        tags: ['#邻里互助'],
+        tags: ['#求助互助'],
         images: [],
         likeCount: 5,
         commentCount: 12,
@@ -118,11 +144,62 @@ Page({
       },
     ]
     this.setData({ posts, filteredPosts: posts })
+    // 存入缓存，供 filterPostsByCategory 使用
+    wx.setStorageSync('communityPosts', posts);
   },
 
   _checkRealName() {
     // 预留后端接口：GET /api/user/realname-status
     this.setData({ isRealNameVerified: true })
+  },
+
+  // ==================== 按分类筛选帖子（按方案重写） ====================
+  /**
+   * 按分类筛选帖子，并注入颜色信息
+   */
+  filterPostsByCategory(category) {
+    const allPosts = wx.getStorageSync('communityPosts') || [];
+    const colorMap = this.data.categoryColorMap;
+
+    let filtered = (!category || category === '全部')
+      ? allPosts
+      : allPosts.filter(post => post.category === category);
+
+    // 注入颜色
+    filtered = filtered.map(post => {
+      const color = colorMap[post.category] || colorMap['全部'];
+      return {
+        ...post,
+        tagBg:   color.bg,
+        tagText: color.text,
+      };
+    });
+
+    this.setData({
+      filteredPosts: filtered,
+      activeCategory: category || '全部'
+    });
+  },
+
+  /**
+   * 分类 Tab 点击事件（按方案修正，绑定 dataset.category）
+   */
+  onCategoryTap(e) {
+    const category = e.currentTarget.dataset.category || '全部';
+    this.filterPostsByCategory(category);
+  },
+
+  // ==================== 返回上一页（兼容 tabBar 页与普通页，已按方案修复） ====================
+  /** 返回上一页 */
+  handleNavBack() {
+    const pages = getCurrentPages();
+    if (pages.length > 1) {
+      // 有历史页面栈，正常返回
+      wx.navigateBack({ delta: 1 });
+    } else {
+      // 从 tabBar 直接进入时，返回首页 tabBar
+      wx.switchTab({ url: '/pages/home/home' });
+    }
   },
 
   // ==================== 搜索 ====================
@@ -138,14 +215,7 @@ Page({
     this._filterPosts('', this.data.currentCategory)
   },
 
-  // ==================== 分类 ====================
-
-  onCategoryTap(e) {
-    const index = e.currentTarget.dataset.index
-    this.setData({ currentCategory: index })
-    this._filterPosts(this.data.searchKeyword, index)
-  },
-
+  // ==================== 原有分类筛选逻辑（保留兼容） ====================
   _filterPosts(keyword, categoryIndex) {
     const { posts, categories } = this.data
     let result = posts

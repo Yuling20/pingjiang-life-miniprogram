@@ -30,17 +30,17 @@ Page({
       { id: 3, icon: '🔧', name: '家政维修', type: 'homeservice', color: '#E67E22' },
       { id: 4, icon: '🚨', name: '停水停电', type: 'water',       color: '#E74C3C' },
       { id: 5, icon: '📋', name: '办事指南', type: 'guide',       color: '#8E44AD' },
-      // ✅ 修复：type 与实际文件夹名 elder 保持一致
       { id: 6, icon: '❤️', name: '孝亲守护', type: 'elder',       color: '#D4820A' }
     ],
 
+    // ✅ 已更新：社区板块，新增「本地活动」「萌宠交流」，并绑定对应的分类参数
     communityList: [
-      { id: 1, icon: '📸', name: '随手拍',   type: 'photo' },
-      { id: 2, icon: '🆘', name: '求助互助', type: 'help' },
-      { id: 3, icon: '🔄', name: '二手转让', type: 'secondhand' },
-      { id: 4, icon: '💬', name: '今日话题', type: 'topic' },
-      { id: 5, icon: '🏆', name: '积分中心', type: 'points' },
-      { id: 6, icon: '📢', name: '本地公告', type: 'notice' }
+      { id: 1, icon: '📸', name: '随手拍',     category: '游玩' },
+      { id: 2, icon: '🆘', name: '求助互助',   category: '求助互助' },
+      { id: 3, icon: '🔄', name: '二手转让',   category: '二手交易' },
+      { id: 4, icon: '💬', name: '今日话题',   category: '扯闲谈' },
+      { id: 5, icon: '📢', name: '本地活动',   category: '活动' },
+      { id: 6, icon: '🐾', name: '萌宠交流',   category: '宠物' }
     ],
 
     articleList: [
@@ -92,19 +92,16 @@ Page({
   },
 
   _doNavigate(type) {
-    // 社区贴吧走 switchTab
     if (type === 'community') {
       wx.switchTab({ url: '/pages/community/community' });
       return;
     }
 
-    // ✅ 修复：elder 跳转到正确路径（与实际文件夹/文件名完全一致）
     if (type === 'elder') {
       wx.navigateTo({ url: '/pages/services/convenience/elder/elder' });
       return;
     }
 
-    // 普通路由映射
     const routeMap = {
       job:         '/pages/services/convenience/job/job',
       rental:      '/pages/services/convenience/rental/rental',
@@ -125,8 +122,28 @@ Page({
     wx.switchTab({ url: '/pages/community/community' });
   },
 
+  /**
+   * 跳转社区首页（无分类筛选，点击「进入社区」时使用）
+   */
   goToCommunity() {
-    wx.switchTab({ url: '/pages/community/community' });
+    const app = getApp();
+    app.globalData.communityInitCategory = '';
+    wx.switchTab({
+      url: '/pages/community/community'
+    });
+  },
+
+  /**
+   * 跳转社区并自动筛选指定分类
+   * data-category 对应社区页的分类标签名
+   */
+  goToCommunityCategory(e) {
+    const category = e.currentTarget.dataset.category || '';
+    const app = getApp();
+    app.globalData.communityInitCategory = category;
+    wx.switchTab({
+      url: '/pages/community/community'
+    });
   },
 
   goToConvenience() {

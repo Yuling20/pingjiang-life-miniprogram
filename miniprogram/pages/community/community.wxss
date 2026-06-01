@@ -5,7 +5,7 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #f5f5f5;
+  background: #F5F0E8;
   position: relative;
   overflow: hidden;
 }
@@ -21,6 +21,10 @@
   top: 0;
   z-index: 10;
   box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+.back-icon {
+  font-size: 36rpx;
+  color: #D4820A;
 }
 
 .search-input-wrap {
@@ -502,4 +506,68 @@
   color: #bbb;
   margin-top: 16rpx;
   flex-shrink: 0;
+}
+/* ─── 分类标签横向滚动栏 ─────────────────────────────────── */
+
+.category-scroll {
+  width: 100%;
+  white-space: nowrap;
+  background-color: #fff;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #f5ead8;
+}
+
+.category-tab-list {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0 20rpx;
+  gap: 16rpx;
+}
+
+/* 标签基础样式 */
+.category-tab-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10rpx 28rpx;
+  border-radius: 32rpx;
+  font-size: 26rpx;
+  font-weight: 500;
+  border: 1rpx solid transparent;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  /* background-color / color / border-color 由 style 动态注入 */
+}
+
+/* 激活状态由 style 内联控制，此处保留点击态 */
+.category-tab-item:active {
+  opacity: 0.82;
+}
+
+/* ─── 帖子分类标签 ──────────────────────────────────────── */
+
+.post-category-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 16rpx;
+  border-radius: 24rpx;
+  flex-shrink: 0;
+}
+
+.post-category-text {
+  font-size: 22rpx;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* ─── 平江贴吧首页第二行 grid 间距 ─────────────────────── */
+
+.tieba-grid-second {
+  margin-top: 16rpx;
+}
+
+/* 萌宠图标背景色 */
+.tieba-icon-pet {
+  background-color: #fce8f5;
 }

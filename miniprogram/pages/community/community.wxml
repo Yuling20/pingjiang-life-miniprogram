@@ -1,8 +1,14 @@
 <!--pages/community/community.wxml-->
 <view class="page-container">
 
-<!-- 顶部搜索栏 -->
-<view class="search-bar">
+<!-- 顶部搜索栏（含返回按钮，已按方案修正bindtap） -->
+<view class="search-bar-wrap">
+  <!-- 返回按钮：bindtap必须与JS方法名完全一致 -->
+  <view class="nav-back-btn" bindtap="handleNavBack">
+    <text class="nav-back-icon">‹</text>
+  </view>
+
+  <!-- 原有搜索框代码保持不变 -->
   <view class="search-input-wrap">
     <text class="search-icon-text">🔍</text>
     <input
@@ -15,18 +21,30 @@
     />
     <view class="search-clear" wx:if="{{searchKeyword}}" bindtap="onSearchClear">×</view>
   </view>
+
   <view class="follow-btn" bindtap="onFollowTap">关注</view>
 </view>
 
-<!-- 分类标签 -->
-<scroll-view class="category-bar" scroll-x enable-flex>
-  <view
-    wx:for="{{categories}}"
-    wx:key="index"
-    class="category-item {{currentCategory === index ? 'active' : ''}}"
-    data-index="{{index}}"
-    bindtap="onCategoryTap"
-  >{{item}}</view>
+<!-- ===== 分类标签横向滚动栏（已按方案替换） ===== -->
+<scroll-view class="category-scroll" scroll-x enable-flex>
+  <view class="category-tab-list">
+
+    <view
+      wx:for="{{categories}}"
+      wx:key="index"
+      class="category-tab-item {{activeCategory === item ? 'category-tab-active' : ''}}"
+      bindtap="onCategoryTap"
+      data-category="{{item}}"
+      style="
+        background-color: {{activeCategory === item ? categoryColorMap[item].text : categoryColorMap[item].bg}};
+        color: {{activeCategory === item ? '#fff' : categoryColorMap[item].text}};
+        border-color: {{categoryColorMap[item].text}};
+      "
+    >
+      {{item}}
+    </view>
+
+  </view>
 </scroll-view>
 
 <!-- 帖子列表 -->
@@ -49,7 +67,16 @@
         <text class="post-nickname">{{item.nickname}}</text>
         <text class="post-time">{{item.time}}</text>
       </view>
-      <view class="post-category-tag">{{item.category}}</view>
+      <!-- 帖子分类标签（动态颜色，已按方案替换） -->
+      <view
+        class="post-category-tag"
+        style="background-color: {{item.tagBg || '#f0f0f0'}};"
+      >
+        <text
+          class="post-category-text"
+          style="color: {{item.tagText || '#888888'}};"
+        >{{item.category}}</text>
+      </view>
     </view>
 
     <!-- 正文 -->

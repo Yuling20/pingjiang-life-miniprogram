@@ -29,7 +29,6 @@
       </view>
     </swiper-item>
   </swiper>
-  <!-- ↑ 轮播结束，横向快捷入口栏已删除 -->
 
   <!-- 便民服务板块（直接衔接轮播下方） -->
   <view class="section-card">
@@ -49,22 +48,68 @@
     </view>
   </view>
 
-  <view class="section-card">
+  <!-- ===== 平江贴吧模块（已按方案替换） ===== -->
+  <view class="section-block tieba-section">
     <view class="section-header">
       <text class="section-title">平江贴吧</text>
-      <view class="section-more" bindtap="goToCommunity">
-        <text>查看全部</text><text class="arrow">›</text>
+      <text class="section-more" bindtap="goToCommunity">进入社区 ›</text>
+    </view>
+
+    <!-- 第一行：3个入口 -->
+    <view class="tieba-grid service-grid">
+      <!-- 随手拍 → 游玩 -->
+      <view class="tieba-item service-item" bindtap="goToCommunityCategory" data-category="游玩" hover-class="service-item-hover">
+        <view class="tieba-icon-wrap service-icon-wrap tieba-icon-snap" style="background: #4A90D920;">
+          <text class="tieba-icon service-icon">📷</text>
+        </view>
+        <text class="tieba-label service-name">随手拍</text>
+      </view>
+
+      <!-- 求助互助 → 求助互助 -->
+      <view class="tieba-item service-item" bindtap="goToCommunityCategory" data-category="求助互助" hover-class="service-item-hover">
+        <view class="tieba-icon-wrap service-icon-wrap tieba-icon-help" style="background: #4A90D920;">
+          <text class="tieba-icon service-icon">🤝</text>
+        </view>
+        <text class="tieba-label service-name">求助互助</text>
+      </view>
+
+      <!-- 二手转让 → 二手交易 -->
+      <view class="tieba-item service-item" bindtap="goToCommunityCategory" data-category="二手交易" hover-class="service-item-hover">
+        <view class="tieba-icon-wrap service-icon-wrap tieba-icon-trade" style="background: #4A90D920;">
+          <text class="tieba-icon service-icon">🛍️</text>
+        </view>
+        <text class="tieba-label service-name">二手转让</text>
       </view>
     </view>
-    <view class="service-grid">
-      <view wx:for="{{communityList}}" wx:key="id" class="service-item" bindtap="navigateCommunity" data-type="{{item.type}}" hover-class="service-item-hover">
-        <view class="service-icon-wrap" style="background: #4A90D920;">
-          <text class="service-icon">{{item.icon}}</text>
+
+    <!-- 第二行：3个入口 -->
+    <view class="tieba-grid tieba-grid-second service-grid">
+      <!-- 今日话题 → 扯闲谈 -->
+      <view class="tieba-item service-item" bindtap="goToCommunityCategory" data-category="扯闲谈" hover-class="service-item-hover">
+        <view class="tieba-icon-wrap service-icon-wrap tieba-icon-topic" style="background: #4A90D920;">
+          <text class="tieba-icon service-icon">💬</text>
         </view>
-        <text class="service-name">{{item.name}}</text>
+        <text class="tieba-label service-name">今日话题</text>
+      </view>
+
+      <!-- 本地活动 → 活动 -->
+      <view class="tieba-item service-item" bindtap="goToCommunityCategory" data-category="活动" hover-class="service-item-hover">
+        <view class="tieba-icon-wrap service-icon-wrap tieba-icon-notice" style="background: #4A90D920;">
+          <text class="tieba-icon service-icon">📢</text>
+        </view>
+        <text class="tieba-label service-name">本地活动</text>
+      </view>
+
+      <!-- 萌宠交流 → 宠物 -->
+      <view class="tieba-item service-item" bindtap="goToCommunityCategory" data-category="宠物" hover-class="service-item-hover">
+        <view class="tieba-icon-wrap service-icon-wrap tieba-icon-pet" style="background: #4A90D920;">
+          <text class="tieba-icon service-icon">🐾</text>
+        </view>
+        <text class="tieba-label service-name">萌宠交流</text>
       </view>
     </view>
   </view>
+  <!-- ===== 平江贴吧模块结束 ===== -->
 
   <view class="section-card section-locked">
     <view class="section-header">
