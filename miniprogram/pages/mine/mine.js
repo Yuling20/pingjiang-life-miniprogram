@@ -1,239 +1,329 @@
-// pages/mine/mine.js
+// miniprogram/pages/mine/mine.js
+// 功能：个人中心页面逻辑
+// 版本：d295002
+// 规则：
+//   - 移除全屏弹窗，改为列表入口
+//   - 实名状态读取本地缓存 key：userAuthStatus
+//   - 积分读取本地缓存 key：userPoints
+//   - 便民服务 / 贴吧社区分区入口
+//   - 禁用云开发，仅使用 wx.getStorageSync / wx.setStorageSync
+
+const app = getApp();
+
 Page({
+
   data: {
-    // 用户基本信息
-    userInfo: null,
-    hasLogin: false,
-
-    // 实名认证相关
-    realNameInfo: null,       // { verified, name }
-    showRealNamePanel: false, // 实名认证面板是否展开
-    wechatVerified: false,    // 微信是否已实名（模拟）
-
-    // 手动实名表单
-    manualForm: {
-      name: '',
-      idCard: '',
-      phone: ''
+    /* 用户基本信息 */
+    userInfo: {
+      nickName: '微信用户',
+      avatarUrl: '/images/avatar.png'
     },
-    showManualForm: false,    // 手动实名表单是否显示
 
-    // 弹窗
-    showAuthDialog: false,    // 微信一键实名弹窗
-    authDialogStep: 0,        // 0:确认 1:人脸识别中 2:成功
+    /* 实名状态：读取缓存 key: userAuthStatus */
+    isAuthed: false,
 
-    // 菜单列表
-    menuList: [
-      { id: 'realname', icon: '🪪', label: '实名认证', badge: '' },
-      { id: 'myJobs', icon: '💼', label: '我发布的职位', badge: '' },
-      { id: 'myResume', icon: '📄', label: '我的简历', badge: '' },
-      { id: 'collect', icon: '⭐', label: '我的收藏', badge: '' },
-      { id: 'setting', icon: '⚙️', label: '设置', badge: '' },
-    ]
+    /* 积分总数：读取缓存 key: userPoints */
+    totalPoints: 0,
+
+    /* 便民服务发布数量 */
+    myJobCount: 0,
+    myRentalCount: 0,
+
+    /* 贴吧社区 */
+    myPostCount: 0,
+    unreadActivity: 0,
+
+    /* 联系我们弹窗 */
+    showContactModal: false,
+    contactWechatId: 'pjhsh2025',   // ← 替换为实际微信号
   },
 
+  // ─── 生命周期 ────────────────────────────────────────────
+
   onLoad() {
-    this._loadRealNameInfo()
-    this._loadUserInfo()
-    this._checkWechatVerified()
+    this._initPage();
   },
 
   onShow() {
-    this._loadRealNameInfo()
+    // 每次显示时刷新，保证数据实时
+    this._initPage();
   },
 
-  // ─── 加载本地实名信息 ───────────────────────────────────────────
-  _loadRealNameInfo() {
-    try {
-      const raw = wx.getStorageSync('userRealNameInfo')
-      if (raw) {
-        const info = typeof raw === 'string' ? JSON.parse(raw) : raw
-        this.setData({ realNameInfo: info })
-      } else {
-        this.setData({ realNameInfo: null })
-      }
-    } catch (e) {
-      this.setData({ realNameInfo: null })
-    }
+  // ─── 初始化 ──────────────────────────────────────────────
+
+  /**
+   * 页面数据初始化
+   * 全部从本地缓存读取，无需网络请求
+   */
+  _initPage() {
+    this._loadUserInfo();
+    this._loadAuthStatus();
+    this._loadPoints();
+    this._loadMyJobCount();
+    this._loadMyRentalCount();
+    this._loadMyPostCount();
+    this._loadUnreadActivity();
   },
 
-  // ─── 加载用户信息（模拟登录态） ──────────────────────────────────
+  /** 读取用户信息（微信登录后写入的昵称/头像） */
   _loadUserInfo() {
     try {
-      const u = wx.getStorageSync('userInfo')
-      if (u) {
-        this.setData({ userInfo: u, hasLogin: true })
+      const info = wx.getStorageSync('userInfo');
+      if (info && info.nickName) {
+        this.setData({ userInfo: info });
       }
-    } catch (e) { /* ignore */ }
-  },
-
-  // ─── 模拟检测微信是否已实名（随机或本地缓存） ────────────────────
-  _checkWechatVerified() {
-    try {
-      const flag = wx.getStorageSync('wechatSelfVerified')
-      // 此处模拟：若本地标记为true则微信已实名，否则未实名
-      this.setData({ wechatVerified: !!flag })
     } catch (e) {
-      this.setData({ wechatVerified: false })
+      console.warn('[mine] 读取 userInfo 失败', e);
     }
   },
 
-  // ─── 登录（模拟） ────────────────────────────────────────────────
-  onLogin() {
-    wx.getUserProfile({
-      desc: '用于完善用户信息',
+  /**
+   * 读取实名状态
+   * 缓存 key: userAuthStatus
+   * true = 已实名，false/空 = 未实名
+   */
+  _loadAuthStatus() {
+    try {
+      const status = wx.getStorageSync('userAuthStatus');
+      this.setData({ isAuthed: status === true });
+    } catch (e) {
+      console.warn('[mine] 读取 userAuthStatus 失败', e);
+      this.setData({ isAuthed: false });
+    }
+  },
+
+  /**
+   * 读取积分
+   * 缓存 key: userPoints（存储格式：{ total: Number }）
+   */
+  _loadPoints() {
+    try {
+      const pts = wx.getStorageSync('userPoints');
+      const total = (pts && typeof pts.total === 'number') ? pts.total : 0;
+      this.setData({ totalPoints: total });
+    } catch (e) {
+      console.warn('[mine] 读取 userPoints 失败', e);
+      this.setData({ totalPoints: 0 });
+    }
+  },
+
+  /**
+   * 读取我发布的招聘数量
+   * 缓存 key: myPublishedJobs（Array）
+   */
+  _loadMyJobCount() {
+    try {
+      const list = wx.getStorageSync('myPublishedJobs') || [];
+      this.setData({ myJobCount: list.length });
+    } catch (e) {
+      console.warn('[mine] 读取 myPublishedJobs 失败', e);
+    }
+  },
+
+  /**
+   * 读取我发布的房源数量
+   * 缓存 key: myPublishedRentals（Array）
+   */
+  _loadMyRentalCount() {
+    try {
+      const list = wx.getStorageSync('myPublishedRentals') || [];
+      this.setData({ myRentalCount: list.length });
+    } catch (e) {
+      console.warn('[mine] 读取 myPublishedRentals 失败', e);
+    }
+  },
+
+  /**
+   * 读取我发布的帖子数量
+   * 缓存 key: myPublishedPosts（Array）
+   */
+  _loadMyPostCount() {
+    try {
+      const list = wx.getStorageSync('myPublishedPosts') || [];
+      this.setData({ myPostCount: list.length });
+    } catch (e) {
+      console.warn('[mine] 读取 myPublishedPosts 失败', e);
+    }
+  },
+
+  /**
+   * 读取未读互动数（评论/点赞）
+   * 缓存 key: myUnreadActivity（Number）
+   */
+  _loadUnreadActivity() {
+    try {
+      const count = wx.getStorageSync('myUnreadActivity') || 0;
+      this.setData({ unreadActivity: count });
+    } catch (e) {
+      console.warn('[mine] 读取 myUnreadActivity 失败', e);
+    }
+  },
+
+  // ─── 跳转事件 ─────────────────────────────────────────────
+
+  /** 跳转实名认证页 */
+  goAuth() {
+    // 已实名：提示无需重复认证
+    if (this.data.isAuthed) {
+      wx.showToast({
+        title: '您已完成实名认证',
+        icon: 'success',
+        duration: 1500
+      });
+      return;
+    }
+    // 未实名：跳转认证流程（沿用原有逻辑，调用微信授权+人脸）
+    wx.showModal({
+      title: '微信一键实名',
+      content: '即将调用微信授权+人脸识别完成实名认证，信息仅用于平台安全验证。',
+      confirmText: '确认授权',
+      cancelText: '取消',
       success: (res) => {
-        const userInfo = res.userInfo
-        wx.setStorageSync('userInfo', userInfo)
-        this.setData({ userInfo, hasLogin: true })
-        wx.showToast({ title: '登录成功', icon: 'success' })
+        if (res.confirm) {
+          // 模拟实名完成（实际项目中对接真实认证接口）
+          wx.setStorageSync('userAuthStatus', true);
+          this.setData({ isAuthed: true });
+          wx.showToast({
+            title: '实名认证完成',
+            icon: 'success',
+            duration: 1500
+          });
+        }
+      }
+    });
+  },
+
+  /** 跳转积分中心 */
+  goPointsCenter() {
+    wx.navigateTo({
+      url: '/pages/mine/points/index',
+      fail: () => {
+        // 积分中心页面尚未建立时的友好提示
+        wx.showToast({
+          title: '积分中心开发中',
+          icon: 'none',
+          duration: 1500
+        });
+      }
+    });
+  },
+
+  /** 跳转我发布的招聘 */
+  goMyJobs() {
+    wx.navigateTo({
+      url: '/pages/services/convenience/job/job?filter=mine',
+      fail: () => {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  /** 跳转我发布的房源 */
+  goMyRentals() {
+    wx.navigateTo({
+      url: '/pages/services/convenience/rental/rental?filter=mine',
+      fail: () => {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  /** 跳转我发布的帖子 */
+  goMyPosts() {
+    wx.navigateTo({
+      url: '/pages/community/user/index?filter=myPosts',
+      fail: () => {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  /** 跳转我的帖子动态（评论/点赞） */
+  goMyActivity() {
+    // 清空未读计数
+    wx.setStorageSync('myUnreadActivity', 0);
+    this.setData({ unreadActivity: 0 });
+
+    wx.navigateTo({
+      url: '/pages/community/user/index?filter=myActivity',
+      fail: () => {
+        wx.showToast({ title: '页面跳转失败', icon: 'none' });
+      }
+    });
+  },
+
+  // ─── 联系我们 ─────────────────────────────────────────────
+
+  /** 显示联系我们弹窗 */
+  showContactModal() {
+    this.setData({ showContactModal: true });
+  },
+
+  /** 关闭联系我们弹窗 */
+  hideContactModal() {
+    this.setData({ showContactModal: false });
+  },
+
+  /** 阻止弹窗内容区点击事件冒泡（防止点内部触发关闭） */
+  stopProp() {
+    // 空函数，用于 catchtap 阻止冒泡
+  },
+
+  /** 复制微信号到剪贴板 */
+  copyWechatId() {
+    const wechatId = this.data.contactWechatId;
+    wx.setClipboardData({
+      data: wechatId,
+      success: () => {
+        wx.showToast({
+          title: '微信号已复制',
+          icon: 'success',
+          duration: 1500
+        });
       },
       fail: () => {
-        // 模拟登录兜底
-        const mockUser = { nickName: '平江用户', avatarUrl: '' }
-        wx.setStorageSync('userInfo', mockUser)
-        this.setData({ userInfo: mockUser, hasLogin: true })
+        wx.showToast({
+          title: '复制失败，请手动记录',
+          icon: 'none',
+          duration: 1500
+        });
       }
-    })
+    });
   },
 
-  // ─── 展开/收起实名认证面板 ──────────────────────────────────────
-  onToggleRealNamePanel() {
-    if (this.data.realNameInfo && this.data.realNameInfo.verified) {
-      wx.showToast({ title: '您已完成实名认证', icon: 'none' })
-      return
-    }
-    this.setData({
-      showRealNamePanel: !this.data.showRealNamePanel,
-      showManualForm: false
-    })
-  },
+  // ─── 退出登录 ─────────────────────────────────────────────
 
-  // ─── 点击「微信一键实名」─────────────────────────────────────────
-  onWechatAuth() {
-    this.setData({ showAuthDialog: true, authDialogStep: 0 })
-  },
-
-  // ─── 弹窗：确认授权 ──────────────────────────────────────────────
-  onConfirmAuth() {
-    this.setData({ authDialogStep: 1 })
-    // 模拟人脸识别耗时
-    setTimeout(() => {
-      this.setData({ authDialogStep: 2 })
-    }, 1800)
-  },
-
-  // ─── 弹窗：取消 ─────────────────────────────────────────────────
-  onCancelAuth() {
-    this.setData({ showAuthDialog: false, authDialogStep: 0 })
-  },
-
-  // ─── 弹窗：认证成功后关闭 ────────────────────────────────────────
-  onAuthSuccess() {
-    const info = { verified: true, name: '微信用户', type: 'wechat' }
-    wx.setStorageSync('userRealNameInfo', JSON.stringify(info))
-    // 同时标记微信已实名
-    wx.setStorageSync('wechatSelfVerified', true)
-    this.setData({
-      realNameInfo: info,
-      showAuthDialog: false,
-      authDialogStep: 0,
-      showRealNamePanel: false,
-      wechatVerified: true
-    })
-    wx.showToast({ title: '实名认证成功 🎉', icon: 'none' })
-  },
-
-  // ─── 切换手动实名表单 ────────────────────────────────────────────
-  onShowManualForm() {
-    this.setData({ showManualForm: true })
-  },
-
-  // ─── 手动表单输入 ────────────────────────────────────────────────
-  onInputName(e) {
-    this.setData({ 'manualForm.name': e.detail.value })
-  },
-  onInputIdCard(e) {
-    this.setData({ 'manualForm.idCard': e.detail.value })
-  },
-  onInputPhone(e) {
-    this.setData({ 'manualForm.phone': e.detail.value })
-  },
-
-  // ─── 提交手动实名 ────────────────────────────────────────────────
-  onSubmitManual() {
-    const { name, idCard, phone } = this.data.manualForm
-
-    if (!name || name.trim().length < 2) {
-      wx.showToast({ title: '姓名至少2个字', icon: 'none' }); return
-    }
-    if (!idCard || idCard.trim().length !== 18) {
-      wx.showToast({ title: '请输入18位身份证号', icon: 'none' }); return
-    }
-    if (!phone || phone.trim().length !== 11) {
-      wx.showToast({ title: '请输入11位手机号', icon: 'none' }); return
-    }
-
-    wx.showModal({
-      title: '确认提交',
-      content: `姓名：${name}\n身份证：${idCard.slice(0, 3)}***${idCard.slice(-4)}\n手机：${phone.slice(0, 3)}****${phone.slice(-4)}`,
-      confirmText: '确认',
-      success: (res) => {
-        if (res.confirm) {
-          this._saveManualVerified(name)
-        }
-      }
-    })
-  },
-
-  _saveManualVerified(name) {
-    // 脱敏处理：余** 格式
-    const desensName = name[0] + '**'
-    const info = { verified: true, name: desensName, type: 'manual' }
-    wx.setStorageSync('userRealNameInfo', JSON.stringify(info))
-    this.setData({
-      realNameInfo: info,
-      showRealNamePanel: false,
-      showManualForm: false,
-      manualForm: { name: '', idCard: '', phone: '' }
-    })
-    wx.showToast({ title: '实名认证成功 🎉', icon: 'none' })
-  },
-
-  // ─── 菜单点击路由 ────────────────────────────────────────────────
-  onMenuTap(e) {
-    const id = e.currentTarget.dataset.id
-    switch (id) {
-      case 'realname':
-        this.onToggleRealNamePanel()
-        break
-      case 'myJobs':
-        wx.navigateTo({ url: '/pages/services/convenience/job/job?tab=mine' })
-        break
-      case 'myResume':
-        wx.navigateTo({ url: '/pages/services/convenience/job/job?tab=resume' })
-        break
-      case 'collect':
-        wx.showToast({ title: '功能开发中', icon: 'none' })
-        break
-      case 'setting':
-        wx.showToast({ title: '功能开发中', icon: 'none' })
-        break
-    }
-  },
-
-  // ─── 退出登录 ────────────────────────────────────────────────────
-  onLogout() {
+  /** 退出登录：清空用户相关缓存，回到首页 */
+  handleLogout() {
     wx.showModal({
       title: '提示',
-      content: '确认退出登录？',
+      content: '确认退出登录吗？',
+      confirmText: '退出',
+      cancelText: '取消',
       success: (res) => {
         if (res.confirm) {
-          wx.removeStorageSync('userInfo')
-          this.setData({ userInfo: null, hasLogin: false })
-          wx.showToast({ title: '已退出', icon: 'none' })
+          // 清除登录相关缓存（保留积分等业务数据）
+          wx.removeStorageSync('userInfo');
+          wx.removeStorageSync('userAuthStatus');
+
+          this.setData({
+            userInfo: { nickName: '微信用户', avatarUrl: '/images/avatar.png' },
+            isAuthed: false
+          });
+
+          wx.showToast({
+            title: '已退出登录',
+            icon: 'success',
+            duration: 1200
+          });
+
+          // 延迟跳回首页
+          setTimeout(() => {
+            wx.switchTab({ url: '/pages/home/home' });
+          }, 1300);
         }
       }
-    })
+    });
   }
-})
+
+});

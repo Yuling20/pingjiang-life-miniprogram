@@ -1,180 +1,196 @@
-<!-- pages/mine/mine.wxml -->
+<!--
+  文件路径：miniprogram/pages/mine/mine.wxml
+  功能：个人中心页面
+  版本：d295002
+  规则：
+  - 移除全屏霸屏实名弹窗，改为列表入口
+  - 新增积分中心入口
+  - 整合便民服务 / 贴吧社区 / 通用功能分区
+  - 暖橙+米黄配色，适配中老年用户
+-->
+
 <view class="page-wrap">
 
-<!-- ══════════════ 顶部用户卡片 ══════════════ -->
-<view class="user-card">
+<!-- ===== 顶部头像昵称区 ===== -->
+<view class="profile-header">
   <view class="avatar-wrap">
-    <text class="avatar-emoji">🧑</text>
+    <image
+      class="avatar-img"
+      src="{{userInfo.avatarUrl || '/images/avatar.png'}}"
+      mode="aspectFill"
+    />
   </view>
   <view class="user-info">
-    <block wx:if="{{hasLogin}}">
-      <text class="nickname">{{userInfo.nickName || '平江用户'}}</text>
-      <view class="realname-badge {{realNameInfo && realNameInfo.verified ? 'verified' : 'unverified'}}">
-        <text>{{realNameInfo && realNameInfo.verified ? '✅ 已实名' : '⚠️ 未实名'}}</text>
-      </view>
-    </block>
-    <block wx:else>
-      <text class="nickname unlogin">点击登录</text>
-      <text class="sub-tip">登录后享受更多服务</text>
-    </block>
+    <text class="user-name">{{userInfo.nickName || '微信用户'}}</text>
+    <!-- 实名状态标签 -->
+    <view class="auth-badge {{isAuthed ? 'authed' : 'unauthed'}}">
+      <text class="auth-badge-text">{{isAuthed ? '✔ 已实名' : '未实名'}}</text>
+    </view>
   </view>
-  <button
-    wx:if="{{!hasLogin}}"
-    class="btn-login"
-    bindtap="onLogin"
-  >登录</button>
-  <button
-    wx:if="{{hasLogin}}"
-    class="btn-logout"
-    bindtap="onLogout"
-  >退出</button>
 </view>
 
-<!-- ══════════════ 菜单列表 ══════════════ -->
-<view class="menu-card">
-  <view
-    class="menu-item"
-    wx:for="{{menuList}}"
-    wx:key="id"
-    data-id="{{item.id}}"
-    bindtap="onMenuTap"
-  >
+<!-- ===== 便民服务模块 ===== -->
+<view class="section-block">
+  <view class="section-title">
+    <text class="section-title-icon">🏠</text>
+    <text class="section-title-text">便民服务</text>
+  </view>
+
+  <!-- 我发布的招聘 -->
+  <view class="menu-item" bindtap="goMyJobs">
     <view class="menu-left">
-      <text class="menu-icon">{{item.icon}}</text>
-      <text class="menu-label">{{item.label}}</text>
-      <!-- 实名状态 badge -->
-      <view
-        wx:if="{{item.id === 'realname'}}"
-        class="inline-badge {{realNameInfo && realNameInfo.verified ? 'green' : 'red'}}"
-      >
-        <text>{{realNameInfo && realNameInfo.verified ? realNameInfo.name : '未认证'}}</text>
-      </view>
+      <text class="menu-icon">💼</text>
+      <text class="menu-label">我发布的招聘</text>
     </view>
-    <text class="menu-arrow">›</text>
+    <view class="menu-right">
+      <text class="menu-count" wx:if="{{myJobCount > 0}}">{{myJobCount}}</text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+
+  <view class="divider"></view>
+
+  <!-- 我发布的房源 -->
+  <view class="menu-item" bindtap="goMyRentals">
+    <view class="menu-left">
+      <text class="menu-icon">🏡</text>
+      <text class="menu-label">我发布的房源</text>
+    </view>
+    <view class="menu-right">
+      <text class="menu-count" wx:if="{{myRentalCount > 0}}">{{myRentalCount}}</text>
+      <text class="menu-arrow">›</text>
+    </view>
   </view>
 </view>
 
-<!-- ══════════════ 实名认证面板 ══════════════ -->
-<view class="realname-panel {{showRealNamePanel ? 'panel-open' : ''}}">
-  <view wx:if="{{showRealNamePanel}}">
-    <view class="panel-title">
-      <text class="panel-title-text">🪪 实名认证</text>
-      <text class="panel-close" bindtap="onToggleRealNamePanel">✕</text>
+<!-- ===== 贴吧社区模块 ===== -->
+<view class="section-block">
+  <view class="section-title">
+    <text class="section-title-icon">💬</text>
+    <text class="section-title-text">贴吧社区</text>
+  </view>
+
+  <!-- 我发布的帖子 -->
+  <view class="menu-item" bindtap="goMyPosts">
+    <view class="menu-left">
+      <text class="menu-icon">📝</text>
+      <text class="menu-label">我发布的帖子</text>
     </view>
-    <view class="risk-tip">
-      <text>⚠️ 实名信息仅用于平台安全验证，不会对外泄露。</text>
+    <view class="menu-right">
+      <text class="menu-count" wx:if="{{myPostCount > 0}}">{{myPostCount}}</text>
+      <text class="menu-arrow">›</text>
     </view>
+  </view>
 
-    <!-- 两种认证方式 -->
-    <view class="auth-options">
+  <view class="divider"></view>
 
-      <!-- 微信一键实名 -->
-      <view class="auth-option-card" bindtap="onWechatAuth">
-        <view class="auth-option-header">
-          <text class="auth-icon">🔐</text>
-          <view>
-            <text class="auth-title">微信一键实名</text>
-            <text class="auth-desc">{{wechatVerified ? '微信已实名，可快速授权' : '微信未完成实名，请手动认证'}}</text>
-          </view>
-        </view>
-        <view class="auth-btn {{wechatVerified ? 'btn-primary' : 'btn-disabled'}}">
-          <text>{{wechatVerified ? '微信一键实名' : '当前不可用'}}</text>
-        </view>
-      </view>
-
-      <!-- 手动实名 -->
-      <view class="auth-option-card" bindtap="onShowManualForm">
-        <view class="auth-option-header">
-          <text class="auth-icon">📝</text>
-          <view>
-            <text class="auth-title">手动实名认证</text>
-            <text class="auth-desc">填写姓名、身份证号、手机号完成认证</text>
-          </view>
-        </view>
-        <view class="auth-btn btn-secondary">
-          <text>手动实名认证</text>
-        </view>
-      </view>
-
+  <!-- 我的帖子动态 -->
+  <view class="menu-item" bindtap="goMyActivity">
+    <view class="menu-left">
+      <text class="menu-icon">🔔</text>
+      <text class="menu-label">我的帖子动态</text>
+      <text class="menu-sub">评论 / 点赞 / 互动</text>
     </view>
-
-    <!-- 手动表单 -->
-    <view class="manual-form {{showManualForm ? '' : 'hidden'}}">
-      <view class="form-title">填写认证信息</view>
-      <view class="form-item">
-        <text class="form-label">姓名 *</text>
-        <input
-          class="form-input"
-          placeholder="请输入真实姓名"
-          value="{{manualForm.name}}"
-          bindinput="onInputName"
-        />
+    <view class="menu-right">
+      <!-- 未读红点 -->
+      <view class="red-dot" wx:if="{{unreadActivity > 0}}">
+        <text class="red-dot-text">{{unreadActivity > 99 ? '99+' : unreadActivity}}</text>
       </view>
-      <view class="form-item">
-        <text class="form-label">身份证号 *</text>
-        <input
-          class="form-input"
-          placeholder="请输入18位身份证号"
-          value="{{manualForm.idCard}}"
-          bindinput="onInputIdCard"
-          maxlength="18"
-        />
-      </view>
-      <view class="form-item">
-        <text class="form-label">手机号 *</text>
-        <input
-          class="form-input"
-          placeholder="请输入11位手机号"
-          value="{{manualForm.phone}}"
-          bindinput="onInputPhone"
-          type="number"
-          maxlength="11"
-        />
-      </view>
-      <button class="btn-submit" bindtap="onSubmitManual">提交认证</button>
+      <text class="menu-arrow">›</text>
     </view>
-
   </view>
 </view>
 
-<!-- ══════════════ 微信实名弹窗 ══════════════ -->
-<view class="mask {{showAuthDialog ? 'mask-show' : ''}}" bindtap="onCancelAuth">
-  <view class="dialog" catchtap="{{true}}">
+<!-- ===== 通用功能模块 ===== -->
+<view class="section-block">
+  <view class="section-title">
+    <text class="section-title-icon">⚙️</text>
+    <text class="section-title-text">账户功能</text>
+  </view>
 
-    <!-- step 0: 确认授权 -->
-    <block wx:if="{{authDialogStep === 0}}">
-      <view class="dialog-icon">🔐</view>
-      <view class="dialog-title">微信一键实名</view>
-      <view class="dialog-desc">即将调用微信授权 + 人脸识别完成实名认证，信息仅用于平台安全验证。</view>
-      <view class="dialog-btns">
-        <button class="dialog-btn cancel" bindtap="onCancelAuth">取消</button>
-        <button class="dialog-btn confirm" bindtap="onConfirmAuth">确认授权</button>
-      </view>
-    </block>
+  <!-- 实名认证入口（替代霸屏弹窗） -->
+  <view class="menu-item" bindtap="goAuth">
+    <view class="menu-left">
+      <text class="menu-icon">🪪</text>
+      <text class="menu-label">实名认证</text>
+    </view>
+    <view class="menu-right">
+      <!-- 已实名：绿色标签；未实名：橙色提示 -->
+      <text class="auth-status-tag {{isAuthed ? 'tag-authed' : 'tag-unauthed'}}">
+        {{isAuthed ? '已认证' : '去认证'}}
+      </text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
 
-    <!-- step 1: 识别中 -->
-    <block wx:if="{{authDialogStep === 1}}">
-      <view class="dialog-icon anim-pulse">🤳</view>
-      <view class="dialog-title">人脸识别中...</view>
-      <view class="dialog-desc">请保持光线充足，正对摄像头</view>
-    </block>
+  <view class="divider"></view>
 
-    <!-- step 2: 成功 -->
-    <block wx:if="{{authDialogStep === 2}}">
-      <view class="dialog-icon">✅</view>
-      <view class="dialog-title">实名认证成功！</view>
-      <view class="dialog-desc">您的实名信息已通过验证，可正常使用平台全部功能。</view>
-      <view class="dialog-btns">
-        <button class="dialog-btn confirm full" bindtap="onAuthSuccess">完成</button>
-      </view>
-    </block>
+  <!-- 积分中心入口 -->
+  <view class="menu-item" bindtap="goPointsCenter">
+    <view class="menu-left">
+      <text class="menu-icon">⭐</text>
+      <text class="menu-label">积分中心</text>
+    </view>
+    <view class="menu-right">
+      <text class="points-value">{{totalPoints}} 分</text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
 
+  <!-- 【新增】联系我们入口（紧跟积分中心下方） -->
+  <view class="divider"></view>
+
+  <!-- 联系我们 -->
+  <view class="menu-item" bindtap="showContactModal">
+    <view class="menu-left">
+      <text class="menu-icon">📞</text>
+      <text class="menu-label">联系我们</text>
+    </view>
+    <view class="menu-right">
+      <text class="menu-arrow">›</text>
+    </view>
   </view>
 </view>
 
-<!-- ══════════════ 底部版权 ══════════════ -->
-<view class="footer">
-  <text>平江汇生活 · 便民服务平台</text>
+<!-- ===== 退出登录按钮 ===== -->
+<view class="logout-wrap">
+  <button class="logout-btn" bindtap="handleLogout">退出登录</button>
+</view>
+
+<!-- 【新增】联系我们 微信二维码弹窗（在 page-wrap 闭合标签前） -->
+<!-- ===== 联系我们 微信二维码弹窗 ===== -->
+<view class="modal-mask" wx:if="{{showContactModal}}" bindtap="hideContactModal">
+  <view class="modal-box" catchtap="stopProp">
+
+    <!-- 弹窗标题 -->
+    <view class="modal-header">
+      <text class="modal-title">联系我们</text>
+      <text class="modal-close" bindtap="hideContactModal">✕</text>
+    </view>
+
+    <!-- 二维码图片 -->
+    <view class="qrcode-wrap">
+      <image
+        class="qrcode-img"
+        src="/images/contact_qrcode.png"
+        mode="aspectFit"
+      />
+      <text class="qrcode-tip">长按图片识别二维码添加微信</text>
+    </view>
+
+    <!-- 微信号展示 + 复制 -->
+    <view class="wechat-id-wrap">
+      <text class="wechat-id-label">微信号：</text>
+      <text class="wechat-id-value">{{contactWechatId}}</text>
+    </view>
+
+    <!-- 复制微信号按钮 -->
+    <button class="copy-btn" bindtap="copyWechatId">复制微信号</button>
+
+    <!-- 合规说明 -->
+    <text class="modal-notice">请在微信中搜索以上微信号或扫码添加</text>
+
+  </view>
 </view>
 
 </view>
