@@ -65,3 +65,94 @@ page { background: #f5f5f5; }
   background: #f90; color: #fff; font-size: 30rpx; font-weight: 600;
   text-align: center; padding: 26rpx 0; border-radius: 50rpx;
 }
+.promo-tip {
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  color: #fff;
+  text-align: center;
+  padding: 12rpx 0;
+  font-size: 28rpx;
+  margin-bottom: 20rpx;
+}
+
+.package-section {
+  margin: 20rpx 0;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  margin-bottom: 20rpx;
+}
+
+.package-card {
+  border: 2rpx solid #E0E0E0;
+  border-radius: 12rpx;
+  padding: 24rpx;
+  margin-bottom: 20rpx;
+  background: #FFF;
+}
+
+.package-card.active {
+  border-color: #D4820A;
+  background: #FFF8EE;
+}
+
+.package-header {
+  font-size: 30rpx;
+  font-weight: bold;
+  margin-bottom: 12rpx;
+}
+
+.package-info {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex-wrap: wrap;
+}
+
+.duration {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.original-price {
+  font-size: 24rpx;
+  color: #999;
+  text-decoration: line-through;
+}
+
+.discount-price {
+  font-size: 32rpx;
+  color: #D4820A;
+  font-weight: bold;
+}
+
+.points-cost {
+  font-size: 26rpx;
+  color: #666;
+}
+
+.payment-section {
+  margin: 30rpx 0;
+}
+
+.payment-option {
+  display: block;
+  margin-bottom: 20rpx;
+  font-size: 28rpx;
+}
+
+.coupon-checkbox {
+  display: block;
+  margin-top: 30rpx;
+  font-size: 28rpx;
+  color: #D4820A;
+}
+
+.payment-summary {
+  text-align: center;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #D4820A;
+  margin: 30rpx 0;
+}

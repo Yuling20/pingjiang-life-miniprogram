@@ -188,7 +188,7 @@
           <text class="desc-label">房源描述</text>
           <text class="desc-tip" bindtap="onViewAgreement">填写规范›</text>
         </view>
-        <view class="desc-tip-bar">遵守房源描述规范，杜绝房源下架风险</view>
+        <view class="desc-tip-bar">遵守房源描述规范,杜绝房源下架风险</view>
         <textarea
           class="desc-textarea"
           placeholder="请描述房源情况、周边配套等信息..."
@@ -214,6 +214,69 @@
       <text class="vip-desc">开通后，用户将通过虚拟号码联系您，既能避免真实号码被骚扰，又能让有真实需求的租客能及时联系到您。</text>
     </view>
 
+    <!-- ====== 新增：套餐选择 ====== -->
+    <view class="promo-tip">🎁 限时优惠券抵扣，免费发布</view>
+
+    <view class="form-section package-section-wrap">
+      <view class="section-title-bar">
+        <text class="section-title">选择发布套餐</text>
+      </view>
+
+      <!-- 基础套餐 -->
+      <view 
+        class="package-card {{selectedPackage === 'basic' ? 'package-active' : ''}}" 
+        bindtap="selectPackage" 
+        data-type="basic"
+      >
+        <view class="package-header">📢 基础宣传</view>
+        <view class="package-info">
+          <text class="duration">7天展示</text>
+          <text class="original-price">原价 ¥10</text>
+          <text class="discount-price">6折 ¥6</text>
+          <text class="points-cost">或 60积分</text>
+        </view>
+      </view>
+
+      <!-- 置顶套餐 -->
+      <view 
+        class="package-card {{selectedPackage === 'top' ? 'package-active' : ''}}" 
+        bindtap="selectPackage" 
+        data-type="top"
+      >
+        <view class="package-header">🔥 置顶推荐</view>
+        <view class="package-info">
+          <text class="duration">7天置顶</text>
+          <text class="original-price">原价 ¥30</text>
+          <text class="discount-price">6折 ¥18</text>
+          <text class="points-cost">或 180积分</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- ====== 新增：支付方式 ====== -->
+    <view class="form-section payment-section-wrap">
+      <radio-group bindchange="onPaymentChange">
+        <label class="payment-option">
+          <radio value="cash" checked="{{paymentMethod === 'cash'}}" color="#D4820A"/>
+          <text>现金支付</text>
+        </label>
+        <label class="payment-option">
+          <radio value="points" checked="{{paymentMethod === 'points'}}" color="#D4820A"/>
+          <text>积分兑换</text>
+        </label>
+      </radio-group>
+
+      <label class="coupon-checkbox" bindtap="onCouponToggle">
+        <checkbox checked="{{useCoupon}}" color="#D4820A"/>
+        <text>使用优惠券（限时免费）</text>
+      </label>
+
+      <view class="payment-summary">
+        <text wx:if="{{paymentMethod === 'cash'}}">应付金额：¥{{finalPrice}}</text>
+        <text wx:else>消耗积分：{{finalPoints}}</text>
+      </view>
+    </view>
+
     <!-- 协议与发布 -->
     <view class="publish-footer">
       <view class="agreement-row" bindtap="onToggleAgreed">
@@ -232,7 +295,7 @@
         bindtap="onSubmitPublish"
       >
         <text wx:if="{{isPublishing}}">⏳ 发布中...</text>
-        <text wx:else>立即免费发布</text>
+        <text wx:else>确认发布</text>
       </button>
     </view>
 

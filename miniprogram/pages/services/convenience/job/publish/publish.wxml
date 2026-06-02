@@ -20,61 +20,63 @@
   </view>
 </view>
 
-<!-- 发布套餐选择 -->
-<view class="section">
-  <view class="section__title">选择发布套餐（必选）</view>
-  <view class="pkg-grid">
-    <view class="pkg-card {{selectedPublishPkg === item.id ? 'pkg-card--active' : ''}}"
-      wx:for="{{publishPackages}}" wx:key="id"
-      bindtap="onSelectPublishPkg" data-id="{{item.id}}">
-      <view class="pkg-card__tag" wx:if="{{item.tag}}">{{item.tag}}</view>
-      <view class="pkg-card__name">{{item.name}}</view>
-      <view class="pkg-card__cash">{{item.cashPriceStr}}</view>
-      <view class="pkg-card__points">或 {{item.pointsPriceStr}}</view>
+<!-- ===== 删除原有旧套餐+旧支付+旧优惠券，替换为新套餐结构 ===== -->
+<!-- 限时优惠提示 -->
+<view class="promo-tip">限时优惠券抵扣，免费发布</view>
+
+<!-- 套餐选择 -->
+<view class="package-section">
+  <view class="section-title">选择发布套餐</view>
+  
+  <!-- 基础套餐 -->
+  <view class="package-card {{selectedPackage === 'basic' ? 'active' : ''}}" bindtap="selectPackage" data-type="basic">
+    <view class="package-header">基础宣传</view>
+    <view class="package-info">
+      <text class="duration">7天展示</text>
+      <text class="original-price">¥10</text>
+      <text class="discount-price">¥6</text>
+      <text class="points-cost">或 60积分</text>
     </view>
   </view>
-</view>
 
-<!-- 置顶套餐（可选） -->
-<view class="section">
-  <view class="section__title">置顶套餐（可选）</view>
-  <view class="pkg-grid">
-    <view class="pkg-card {{selectedTopPkg === item.id ? 'pkg-card--active' : ''}}"
-      wx:for="{{topPackages}}" wx:key="id"
-      bindtap="onSelectTopPkg" data-id="{{item.id}}">
-      <view class="pkg-card__tag" wx:if="{{item.tag}}">{{item.tag}}</view>
-      <view class="pkg-card__name">{{item.name}}</view>
-      <view class="pkg-card__cash">{{item.cashPriceStr}}</view>
-      <view class="pkg-card__points">或 {{item.pointsPriceStr}}</view>
+  <!-- 置顶套餐 -->
+  <view class="package-card {{selectedPackage === 'top' ? 'active' : ''}}" bindtap="selectPackage" data-type="top">
+    <view class="package-header">置顶推荐</view>
+    <view class="package-info">
+      <text class="duration">7天置顶</text>
+      <text class="original-price">¥30</text>
+      <text class="discount-price">¥18</text>
+      <text class="points-cost">或 180积分</text>
     </view>
   </view>
 </view>
 
 <!-- 支付方式 -->
-<view class="section">
-  <view class="section__title">支付方式</view>
-  <view class="pay-type-row">
-    <view class="pay-type-btn {{payType === 'cash' ? 'pay-type-btn--active' : ''}}"
-      bindtap="onSwitchPayType" data-type="cash">现金支付</view>
-    <view class="pay-type-btn {{payType === 'points' ? 'pay-type-btn--active' : ''}}"
-      bindtap="onSwitchPayType" data-type="points">
-      积分支付（当前{{totalPoints}}积分）
-    </view>
-  </view>
+<view class="payment-section">
+  <radio-group bindchange="onPaymentChange">
+    <label class="payment-option">
+      <radio value="cash" checked="{{paymentMethod === 'cash'}}"/>现金支付
+    </label>
+    <label class="payment-option">
+      <radio value="points" checked="{{paymentMethod === 'points'}}"/>积分兑换
+    </label>
+  </radio-group>
+
+  <label class="coupon-checkbox">
+    <checkbox checked="{{useCoupon}}" bindchange="onCouponChange"/>使用优惠券（限时免费）
+  </label>
 </view>
 
-<!-- 优惠券（预留入口） -->
-<view class="section coupon-row" wx:if="{{couponEnabled}}" bindtap="onSelectCoupon">
-  <text class="coupon-row__label">🎟 使用优惠券</text>
-  <text class="coupon-row__hint">
-    {{selectedCoupon ? selectedCoupon.name : '点击选择优惠券'}} ›
-  </text>
+<!-- 应付金额 -->
+<view class="payment-summary">
+  <text wx:if="{{paymentMethod === 'cash'}}">应付：¥{{finalPrice}}</text>
+  <text wx:else>消耗积分：{{finalPoints}}</text>
 </view>
 
-<!-- 底部提交 -->
+<!-- 底部提交：bindtap由onSubmit改成submitJob -->
 <view class="footer">
   <view class="footer__tip">招聘发布须消耗积分/现金，不赠送积分</view>
-  <view class="submit-btn" bindtap="onSubmit">确认发布并支付</view>
+  <view class="submit-btn" bindtap="submitJob">确认发布并支付</view>
 </view>
 
 </view>
