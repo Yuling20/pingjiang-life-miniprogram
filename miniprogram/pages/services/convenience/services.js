@@ -1,66 +1,44 @@
 // pages/services/convenience/services.js
 Page({
 
-  /**
-   * 页面的初始数据
-   */
-  data: {
+  data: {},
 
+  onLoad: function () {},
+
+  goToJobs: function () {
+    wx.navigateTo({
+      url: '/pages/services/convenience/job/job'
+    });
   },
 
-  /**
-   * 生命周期函数--监听页面加载
-   */
-  onLoad(options) {
-
+  goToRent: function () {
+    wx.navigateTo({
+      url: '/pages/services/convenience/rental/rental'
+    });
   },
 
-  /**
-   * 生命周期函数--监听页面初次渲染完成
-   */
-  onReady() {
-
+  goToHomeService: function () {
+    wx.navigateTo({
+      url: '/pages/services/convenience/homeservice/homeservice'
+    });
   },
 
-  /**
-   * 生命周期函数--监听页面显示
-   */
-  onShow() {
-
+  goToNotice: function () {
+    wx.navigateTo({
+      url: '/pages/services/convenience/water/water'
+    });
   },
 
-  /**
-   * 生命周期函数--监听页面隐藏
-   */
-  onHide() {
-
+  goToGuide: function () {
+    wx.navigateTo({
+      url: '/pages/services/convenience/guide/guide'
+    });
   },
 
-  /**
-   * 生命周期函数--监听页面卸载
-   */
-  onUnload() {
-
-  },
-
-  /**
-   * 页面相关事件处理函数--监听用户下拉动作
-   */
-  onPullDownRefresh() {
-
-  },
-
-  /**
-   * 页面上拉触底事件的处理函数
-   */
-  onReachBottom() {
-
-  },
-
-  /**
-   * 用户点击右上角分享
-   */
-  onShareAppMessage() {
-
+  goToElder: function () {
+    wx.navigateTo({
+      url: '/pages/services/convenience/elder/elder'
+    });
   }
-})
+
+});

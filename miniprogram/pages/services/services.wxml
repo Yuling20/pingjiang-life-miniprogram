@@ -1,4 +1,4 @@
-<!-- pages/services/services.wxml -->
+<!-- pages/services/convenience/services.wxml -->
 <view class="page-container">
 
 <!-- 顶部标题栏 -->
@@ -7,7 +7,7 @@
   <text class="page-subtitle">平江本地生活服务平台</text>
 </view>
 
-<!-- 6个功能入口 - 每行2个，大图标大字体 -->
+<!-- 6个功能入口 -->
 <view class="service-grid">
 
   <!-- 入口1：找工作 -->
@@ -55,16 +55,13 @@
     <text class="service-desc">政务服务入口</text>
   </view>
 
-  <!-- 入口6：更多服务 -->
-  <view class="service-item" bindtap="goToHospital">
-    <view class="service-icon-wrap gray">
-      <text class="service-icon">🔜</text>
+  <!-- 入口6：孝亲守护 -->
+  <view class="service-item" bindtap="goToElder">
+    <view class="service-icon-wrap gold">
+      <text class="service-icon">❤️</text>
     </view>
-    <text class="service-name">更多服务</text>
-    <text class="service-desc">敬请期待</text>
-    <view class="coming-soon-tag">
-      <text>即将上线</text>
-    </view>
+    <text class="service-name">孝亲守护</text>
+    <text class="service-desc">关爱老人守护</text>
   </view>
 
 </view>

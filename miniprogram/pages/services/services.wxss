@@ -69,6 +69,7 @@
 .red          { background-color: #ffe6e6; }
 .green        { background-color: #e6f7ee; }
 .gray         { background-color: #f0f0f0; }
+.gold   { background-color: #fff8e1; }
 
 /* 入口名称 - 更大 */
 .service-name {
