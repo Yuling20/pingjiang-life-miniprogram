@@ -1,4 +1,7 @@
 // pages/home/home.js
+// ① 文件顶部引入积分配置
+const { POINTS_CONFIG, calcActualPoints, isDailyLimitReached } = require('../../config/points');
+
 Page({
   data: {
     weatherInfo: {
@@ -54,12 +57,19 @@ Page({
       { id: 2, tag: '❤️', title: '杨园小区邻居随手拍', desc: '❤️ 28人点赞', color: '#E74C3C' },
       { id: 3, tag: '▶️', title: '住院必备清单分享',   desc: '▶️ 156次播放', color: '#8E44AD' },
       { id: 4, tag: '💼', title: '本地招聘·护工急招', desc: '💼 今日发布',  color: '#27AE60' }
-    ]
+    ],
+    // ② 追加签到弹窗控制字段
+    showSignModal: false,   // 签到弹窗显示控制
   },
 
   onLoad() {
     console.log('首页加载完成');
     this.loadWeather();
+  },
+
+  // ③ 新增onShow生命周期，调用弹窗检测
+  onShow() {
+    this._checkSignModal();
   },
 
   loadWeather() {
@@ -156,5 +166,55 @@ Page({
 
   goToAI() {
     wx.navigateTo({ url: '/pages/ai/ai' });
+  },
+
+  // ④ 追加签到弹窗全套方法
+  /**
+   * 检测是否需要弹出签到弹窗
+   * 规则：今日未签到 且 今日未选择"不再提醒"
+   */
+  _checkSignModal() {
+    const today = this._getTodayStr();
+    const noTipDate = wx.getStorageSync('signModalNoTipDate') || '';
+    // 今日已选"不再提醒"→不弹
+    if (noTipDate === today) return;
+
+    const signRecord = wx.getStorageSync('signRecord') || {};
+    // 今日已签到→不弹
+    if (signRecord.lastSignDate === today) return;
+
+    // 延迟5秒弹出
+    setTimeout(() => {
+      this.setData({ showSignModal: true });
+    }, 5000);
+  },
+
+  _getTodayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  },
+
+  // 弹窗按钮①：立即签到
+  onModalGoSign() {
+    this.setData({ showSignModal: false });
+    wx.navigateTo({ url: '/pages/mine/sign/index' });
+  },
+
+  // 弹窗按钮②：今日不再提醒
+  onModalNoTip() {
+    const today = this._getTodayStr();
+    wx.setStorageSync('signModalNoTipDate', today);
+    this.setData({ showSignModal: false });
+  },
+
+  // 关闭弹窗蒙层（点击遮罩不关闭，防止误触）
+  onModalMaskTap() {
+    // 故意留空，需主动选择按钮
+  },
+
+  // 积分中心跳转方法【新增】
+  onGoIntegral() {
+    this.setData({ showSignModal: false });
+    wx.navigateTo({ url: '/pages/mine/points/index' });
   }
 });

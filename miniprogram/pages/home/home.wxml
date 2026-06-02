@@ -9,9 +9,12 @@
         <text class="search-icon">🔍</text>
         <text class="search-placeholder">搜索服务/信息/商品</text>
       </view>
+      <!-- 【修改：删除原有两个top-icon，替换为签到标签】 -->
       <view class="top-icons">
-        <text class="top-icon">🔔</text>
-        <text class="top-icon">👤</text>
+        <view class="search-sign-tag" bindtap="onModalGoSign">
+          <text class="search-sign-tag__icon">📅</text>
+          <text class="search-sign-tag__text">签到</text>
+        </view>
       </view>
     </view>
   </view>
@@ -155,5 +158,43 @@
   <view class="float-ai" bindtap="goToAI">
     <text class="float-ai-icon">🤖</text>
     <text class="float-ai-text">AI助手</text>
+  </view>
+
+  <!-- ====== 页面末尾追加签到弹窗整体代码 ====== -->
+  <!-- ===== 签到弹窗 ===== -->
+  <view class="sign-modal-mask" wx:if="{{showSignModal}}" bindtap="onModalMaskTap">
+    <view class="sign-modal" catchtap="stopPropagation">
+
+      <!-- 弹窗头部装饰 -->
+      <view class="sign-modal__header">
+        <view class="sign-modal__coin">🏆</view>
+        <view class="sign-modal__title">签到领积分</view>
+        <view class="sign-modal__subtitle">积分当钱用</view>
+      </view>
+
+      <!-- 固定文案 -->
+      <view class="sign-modal__desc">
+        每日签到即可获得积分，积分可用于发布招聘租房等付费服务
+      </view>
+      <view class="sign-modal__rule-link" bindtap="onGoIntegral">
+        具体规则查看积分中心 ›
+      </view>
+
+      <!-- 今日可得积分提示 -->
+      <view class="sign-modal__reward-tip">
+        今日签到可得 <text class="highlight">+5积分</text>
+      </view>
+
+      <!-- 按钮区 -->
+      <view class="sign-modal__btns">
+        <view class="sign-modal__btn sign-modal__btn--primary" bindtap="onModalGoSign">
+          立即签到
+        </view>
+        <view class="sign-modal__btn sign-modal__btn--ghost" bindtap="onModalNoTip">
+          今日不再提醒
+        </view>
+      </view>
+
+    </view>
   </view>
 </view>
