@@ -1,33 +1,126 @@
 <view class="container">
 
-<!-- 签到卡 -->
+<!-- ① 顶部积分概览 -->
+<view class="total-card">
+  <view class="total-card__label">我的积分</view>
+  <view class="total-card__amount">{{totalPoints}}</view>
+  <view class="total-card__sub">
+    今日已获 {{todayEarned}} / 上限 {{dailyLimit}} 积分
+  </view>
+  <view class="total-card__link" bindtap="onGoIntegral">
+    前往积分中心 ›
+  </view>
+</view>
+
+<!-- ② 签到状态卡 -->
 <view class="sign-card">
-  <view class="sign-card__title">每日签到</view>
-  <view class="sign-card__days">连续签到 <text class="highlight">{{consecutiveDays}}</text> 天</view>
-  <view class="sign-card__rule">
-    连续签到满{{signRule.bonusRule.consecutiveDays}}天，当日额外+{{signRule.bonusRule.bonusPoints}}积分
+
+  <!-- 状态标题 -->
+  <view class="sign-card__status-row">
+    <view class="sign-card__status-icon">
+      <text wx:if="{{signed}}">✅</text>
+      <text wx:else>📅</text>
+    </view>
+    <view class="sign-card__status-text">
+      <text wx:if="{{signed}}" class="text-success">今日已签到</text>
+      <text wx:else class="text-warning">今日未签到</text>
+    </view>
   </view>
 
-  <view class="sign-card__btn {{signed ? 'signed' : ''}}" bindtap="onSign">
-    <text wx:if="{{!signed}}">立即签到 +{{signRule.points}}积分</text>
+  <!-- 连续签到天数 -->
+  <view class="sign-card__consecutive">
+    已连续签到
+    <text class="sign-card__days-num">{{consecutiveDays}}</text>
+    天
+  </view>
+
+  <!-- 连续7天进度条 -->
+  <view class="progress-section">
+    <view class="progress-label">
+      连续签到进度（满7天当日额外+{{signRule.bonusRule.bonusPoints}}积分）
+    </view>
+    <view class="progress-bar-wrap">
+      <view
+        class="progress-bar-fill"
+        style="width: {{(progressDays / 7 * 100)}}%">
+      </view>
+    </view>
+    <view class="progress-dots">
+      <block wx:for="{{[1,2,3,4,5,6,7]}}" wx:key="*this">
+        <view class="progress-dot {{item <= progressDays ? 'progress-dot--done' : ''}} {{item === 7 ? 'progress-dot--bonus' : ''}}">
+          <text class="progress-dot__num">{{item}}</text>
+          <text class="progress-dot__bonus" wx:if="{{item === 7}}">+10</text>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 连续7天奖励提示 -->
+  <view class="bonus-tip">
+    🎁 连续签到满7天，当日额外获得 +{{signRule.bonusRule.bonusPoints}} 积分
+  </view>
+
+  <!-- 签到按钮 -->
+  <view
+    class="sign-btn {{signed ? 'sign-btn--disabled' : 'sign-btn--active'}}"
+    bindtap="onSign">
+    <text wx:if="{{!signed}}">立即签到  +{{signRule.points}}积分</text>
     <text wx:else>今日已签到 ✓</text>
   </view>
+
 </view>
 
-<!-- 积分总览 -->
-<view class="points-overview">
-  <view class="points-overview__item">
-    <view class="points-overview__val">{{totalPoints}}</view>
-    <view class="points-overview__label">总积分</view>
+<!-- ③ 积分获取方式简要说明 -->
+<view class="earn-tips">
+  <view class="earn-tips__title">每日可得积分方式</view>
+  <view class="earn-tips__item">
+    <text class="earn-tips__scene">每日签到</text>
+    <text class="earn-tips__reward">+5积分/天（连续7天额外+10）</text>
   </view>
-  <view class="points-overview__divider"></view>
-  <view class="points-overview__item">
-    <view class="points-overview__val">{{todayEarned}}/{{dailyLimit}}</view>
-    <view class="points-overview__label">今日已获/上限</view>
+  <view class="earn-tips__item">
+    <text class="earn-tips__scene">帖子被点赞/评论</text>
+    <text class="earn-tips__reward">+1~2积分（每日上限50）</text>
+  </view>
+  <view class="earn-tips__item">
+    <text class="earn-tips__scene">分享帖子</text>
+    <text class="earn-tips__reward">+30积分/次（每日3次）</text>
+  </view>
+  <view class="earn-tips__link" bindtap="onGoIntegral">
+    查看全部积分规则 ›
   </view>
 </view>
 
-<!-- Toast -->
-<view class="toast {{toast.show ? 'toast--show' : ''}}">{{toast.msg}}</view>
+<!-- ④ 签到成功弹窗 -->
+<view class="success-mask" wx:if="{{showSuccessModal}}">
+  <view class="success-modal">
+
+    <view class="success-modal__icon">🎉</view>
+    <view class="success-modal__title">签到成功！</view>
+
+    <!-- 基础积分 -->
+    <view class="success-modal__points">
+      +{{successPoints}} 积分
+    </view>
+
+    <!-- 连续天数 -->
+    <view class="success-modal__consecutive">
+      已连续签到 <text class="highlight">{{successConsecutive}}</text> 天
+    </view>
+
+    <!-- 连续7天奖励（有才显示） -->
+    <view class="success-modal__bonus" wx:if="{{successBonus > 0}}">
+      🎁 连续签到7天，额外获得 +{{successBonus}} 积分！
+    </view>
+
+    <!-- 距下次7天奖励提示 -->
+    <view class="success-modal__next-tip" wx:if="{{successBonus === 0}}">
+      再坚持 {{7 - (successConsecutive % 7)}} 天，获得额外+10积分
+    </view>
+
+    <view class="success-modal__btn" bindtap="onCloseSuccess">
+      知道了
+    </view>
+  </view>
+</view>
 
 </view>

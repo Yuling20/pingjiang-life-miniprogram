@@ -1,18 +1,29 @@
-/**
- * 每日签到页
- * 积分逻辑完全依赖 points.js 配置，不修改已有功能
- */
-const { POINTS_CONFIG, calcActualPoints, isDailyLimitReached } = require('../../../config/points');
+const {
+  POINTS_CONFIG,
+  calcActualPoints,
+  isDailyLimitReached,
+} = require('../../../config/points');
 
 Page({
   data: {
+    // 签到状态
     signed: false,
     consecutiveDays: 0,
-    todayEarned: 0,
     totalPoints: 0,
+    todayEarned: 0,
     dailyLimit: POINTS_CONFIG.BASE_RULES.dailyEarnLimit,
+
+    // 规则配置（直接透传到视图）
     signRule: POINTS_CONFIG.EARN_RULES.DAILY_SIGN,
-    toast: { show: false, msg: '' },
+
+    // 连续7天进度（0~7）
+    progressDays: 0,
+
+    // 成功弹窗
+    showSuccessModal: false,
+    successPoints: 0,
+    successBonus: 0,
+    successConsecutive: 0,
   },
 
   onLoad() {
@@ -23,78 +34,86 @@ Page({
     this._loadData();
   },
 
+  // ─── 加载数据 ───────────────────────────
   _loadData() {
-    const stored = wx.getStorageSync('userPoints') || {};
+    const stored    = wx.getStorageSync('userPoints')  || {};
     const signRecord = wx.getStorageSync('signRecord') || {};
-    const today = this._getToday();
+    const today     = this._getTodayStr();
+    const consecutive = signRecord.consecutiveDays || 0;
 
     this.setData({
-      totalPoints: stored.totalPoints || 0,
-      todayEarned: stored.todayEarned || 0,
-      consecutiveDays: signRecord.consecutiveDays || 0,
-      signed: signRecord.lastSignDate === today,
+      totalPoints:    stored.totalPoints    || 0,
+      todayEarned:    stored.todayEarned    || 0,
+      signed:         signRecord.lastSignDate === today,
+      consecutiveDays: consecutive,
+      progressDays:   consecutive % 7,       // 本轮进度 0~6（满7归零）
     });
   },
 
-  _getToday() {
+  _getTodayStr() {
     const d = new Date();
-    return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   },
 
+  // ─── 签到逻辑 ──────────────────────────
   onSign() {
-    if (this.data.signed) {
-      this._showToast('今日已签到，明日再来');
-      return;
-    }
+    if (this.data.signed) return;
+
     if (isDailyLimitReached(this.data.todayEarned)) {
-      this._showToast(`今日积分已达上限${this.data.dailyLimit}分`);
+      wx.showToast({ title: `今日积分已达上限${this.data.dailyLimit}分`, icon: 'none' });
       return;
     }
 
-    const rule = this.data.signRule;
-    let toAdd = rule.points;
-
-    // 连续签到奖励
+    const rule         = this.data.signRule;
+    const basePoints   = rule.points;                        // 5
     const newConsecutive = this.data.consecutiveDays + 1;
-    let bonusAdd = 0;
+
+    // 连续签到满7天额外奖励
+    let bonusPoints = 0;
     if (newConsecutive % rule.bonusRule.consecutiveDays === 0) {
-      bonusAdd = rule.bonusRule.bonusPoints;
+      bonusPoints = rule.bonusRule.bonusPoints;              // 10
     }
 
-    const actualBase = calcActualPoints(this.data.todayEarned, toAdd);
-    const actualBonus = calcActualPoints(this.data.todayEarned + actualBase, bonusAdd);
+    const actualBase  = calcActualPoints(this.data.todayEarned, basePoints);
+    const actualBonus = calcActualPoints(this.data.todayEarned + actualBase, bonusPoints);
     const actualTotal = actualBase + actualBonus;
 
-    // 写入本地存储（模拟）
-    const stored = wx.getStorageSync('userPoints') || {};
-    const newTotal = (stored.totalPoints || 0) + actualTotal;
-    const newTodayEarned = (stored.todayEarned || 0) + actualTotal;
+    // 写入本地缓存
+    const stored     = wx.getStorageSync('userPoints') || {};
+    const newTotal   = (stored.totalPoints  || 0) + actualTotal;
+    const newToday   = (stored.todayEarned  || 0) + actualTotal;
 
     wx.setStorageSync('userPoints', {
       ...stored,
       totalPoints: newTotal,
-      todayEarned: newTodayEarned,
+      todayEarned: newToday,
     });
-
     wx.setStorageSync('signRecord', {
-      lastSignDate: this._getToday(),
-      consecutiveDays: newConsecutive,
+      lastSignDate:     this._getTodayStr(),
+      consecutiveDays:  newConsecutive,
     });
 
     this.setData({
-      signed: true,
-      totalPoints: newTotal,
-      todayEarned: newTodayEarned,
+      signed:          true,
+      totalPoints:     newTotal,
+      todayEarned:     newToday,
       consecutiveDays: newConsecutive,
+      progressDays:    newConsecutive % 7,
+      // 成功弹窗数据
+      showSuccessModal: true,
+      successPoints:    actualBase,
+      successBonus:     actualBonus,
+      successConsecutive: newConsecutive,
     });
-
-    let msg = `签到成功！+${actualBase}积分`;
-    if (actualBonus > 0) msg += `，连续${newConsecutive}天额外+${actualBonus}积分🎉`;
-    this._showToast(msg);
   },
 
-  _showToast(msg) {
-    this.setData({ toast: { show: true, msg } });
-    setTimeout(() => this.setData({ toast: { show: false, msg: '' } }), 2500);
+  // ─── 关闭成功弹窗 ──────────────────────
+  onCloseSuccess() {
+    this.setData({ showSuccessModal: false });
+  },
+
+  // ─── 跳转积分中心 ──────────────────────
+  onGoIntegral() {
+    wx.navigateTo({ url: '/pages/mine/points/index' });
   },
 });
