@@ -1,9 +1,13 @@
 {
   "pages": [
     "pages/home/home",
-    "pages/services/services",
     "pages/community/community",
+    "pages/services/convenience/services",
     "pages/mine/mine",
+    "pages/mine/points/index",
+    "pages/mine/sign/index",
+    "pages/services/convenience/job/publish/publish",
+    "pages/services/convenience/rental/publish-pay/publish-pay",
     "pages/services/convenience/job/job",
     "pages/services/convenience/rental/rental",
     "pages/services/convenience/rental/publish/publish",
@@ -40,7 +44,7 @@
         "selectedIconPath": "images/tab_home_active.png"
       },
       {
-        "pagePath": "pages/services/services",
+        "pagePath": "pages/services/convenience/services",
         "text": "便民服务",
         "iconPath": "images/tab_service.png",
         "selectedIconPath": "images/tab_service_active.png"

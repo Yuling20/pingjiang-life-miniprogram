@@ -125,7 +125,21 @@
 
   <view class="divider"></view>
 
-  <!-- 积分中心入口 -->
+  <!-- Claude新增：我的积分、每日签到（放在原有积分上边，沿用同区块） -->
+  <view class="mine-menu-item" bindtap="onGoPoints">
+    <text class="mine-menu-item__icon">🏆</text>
+    <text class="mine-menu-item__label">我的积分</text>
+    <text class="mine-menu-item__arrow">›</text>
+  </view>
+  <view class="divider"></view>
+  <view class="mine-menu-item" bindtap="onGoSign">
+    <text class="mine-menu-item__icon">📅</text>
+    <text class="mine-menu-item__label">每日签到</text>
+    <text class="mine-menu-item__arrow">›</text>
+  </view>
+  <view class="divider"></view>
+
+  <!-- 原有积分中心入口 -->
   <view class="menu-item" bindtap="goPointsCenter">
     <view class="menu-left">
       <text class="menu-icon">⭐</text>

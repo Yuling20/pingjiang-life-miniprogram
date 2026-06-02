@@ -1,0 +1,56 @@
+page { background: #f5f5f5; }
+.container { padding: 32rpx; }
+
+/* 签到卡 */
+.sign-card {
+  background: linear-gradient(135deg, #ff8c00, #ffc107);
+  border-radius: 24rpx;
+  padding: 48rpx 36rpx 40rpx;
+  text-align: center;
+  color: #fff;
+  margin-bottom: 28rpx;
+}
+.sign-card__title { font-size: 32rpx; font-weight: 600; }
+.sign-card__days { font-size: 26rpx; margin-top: 16rpx; }
+.highlight { font-size: 48rpx; font-weight: 700; }
+.sign-card__rule { font-size: 22rpx; opacity: .85; margin-top: 8rpx; }
+.sign-card__btn {
+  margin-top: 36rpx;
+  background: #fff;
+  color: #f90;
+  font-size: 30rpx;
+  font-weight: 600;
+  border-radius: 50rpx;
+  padding: 20rpx 60rpx;
+  display: inline-block;
+}
+.sign-card__btn.signed {
+  background: rgba(255,255,255,.4);
+  color: #fff;
+}
+
+/* 积分总览 */
+.points-overview {
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+}
+.points-overview__item { text-align: center; flex: 1; }
+.points-overview__val { font-size: 40rpx; font-weight: 700; color: #f90; }
+.points-overview__label { font-size: 24rpx; color: #999; margin-top: 8rpx; }
+.points-overview__divider { width: 1rpx; height: 60rpx; background: #f0f0f0; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 160rpx; left: 50%;
+  transform: translateX(-50%) translateY(20rpx);
+  background: rgba(0,0,0,.7); color: #fff;
+  font-size: 26rpx; padding: 18rpx 36rpx;
+  border-radius: 50rpx; opacity: 0;
+  transition: all .3s; white-space: nowrap;
+  pointer-events: none; z-index: 9999;
+}
+.toast--show { opacity: 1; transform: translateX(-50%) translateY(0); }

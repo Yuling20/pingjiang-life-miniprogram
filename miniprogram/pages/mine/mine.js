@@ -208,6 +208,16 @@ Page({
     });
   },
 
+  // Claude 新增：积分页跳转方法
+  onGoPoints() {
+    wx.navigateTo({ url: '/pages/mine/points/index' });
+  },
+
+  // Claude 新增：签到页跳转方法
+  onGoSign() {
+    wx.navigateTo({ url: '/pages/mine/sign/index' });
+  },
+
   /** 跳转我发布的招聘 */
   goMyJobs() {
     wx.navigateTo({

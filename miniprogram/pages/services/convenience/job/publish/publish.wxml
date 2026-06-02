@@ -1,0 +1,80 @@
+<view class="container">
+
+<!-- 表单区 -->
+<view class="section">
+  <view class="section__title">招聘信息</view>
+  <view class="form-item">
+    <text class="form-item__label">职位标题</text>
+    <input class="form-item__input" placeholder="请输入职位名称"
+      data-field="title" bindinput="onFormInput" value="{{form.title}}" />
+  </view>
+  <view class="form-item">
+    <text class="form-item__label">岗位描述</text>
+    <textarea class="form-item__textarea" placeholder="请输入岗位描述、要求等"
+      data-field="content" bindinput="onFormInput" value="{{form.content}}" />
+  </view>
+  <view class="form-item">
+    <text class="form-item__label">联系方式</text>
+    <input class="form-item__input" placeholder="请输入联系电话或微信"
+      data-field="contact" bindinput="onFormInput" value="{{form.contact}}" />
+  </view>
+</view>
+
+<!-- 发布套餐选择 -->
+<view class="section">
+  <view class="section__title">选择发布套餐（必选）</view>
+  <view class="pkg-grid">
+    <view class="pkg-card {{selectedPublishPkg === item.id ? 'pkg-card--active' : ''}}"
+      wx:for="{{publishPackages}}" wx:key="id"
+      bindtap="onSelectPublishPkg" data-id="{{item.id}}">
+      <view class="pkg-card__tag" wx:if="{{item.tag}}">{{item.tag}}</view>
+      <view class="pkg-card__name">{{item.name}}</view>
+      <view class="pkg-card__cash">{{item.cashPriceStr}}</view>
+      <view class="pkg-card__points">或 {{item.pointsPriceStr}}</view>
+    </view>
+  </view>
+</view>
+
+<!-- 置顶套餐（可选） -->
+<view class="section">
+  <view class="section__title">置顶套餐（可选）</view>
+  <view class="pkg-grid">
+    <view class="pkg-card {{selectedTopPkg === item.id ? 'pkg-card--active' : ''}}"
+      wx:for="{{topPackages}}" wx:key="id"
+      bindtap="onSelectTopPkg" data-id="{{item.id}}">
+      <view class="pkg-card__tag" wx:if="{{item.tag}}">{{item.tag}}</view>
+      <view class="pkg-card__name">{{item.name}}</view>
+      <view class="pkg-card__cash">{{item.cashPriceStr}}</view>
+      <view class="pkg-card__points">或 {{item.pointsPriceStr}}</view>
+    </view>
+  </view>
+</view>
+
+<!-- 支付方式 -->
+<view class="section">
+  <view class="section__title">支付方式</view>
+  <view class="pay-type-row">
+    <view class="pay-type-btn {{payType === 'cash' ? 'pay-type-btn--active' : ''}}"
+      bindtap="onSwitchPayType" data-type="cash">现金支付</view>
+    <view class="pay-type-btn {{payType === 'points' ? 'pay-type-btn--active' : ''}}"
+      bindtap="onSwitchPayType" data-type="points">
+      积分支付（当前{{totalPoints}}积分）
+    </view>
+  </view>
+</view>
+
+<!-- 优惠券（预留入口） -->
+<view class="section coupon-row" wx:if="{{couponEnabled}}" bindtap="onSelectCoupon">
+  <text class="coupon-row__label">🎟 使用优惠券</text>
+  <text class="coupon-row__hint">
+    {{selectedCoupon ? selectedCoupon.name : '点击选择优惠券'}} ›
+  </text>
+</view>
+
+<!-- 底部提交 -->
+<view class="footer">
+  <view class="footer__tip">招聘发布须消耗积分/现金，不赠送积分</view>
+  <view class="submit-btn" bindtap="onSubmit">确认发布并支付</view>
+</view>
+
+</view>
