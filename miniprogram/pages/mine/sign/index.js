@@ -93,6 +93,9 @@ Page({
       consecutiveDays:  newConsecutive,
     });
 
+    // ==========新增：签到成功存入signedDate，格式与_getTodayStr完全统一==========
+    wx.setStorageSync('signedDate', this._getTodayStr());
+
     this.setData({
       signed:          true,
       totalPoints:     newTotal,

@@ -1,6 +1,15 @@
-// pages/home/home.js
-// ① 文件顶部引入积分配置
+// miniprogram/pages/home/home.js
+
 const { POINTS_CONFIG, calcActualPoints, isDailyLimitReached } = require('../../config/points');
+
+// ✅ 统一日期格式工具函数，避免 toLocaleDateString 因设备不同格式不一致
+function getTodayStr() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`; // 固定格式：2025-07-14
+}
 
 Page({
   data: {
@@ -36,20 +45,19 @@ Page({
       { id: 6, icon: '❤️', name: '孝亲守护', type: 'elder',       color: '#D4820A' }
     ],
 
-    // ✅ 已更新：社区板块，新增「本地活动」「萌宠交流」，并绑定对应的分类参数
     communityList: [
-      { id: 1, icon: '📸', name: '随手拍',     category: '游玩' },
-      { id: 2, icon: '🆘', name: '求助互助',   category: '求助互助' },
-      { id: 3, icon: '🔄', name: '二手转让',   category: '二手交易' },
-      { id: 4, icon: '💬', name: '今日话题',   category: '扯闲谈' },
-      { id: 5, icon: '📢', name: '本地活动',   category: '活动' },
-      { id: 6, icon: '🐾', name: '萌宠交流',   category: '宠物' }
+      { id: 1, icon: '📸', name: '随手拍',   category: '游玩' },
+      { id: 2, icon: '🆘', name: '求助互助', category: '求助互助' },
+      { id: 3, icon: '🔄', name: '二手转让', category: '二手交易' },
+      { id: 4, icon: '💬', name: '今日话题', category: '扯闲谈' },
+      { id: 5, icon: '📢', name: '本地活动', category: '活动' },
+      { id: 6, icon: '🐾', name: '萌宠交流', category: '宠物' }
     ],
 
     articleList: [
-      { id: 1, tag: '热议', title: '平江新医院建设最新进度来了！',     count: 328 },
-      { id: 2, tag: '求助', title: '有没有人知道北街哪里有修鞋的？',   count: 45 },
-      { id: 3, tag: '热议', title: '平江这家餐厅真的太好吃了！',       count: 156 }
+      { id: 1, tag: '热议', title: '平江新医院建设最新进度来了！',   count: 328 },
+      { id: 2, tag: '求助', title: '有没有人知道北街哪里有修鞋的？', count: 45 },
+      { id: 3, tag: '热议', title: '平江这家餐厅真的太好吃了！',     count: 156 }
     ],
 
     contentFlow: [
@@ -58,18 +66,40 @@ Page({
       { id: 3, tag: '▶️', title: '住院必备清单分享',   desc: '▶️ 156次播放', color: '#8E44AD' },
       { id: 4, tag: '💼', title: '本地招聘·护工急招', desc: '💼 今日发布',  color: '#27AE60' }
     ],
-    // ② 追加签到弹窗控制字段
-    showSignModal: false,   // 签到弹窗显示控制
+
+    showSignModal: false,
   },
+
+  /** 页面定时器缓存，用于销毁延时弹窗 */
+  _signPopupTimer: null,
 
   onLoad() {
     console.log('首页加载完成');
     this.loadWeather();
   },
 
-  // ③ 新增onShow生命周期，调用弹窗检测
   onShow() {
-    this._checkSignModal();
+    // ✅ 每次显示页面，先清除上次残留定时器
+    if (this._signPopupTimer) {
+      clearTimeout(this._signPopupTimer);
+      this._signPopupTimer = null;
+    }
+    // ✅ 每次进入页面都重新检测（包括从签到页返回后）
+    this.checkSignPopup();
+  },
+
+  onHide() {
+    if (this._signPopupTimer) {
+      clearTimeout(this._signPopupTimer);
+      this._signPopupTimer = null;
+    }
+  },
+
+  onUnload() {
+    if (this._signPopupTimer) {
+      clearTimeout(this._signPopupTimer);
+      this._signPopupTimer = null;
+    }
   },
 
   loadWeather() {
@@ -106,12 +136,10 @@ Page({
       wx.switchTab({ url: '/pages/community/community' });
       return;
     }
-
     if (type === 'elder') {
       wx.navigateTo({ url: '/pages/services/convenience/elder/elder' });
       return;
     }
-
     const routeMap = {
       job:         '/pages/services/convenience/job/job',
       rental:      '/pages/services/convenience/rental/rental',
@@ -119,7 +147,6 @@ Page({
       water:       '/pages/services/convenience/water/water',
       guide:       '/pages/services/convenience/guide/guide'
     };
-
     const url = routeMap[type];
     if (url) {
       wx.navigateTo({ url });
@@ -132,28 +159,17 @@ Page({
     wx.switchTab({ url: '/pages/community/community' });
   },
 
-  /**
-   * 跳转社区首页（无分类筛选，点击「进入社区」时使用）
-   */
   goToCommunity() {
     const app = getApp();
     app.globalData.communityInitCategory = '';
-    wx.switchTab({
-      url: '/pages/community/community'
-    });
+    wx.switchTab({ url: '/pages/community/community' });
   },
 
-  /**
-   * 跳转社区并自动筛选指定分类
-   * data-category 对应社区页的分类标签名
-   */
   goToCommunityCategory(e) {
     const category = e.currentTarget.dataset.category || '';
     const app = getApp();
     app.globalData.communityInitCategory = category;
-    wx.switchTab({
-      url: '/pages/community/community'
-    });
+    wx.switchTab({ url: '/pages/community/community' });
   },
 
   goToConvenience() {
@@ -168,30 +184,44 @@ Page({
     wx.navigateTo({ url: '/pages/ai/ai' });
   },
 
-  // ④ 追加签到弹窗全套方法
-  /**
-   * 检测是否需要弹出签到弹窗
-   * 规则：今日未签到 且 今日未选择"不再提醒"
-   */
-  _checkSignModal() {
-    const today = this._getTodayStr();
-    const noTipDate = wx.getStorageSync('signModalNoTipDate') || '';
-    // 今日已选"不再提醒"→不弹
-    if (noTipDate === today) return;
+  // =========================================================
+  // ✅ 核心修复：checkSignPopup 使用统一日期格式 getTodayStr()
+  // 规则：
+  //   1. 今日已签到（signedDate === today）→ 永不弹窗
+  //   2. 今日未签到 + 已点"今日不再提醒" → 不弹窗
+  //   3. 今日未签到 + 未屏蔽提醒 → 5秒后弹窗
+  // =========================================================
+  checkSignPopup() {
+    const today = getTodayStr(); // ✅ 使用统一格式 YYYY-MM-DD
 
-    const signRecord = wx.getStorageSync('signRecord') || {};
-    // 今日已签到→不弹
-    if (signRecord.lastSignDate === today) return;
+    // ① 检查今日是否已签到（格式统一后，比对一定准确）
+    const signedDate = wx.getStorageSync('signedDate') || '';
+    console.log('[签到弹窗] 今日:', today, '上次签到日期:', signedDate);
 
-    // 延迟5秒弹出
-    setTimeout(() => {
+    if (signedDate === today) {
+      // ✅ 今日已签到，直接返回，不弹窗，不设定时器
+      console.log('[签到弹窗] 今日已签到，跳过弹窗');
+      return;
+    }
+
+    // ② 检查"今日不再提醒"标记
+    const noPopupDate = wx.getStorageSync('signPopupNoShowDate') || '';
+    if (noPopupDate === today) {
+      console.log('[签到弹窗] 用户已选今日不再提醒，跳过弹窗');
+      return;
+    }
+
+    // ③ 未签到 + 未屏蔽 → 5秒后弹窗
+    console.log('[签到弹窗] 未签到，5秒后弹出提醒');
+    this._signPopupTimer = setTimeout(() => {
+      // ✅ 弹出前再次检查，防止定时器等待期间用户已完成签到
+      const latestSignedDate = wx.getStorageSync('signedDate') || '';
+      if (latestSignedDate === today) {
+        console.log('[签到弹窗] 定时器触发时检测到已签到，取消弹窗');
+        return;
+      }
       this.setData({ showSignModal: true });
     }, 5000);
-  },
-
-  _getTodayStr() {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   },
 
   // 弹窗按钮①：立即签到
@@ -202,19 +232,32 @@ Page({
 
   // 弹窗按钮②：今日不再提醒
   onModalNoTip() {
-    const today = this._getTodayStr();
-    wx.setStorageSync('signModalNoTipDate', today);
+    const today = getTodayStr(); // ✅ 使用统一格式
+    wx.setStorageSync('signPopupNoShowDate', today);
     this.setData({ showSignModal: false });
   },
 
-  // 关闭弹窗蒙层（点击遮罩不关闭，防止误触）
-  onModalMaskTap() {
-    // 故意留空，需主动选择按钮
-  },
+  // 点击遮罩不关闭，防止误触
+  onModalMaskTap() {},
 
-  // 积分中心跳转方法【新增】
+  // 跳转积分中心
   onGoIntegral() {
     this.setData({ showSignModal: false });
     wx.navigateTo({ url: '/pages/mine/points/index' });
+  },
+
+  // =========================================================
+  // ✅ 签到成功回调（签到页调用）
+  // 存入当日签到标记，使用统一日期格式
+  // 签到页调用方式：
+  //   const pages = getCurrentPages();
+  //   const homePage = pages.find(p => p.route === 'pages/home/home');
+  //   if (homePage) homePage.onSignSuccess();
+  // =========================================================
+  onSignSuccess() {
+    const today = getTodayStr(); // ✅ 使用统一格式
+    wx.setStorageSync('signedDate', today);
+    console.log('[签到弹窗] 签到成功，记录日期:', today);
+    this.setData({ showSignModal: false });
   }
 });
