@@ -10,7 +10,46 @@ page {
   background: #F5F0E8;
 }
 
-/* 表单通用 */
+/* ─── ✅ 顶部状态条 ──────────────────────────────────── */
+.status-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  padding: 20rpx 28rpx;
+  margin: 16rpx 20rpx 0;
+  border-radius: 12rpx;
+}
+
+.status-bar--warn {
+  background-color: #fff0f0;
+  border: 1rpx solid #f5c6c6;
+}
+
+.status-bar--info {
+  background-color: #fff8ee;
+  border: 1rpx solid #ffd591;
+}
+
+.status-bar--ok {
+  background-color: #f0fff4;
+  border: 1rpx solid #b7eb8f;
+}
+
+.status-bar__icon {
+  font-size: 28rpx;
+  margin-right: 12rpx;
+  margin-top: 2rpx;
+  flex-shrink: 0;
+}
+
+.status-bar__text {
+  font-size: 24rpx;
+  color: #555;
+  line-height: 1.6;
+  flex: 1;
+}
+
+/* ─── 表单通用 ──────────────────────────────────────── */
 .form-section {
   background: #FFFDF8;
   margin: 20rpx 20rpx 0;
@@ -46,7 +85,7 @@ page {
   color: #A89070;
 }
 
-/* 出租方式 */
+/* ─── 出租方式 ──────────────────────────────────────── */
 .rent-type-row {
   display: flex;
   gap: 16rpx;
@@ -72,7 +111,7 @@ page {
   font-weight: 700;
 }
 
-/* 表单行 */
+/* ─── 表单行 ────────────────────────────────────────── */
 .form-row {
   display: flex;
   align-items: center;
@@ -148,7 +187,7 @@ page {
   color: #C4A882;
 }
 
-/* 图片上传 */
+/* ─── 图片上传 ──────────────────────────────────────── */
 .img-section {
   padding: 20rpx 24rpx;
   border-bottom: 1rpx solid #F0E8D8;
@@ -254,7 +293,7 @@ page {
   margin-top: 12rpx;
 }
 
-/* 标签区 */
+/* ─── 标签区 ────────────────────────────────────────── */
 .tag-section {
   padding: 20rpx 24rpx;
   border-bottom: 1rpx solid #F0E8D8;
@@ -315,7 +354,7 @@ page {
   line-height: 1;
 }
 
-/* 描述区 */
+/* ─── 描述区 ────────────────────────────────────────── */
 .desc-section {
   padding: 20rpx 24rpx;
 }
@@ -368,7 +407,7 @@ page {
   margin-top: 8rpx;
 }
 
-/* VIP区域 */
+/* ─── VIP区域 ───────────────────────────────────────── */
 .vip-section {
   background: #FFF8EE;
   border: 1.5rpx solid #F0E0C0;
@@ -398,7 +437,7 @@ page {
   line-height: 1.6;
 }
 
-/* ====== 新增样式：限时优惠提示 ====== */
+/* ─── 限时优惠提示 ──────────────────────────────────── */
 .promo-tip {
   background: linear-gradient(135deg, #FFD700, #FFA500);
   color: #fff;
@@ -411,18 +450,33 @@ page {
   box-shadow: 0 4rpx 12rpx rgba(212, 130, 10, 0.2);
 }
 
-/* ====== 新增样式：套餐选择 ====== */
+/* ─── ✅ 套餐区（新样式）───────────────────────────── */
 .package-section-wrap {
   padding-bottom: 24rpx;
 }
 
+/* 套餐分组标题 */
+.pkg-group-title {
+  font-size: 26rpx;
+  font-weight: 700;
+  color: #8B7355;
+  padding: 20rpx 24rpx 8rpx;
+  letter-spacing: 1rpx;
+}
+
+.pkg-group-title--top {
+  padding-top: 8rpx;
+  border-top: 1rpx solid #F0E8D8;
+  margin-top: 8rpx;
+}
+
+/* 套餐卡片 */
 .package-card {
   margin: 0 24rpx 16rpx;
   border: 2rpx solid #E0E0E0;
   border-radius: 12rpx;
-  padding: 24rpx;
+  padding: 20rpx 24rpx;
   background: #FFFDF8;
-  transition: all 0.2s;
 }
 
 .package-card.package-active {
@@ -431,26 +485,46 @@ page {
   box-shadow: 0 4rpx 16rpx rgba(212, 130, 10, 0.15);
 }
 
-.package-header {
-  font-size: 30rpx;
-  font-weight: 700;
-  color: #3A2F1E;
+/* 卡片头部行 */
+.package-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 12rpx;
 }
 
+.package-name {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #3A2F1E;
+}
+
+/* 推荐标签 */
+.package-tag-recommend {
+  font-size: 20rpx;
+  color: #fff;
+  background: #D4820A;
+  padding: 4rpx 14rpx;
+  border-radius: 20rpx;
+  font-weight: 600;
+}
+
+/* 超值标签 */
+.package-tag-hot {
+  font-size: 20rpx;
+  color: #fff;
+  background: #E53935;
+  padding: 4rpx 14rpx;
+  border-radius: 20rpx;
+  font-weight: 600;
+}
+
+/* 套餐价格行 */
 .package-info {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: 16rpx;
-}
-
-.duration {
-  font-size: 26rpx;
-  color: #666;
-  background: #F5F0E8;
-  padding: 4rpx 12rpx;
-  border-radius: 6rpx;
 }
 
 .original-price {
@@ -460,20 +534,20 @@ page {
 }
 
 .discount-price {
-  font-size: 32rpx;
+  font-size: 30rpx;
   color: #D4820A;
   font-weight: 700;
 }
 
 .points-cost {
-  font-size: 26rpx;
+  font-size: 24rpx;
   color: #8B7355;
   background: #FFF3E0;
   padding: 4rpx 12rpx;
   border-radius: 6rpx;
 }
 
-/* ====== 新增样式：支付方式 ====== */
+/* ─── 支付方式 ──────────────────────────────────────── */
 .payment-section-wrap {
   padding: 24rpx;
 }
@@ -517,7 +591,7 @@ page {
   border: 2rpx solid #FFD090;
 }
 
-/* 发布页底部 */
+/* ─── 发布页底部 ────────────────────────────────────── */
 .publish-footer {
   margin: 20rpx 20rpx 0;
   background: #FFFDF8;
@@ -578,8 +652,8 @@ page {
   line-height: 1.4;
 }
 
-.btn-submit::after { 
-  display: none; 
+.btn-submit::after {
+  display: none;
 }
 
 .btn-submit.btn-disabled {
@@ -587,7 +661,7 @@ page {
   color: #F5EFE6;
 }
 
-/* 标签弹窗 */
+/* ─── 标签弹窗 ──────────────────────────────────────── */
 .tag-mask {
   position: fixed;
   inset: 0;
@@ -674,4 +748,3 @@ page {
   border-color: #D4820A;
   font-weight: 600;
 }
-

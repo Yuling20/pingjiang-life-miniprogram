@@ -1,4 +1,22 @@
 // pages/services/convenience/rental/publish/publish.js
+// 修改说明：
+//   1. 新增实名认证校验（userAuthStatus）
+//   2. 新增VIP开通校验（userVipStatus）
+//   3. 套餐拆分为4个：基础30天/60天，置顶一周/一月
+//   4. 价格按新规：基础30天¥60/6000积分，60天¥90/9000积分
+//                  置顶一周¥60/6000积分，一月¥180/18000积分
+//   5. 积分读取兼容 Number 和 {total:N} 两种格式
+//   6. 不改变其他界面功能
+
+// ─── 套餐价格配置 ─────────────────────────────────────────
+// cashPrice 单位：元；pointsPrice 单位：积分；100积分=1元
+const PACKAGE_CONFIG = {
+  basic_30: { cashPrice: 60,  pointsPrice: 6000  },
+  basic_60: { cashPrice: 90,  pointsPrice: 9000  },
+  top_week: { cashPrice: 60,  pointsPrice: 6000  },
+  top_month:{ cashPrice: 180, pointsPrice: 18000 },
+};
+
 Page({
   data: {
     showTagModal: false,
@@ -34,18 +52,21 @@ Page({
       '带阳台', '近公园'
     ],
     isPublishing: false,
-    
-    // ====== 新增字段 ======
-    selectedPackage: '', // 'basic' | 'top'
-    paymentMethod: 'cash', // 'cash' | 'points'
+
+    // 套餐与支付
+    selectedPackage: '',   // 'basic_30'|'basic_60'|'top_week'|'top_month'
+    paymentMethod: 'cash', // 'cash'|'points'
     useCoupon: false,
-    finalPrice: 0,
-    finalPoints: 0,
-    userPoints: 0
+    finalPrice: 0,         // 元
+    finalPoints: 0,        // 积分
+    userPoints: 0,
+
+    // ✅ 用户状态
+    isAuthed: false,
+    isVip: false,
   },
 
   onLoad() {
-    // 页面加载时重置表单
     this.setData({
       publishForm: {
         rentType: '整租',
@@ -70,175 +91,198 @@ Page({
       useCoupon: false,
       finalPrice: 0,
       finalPoints: 0
-    })
+    });
 
-    // ====== 新增：读取用户积分 ======
-    const userPoints = wx.getStorageSync('userPoints') || 0
-    this.setData({ userPoints })
+    this._loadUserStatus();
   },
 
-  // 出租方式切换
+  onShow() {
+    // 从实名/VIP页返回后同步状态
+    this._loadUserStatus();
+  },
+
+  // ─── ✅ 读取用户状态 ────────────────────────────────────
+
+  _loadUserStatus() {
+    const isAuthed = wx.getStorageSync('userAuthStatus') === true;
+    const isVip    = wx.getStorageSync('userVipStatus')  === true;
+
+    // 积分格式兼容：Number 或 {total: N}
+    let userPoints = 0;
+    const pts = wx.getStorageSync('userPoints');
+    if (typeof pts === 'number') {
+      userPoints = pts;
+    } else if (pts && typeof pts.total === 'number') {
+      userPoints = pts.total;
+    }
+
+    this.setData({ isAuthed, isVip, userPoints });
+    console.log('[publish] 实名:', isAuthed, 'VIP:', isVip, '积分:', userPoints);
+  },
+
+  // ─── 出租方式切换 ────────────────────────────────────────
+
   onRentTypeChange(e) {
-    this.setData({ 'publishForm.rentType': e.currentTarget.dataset.type })
+    this.setData({ 'publishForm.rentType': e.currentTarget.dataset.type });
   },
 
-  // 表单输入
+  // ─── 表单输入 ────────────────────────────────────────────
+
   onInputCity(e) {
-    this.setData({ 'publishForm.city': e.detail.value })
+    this.setData({ 'publishForm.city': e.detail.value });
   },
   onInputCommunity(e) {
-    this.setData({ 'publishForm.community': e.detail.value })
+    this.setData({ 'publishForm.community': e.detail.value });
   },
   onInputArea(e) {
-    this.setData({ 'publishForm.area': e.detail.value })
+    this.setData({ 'publishForm.area': e.detail.value });
   },
   onInputPrice(e) {
-    this.setData({ 'publishForm.price': e.detail.value })
+    this.setData({ 'publishForm.price': e.detail.value });
   },
   onInputDesc(e) {
-    const val = e.detail.value
-    this.setData({
-      'publishForm.desc': val,
-      descCount: val.length
-    })
+    const val = e.detail.value;
+    this.setData({ 'publishForm.desc': val, descCount: val.length });
   },
 
-  // Picker选择
+  // ─── Picker 选择 ─────────────────────────────────────────
+
   onPickerRoomType(e) {
-    const idx = e.detail.value
-    this.setData({ 'publishForm.roomType': this.data.roomTypeOptions[idx] })
+    this.setData({ 'publishForm.roomType': this.data.roomTypeOptions[e.detail.value] });
   },
   onPickerDirection(e) {
-    const idx = e.detail.value
-    this.setData({ 'publishForm.direction': this.data.directionOptions[idx] })
+    this.setData({ 'publishForm.direction': this.data.directionOptions[e.detail.value] });
   },
   onPickerMoveIn(e) {
-    const idx = e.detail.value
-    this.setData({ 'publishForm.moveInTime': this.data.moveInOptions[idx] })
+    this.setData({ 'publishForm.moveInTime': this.data.moveInOptions[e.detail.value] });
   },
   onPickerPayType(e) {
-    const idx = e.detail.value
-    this.setData({ 'publishForm.payType': this.data.payTypeOptions[idx] })
+    this.setData({ 'publishForm.payType': this.data.payTypeOptions[e.detail.value] });
   },
 
-  // 图片上传
+  // ─── 图片上传 ────────────────────────────────────────────
+
   onChooseImage() {
-    const current = this.data.publishForm.images.length
-    const remain = 9 - current
+    const remain = 9 - this.data.publishForm.images.length;
     if (remain <= 0) {
-      wx.showToast({ title: '最多上传9张图片', icon: 'none' })
-      return
+      wx.showToast({ title: '最多上传9张图片', icon: 'none' });
+      return;
     }
     wx.chooseMedia({
       count: remain,
       mediaType: ['image'],
       sourceType: ['album', 'camera'],
       success: (res) => {
-        const newImages = res.tempFiles.map(f => f.tempFilePath)
-        const images = [...this.data.publishForm.images, ...newImages]
-        this.setData({ 'publishForm.images': images })
+        const newImages = res.tempFiles.map(f => f.tempFilePath);
+        const images = [...this.data.publishForm.images, ...newImages];
+        this.setData({ 'publishForm.images': images });
       }
-    })
+    });
   },
   onDeleteImage(e) {
-    const idx = e.currentTarget.dataset.idx
-    const images = [...this.data.publishForm.images]
-    images.splice(idx, 1)
-    this.setData({ 'publishForm.images': images })
+    const images = [...this.data.publishForm.images];
+    images.splice(e.currentTarget.dataset.idx, 1);
+    this.setData({ 'publishForm.images': images });
   },
   onPreviewImage(e) {
-    const idx = e.currentTarget.dataset.idx
     wx.previewImage({
-      current: this.data.publishForm.images[idx],
+      current: this.data.publishForm.images[e.currentTarget.dataset.idx],
       urls: this.data.publishForm.images
-    })
+    });
   },
 
-  // 标签管理
+  // ─── 标签管理 ────────────────────────────────────────────
+
   onOpenTagModal() {
-    this.setData({ showTagModal: true })
+    this.setData({ showTagModal: true });
   },
   onCloseTagModal() {
-    this.setData({ showTagModal: false })
+    this.setData({ showTagModal: false });
   },
   onToggleTag(e) {
-    const tag = e.currentTarget.dataset.tag
-    let tags = [...this.data.publishForm.tags]
-    const idx = tags.indexOf(tag)
+    const tag = e.currentTarget.dataset.tag;
+    let tags = [...this.data.publishForm.tags];
+    const idx = tags.indexOf(tag);
     if (idx >= 0) {
-      tags.splice(idx, 1)
+      tags.splice(idx, 1);
     } else {
       if (tags.length >= 10) {
-        wx.showToast({ title: '最多选择10个标签', icon: 'none' })
-        return
+        wx.showToast({ title: '最多选择10个标签', icon: 'none' });
+        return;
       }
-      tags.push(tag)
+      tags.push(tag);
     }
-    this.setData({ 'publishForm.tags': tags })
+    this.setData({ 'publishForm.tags': tags });
   },
   onRemoveTag(e) {
-    const idx = e.currentTarget.dataset.idx
-    const tags = [...this.data.publishForm.tags]
-    tags.splice(idx, 1)
-    this.setData({ 'publishForm.tags': tags })
+    const tags = [...this.data.publishForm.tags];
+    tags.splice(e.currentTarget.dataset.idx, 1);
+    this.setData({ 'publishForm.tags': tags });
   },
 
-  // VIP开关切换
+  // ─── VIP 开关 ────────────────────────────────────────────
+
   onVipToggle(e) {
-    this.setData({ 'publishForm.isVipHouse': e.detail.value })
+    this.setData({ 'publishForm.isVipHouse': e.detail.value });
   },
 
-  // ====== 新增方法：套餐选择 ======
+  // ─── ✅ 套餐选择（4档） ──────────────────────────────────
+
   selectPackage(e) {
-    const type = e.currentTarget.dataset.type
+    const type = e.currentTarget.dataset.type;
     this.setData({ selectedPackage: type }, () => {
-      this.calculatePayment()
-    })
+      this.calculatePayment();
+    });
   },
 
-  // ====== 新增方法：切换支付方式 ======
+  // ─── 切换支付方式 ────────────────────────────────────────
+
   onPaymentChange(e) {
     this.setData({ paymentMethod: e.detail.value }, () => {
-      this.calculatePayment()
-    })
+      this.calculatePayment();
+    });
   },
 
-  // ====== 新增方法：切换优惠券 ======
+  // ─── 切换优惠券 ──────────────────────────────────────────
+
   onCouponToggle() {
     this.setData({ useCoupon: !this.data.useCoupon }, () => {
-      this.calculatePayment()
-    })
+      this.calculatePayment();
+    });
   },
 
-  // ====== 新增方法：计算应付金额 ======
+  // ─── ✅ 计算应付金额（按新套餐规则） ─────────────────────
+
   calculatePayment() {
-    const { selectedPackage, paymentMethod, useCoupon } = this.data
+    const { selectedPackage, paymentMethod, useCoupon } = this.data;
 
     if (!selectedPackage) {
-      this.setData({ finalPrice: 0, finalPoints: 0 })
-      return
+      this.setData({ finalPrice: 0, finalPoints: 0 });
+      return;
     }
-
-    const packages = {
-      basic: { price: 6, points: 60 },
-      top: { price: 18, points: 180 }
-    }
-
-    const pkg = packages[selectedPackage]
 
     if (useCoupon) {
-      this.setData({ finalPrice: 0, finalPoints: 0 })
+      this.setData({ finalPrice: 0, finalPoints: 0 });
+      return;
+    }
+
+    const pkg = PACKAGE_CONFIG[selectedPackage];
+    if (!pkg) {
+      this.setData({ finalPrice: 0, finalPoints: 0 });
+      return;
+    }
+
+    if (paymentMethod === 'cash') {
+      this.setData({ finalPrice: pkg.cashPrice, finalPoints: 0 });
     } else {
-      this.setData({
-        finalPrice: paymentMethod === 'cash' ? pkg.price : 0,
-        finalPoints: paymentMethod === 'points' ? pkg.points : 0
-      })
+      this.setData({ finalPrice: 0, finalPoints: pkg.pointsPrice });
     }
   },
 
-  // 协议勾选
+  // ─── 协议勾选 ────────────────────────────────────────────
+
   onToggleAgreed() {
-    this.setData({ 'publishForm.agreed': !this.data.publishForm.agreed })
+    this.setData({ 'publishForm.agreed': !this.data.publishForm.agreed });
   },
   onViewAgreement() {
     wx.showModal({
@@ -246,70 +290,96 @@ Page({
       content: '本协议规定了用户在平江汇生活平台发布房源的相关权利与义务。用户承诺发布信息真实有效，不得发布虚假房源、欺诈信息。平台有权对违规房源进行下架处理。',
       showCancel: false,
       confirmText: '知道了'
-    })
+    });
   },
 
-  // 表单校验与提交
+  // ─── 表单校验 ────────────────────────────────────────────
+
   _validateForm() {
-    const f = this.data.publishForm
-    if (!f.city || !f.city.trim()) { 
-      wx.showToast({ title: '请填写所在城市', icon: 'none' })
-      return false 
-    }
-    if (!f.community || !f.community.trim()) { 
-      wx.showToast({ title: '请填写所在小区', icon: 'none' })
-      return false 
-    }
-    if (!f.area || !f.area.trim()) { 
-      wx.showToast({ title: '请填写房屋面积', icon: 'none' })
-      return false 
-    }
-    if (!f.roomType) { 
-      wx.showToast({ title: '请选择房屋户型', icon: 'none' })
-      return false 
-    }
-    if (!f.direction) { 
-      wx.showToast({ title: '请选择房屋朝向', icon: 'none' })
-      return false 
-    }
-    if (!f.moveInTime) { 
-      wx.showToast({ title: '请选择入住时间', icon: 'none' })
-      return false 
-    }
-    if (!f.price || !f.price.trim()) { 
-      wx.showToast({ title: '请填写期望租金', icon: 'none' })
-      return false 
-    }
-    if (!f.payType) { 
-      wx.showToast({ title: '请选择付款方式', icon: 'none' })
-      return false 
-    }
-    if (!f.agreed) { 
-      wx.showToast({ title: '请先同意服务协议', icon: 'none' })
-      return false 
-    }
+    const f = this.data.publishForm;
+    const checks = [
+      [!f.city || !f.city.trim(),      '请填写所在城市'],
+      [!f.community || !f.community.trim(), '请填写所在小区'],
+      [!f.area || !f.area.trim(),      '请填写房屋面积'],
+      [!f.roomType,                    '请选择房屋户型'],
+      [!f.direction,                   '请选择房屋朝向'],
+      [!f.moveInTime,                  '请选择入住时间'],
+      [!f.price || !f.price.trim(),    '请填写期望租金'],
+      [!f.payType,                     '请选择付款方式'],
+      [!f.agreed,                      '请先同意服务协议'],
+      [!this.data.selectedPackage,     '请选择发布套餐'],
+    ];
 
-    // ====== 新增校验：必须选择套餐 ======
-    if (!this.data.selectedPackage) {
-      wx.showToast({ title: '请选择发布套餐', icon: 'none' })
-      return false
+    for (const [fail, msg] of checks) {
+      if (fail) {
+        wx.showToast({ title: msg, icon: 'none' });
+        return false;
+      }
     }
-
-    return true
+    return true;
   },
+
+  // ─── ✅ 提交（新增实名+VIP前置校验） ────────────────────
 
   onSubmitPublish() {
-    if (!this._validateForm()) return
+    const { isAuthed, isVip, paymentMethod, useCoupon, finalPoints, userPoints } = this.data;
 
-    // ====== 新增校验：积分不足拦截 ======
-    const { paymentMethod, useCoupon, finalPoints, userPoints } = this.data
+    // ✅ 校验1：实名认证
+    if (!isAuthed) {
+      wx.showModal({
+        title: '需要实名认证',
+        content: '发布房源需要先完成实名认证，请前往"我的"页面完成认证后再发布。',
+        confirmText: '去认证',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            wx.switchTab({ url: '/pages/mine/mine' });
+          }
+        }
+      });
+      return;
+    }
+
+    // ✅ 校验2：VIP开通
+    if (!isVip) {
+      wx.showModal({
+        title: '需要开通VIP',
+        content: '发布房源需要开通VIP房源保护服务，开通后租客将通过虚拟号码联系您，保护您的隐私。',
+        confirmText: '立即开通',
+        cancelText: '暂不开通',
+        success: (res) => {
+          if (res.confirm) {
+            wx.showModal({
+              title: '确认开通VIP',
+              content: '开通后即可发布房源，是否确认开通？',
+              confirmText: '确认开通',
+              cancelText: '取消',
+              success: (r) => {
+                if (r.confirm) {
+                  wx.setStorageSync('userVipStatus', true);
+                  this.setData({ isVip: true });
+                  wx.showToast({ title: 'VIP已开通，请继续发布', icon: 'success', duration: 2000 });
+                }
+              }
+            });
+          }
+        }
+      });
+      return;
+    }
+
+    // ✅ 校验3：表单验证
+    if (!this._validateForm()) return;
+
+    // ✅ 校验4：积分不足拦截
     if (paymentMethod === 'points' && !useCoupon && finalPoints > userPoints) {
       wx.showModal({
         title: '积分不足',
-        content: '签到/发帖赚积分',
-        showCancel: false
-      })
-      return
+        content: `当前积分 ${userPoints}，需要 ${finalPoints} 积分，可通过签到/发帖赚取积分。`,
+        showCancel: false,
+        confirmText: '知道了'
+      });
+      return;
     }
 
     wx.showModal({
@@ -318,43 +388,58 @@ Page({
       confirmText: '确认发布',
       success: (res) => {
         if (res.confirm) {
-          this._doPublish()
+          this._doPublish();
         }
       }
-    })
+    });
   },
 
-  _doPublish() {
-    this.setData({ isPublishing: true })
+  // ─── 执行发布 ────────────────────────────────────────────
 
-    // ====== 新增逻辑：扣除积分或发起支付 ======
-    const { paymentMethod, useCoupon, finalPoints, userPoints } = this.data
+  _doPublish() {
+    this.setData({ isPublishing: true });
+
+    const { paymentMethod, useCoupon, finalPoints, userPoints } = this.data;
 
     if (!useCoupon) {
       if (paymentMethod === 'points') {
-        // 积分支付：扣除积分
-        const newPoints = userPoints - finalPoints
-        wx.setStorageSync('userPoints', newPoints)
+        // ✅ 积分支付：扣除积分（兼容两种格式）
+        const pts = wx.getStorageSync('userPoints');
+        const newPoints = userPoints - finalPoints;
+
+        if (typeof pts === 'number') {
+          wx.setStorageSync('userPoints', newPoints);
+        } else if (pts && typeof pts.total === 'number') {
+          wx.setStorageSync('userPoints', { ...pts, total: newPoints });
+        } else {
+          wx.setStorageSync('userPoints', newPoints);
+        }
+        this.setData({ userPoints: newPoints });
 
         // 记录积分消费
-        const consumeRecords = wx.getStorageSync('pointsConsumeRecords') || []
-        consumeRecords.unshift({
-          scene: '租房发布',
-          points: -finalPoints,
-          time: new Date().toISOString()
-        })
-        wx.setStorageSync('pointsConsumeRecords', consumeRecords)
+        try {
+          const consumeRecords = wx.getStorageSync('pointsConsumeRecords') || [];
+          consumeRecords.unshift({
+            scene: '租房发布',
+            points: -finalPoints,
+            time: new Date().toISOString()
+          });
+          wx.setStorageSync('pointsConsumeRecords', consumeRecords);
+        } catch (e) {
+          console.warn('[publish] 记录积分消费失败', e);
+        }
+
       } else {
-        // 现金支付：调用微信支付（此处为占位逻辑）
-        wx.showToast({ title: '支付功能开发中', icon: 'none' })
-        this.setData({ isPublishing: false })
-        return
+        // 现金支付：预留支付接口
+        wx.showToast({ title: '支付功能开发中', icon: 'none' });
+        this.setData({ isPublishing: false });
+        return;
       }
     }
 
-    // 模拟发布请求（后端预留接口）
+    // 模拟发布请求
     setTimeout(() => {
-      const f = this.data.publishForm
+      const f = this.data.publishForm;
       const newItem = {
         id: Date.now(),
         title: `${f.community} ${f.roomType} ${f.rentType}`,
@@ -367,16 +452,24 @@ Page({
         tags: f.tags,
         contact: '',
         publishTime: '刚刚',
-        images: f.images
+        images: f.images,
+        pkgId: this.data.selectedPackage,
+      };
+
+      // 写入"我发布的房源"列表
+      try {
+        const list = wx.getStorageSync('myPublishedRentals') || [];
+        list.unshift(newItem);
+        wx.setStorageSync('myPublishedRentals', list);
+      } catch (e) {
+        console.warn('[publish] 写入 myPublishedRentals 失败', e);
       }
 
-      // 这里可以调用接口，将newItem上传到服务器
-      // 上传成功后返回列表页并刷新数据
-      wx.showToast({ title: '发布成功！', icon: 'success' })
+      wx.showToast({ title: '发布成功！', icon: 'success' });
       setTimeout(() => {
-        this.setData({ isPublishing: false })
-        wx.navigateBack({ delta: 1 })
-      }, 1000)
-    }, 1500)
+        this.setData({ isPublishing: false });
+        wx.navigateBack({ delta: 1 });
+      }, 1000);
+    }, 1500);
   }
-})
+});

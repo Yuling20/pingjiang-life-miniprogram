@@ -1,6 +1,21 @@
 <!-- pages/services/convenience/rental/publish/publish.wxml -->
 <view class="page-wrap">
   <scroll-view scroll-y class="drawer-body" enhanced="{{true}}">
+
+    <!-- ===== ✅ 顶部实名/VIP状态条 ===== -->
+    <view class="status-bar status-bar--warn" wx:if="{{!isAuthed}}">
+      <text class="status-bar__icon">⚠️</text>
+      <text class="status-bar__text">发布房源需先完成实名认证，请前往"我的"页面认证</text>
+    </view>
+    <view class="status-bar status-bar--info" wx:elif="{{isAuthed && !isVip}}">
+      <text class="status-bar__icon">🔒</text>
+      <text class="status-bar__text">已实名，点击"确认发布"后将引导开通VIP房源保护</text>
+    </view>
+    <view class="status-bar status-bar--ok" wx:elif="{{isAuthed && isVip}}">
+      <text class="status-bar__icon">✅</text>
+      <text class="status-bar__text">已实名 · VIP已开通，可正常发布房源</text>
+    </view>
+
     <!-- 出租方式 -->
     <view class="form-section">
       <text class="section-label">出租方式</text>
@@ -23,34 +38,21 @@
 
       <view class="form-row">
         <text class="form-key"><text class="required">*</text>所在城市</text>
-        <input
-          class="form-val-input"
-          placeholder="请填写"
-          value="{{publishForm.city}}"
-          bindinput="onInputCity"
-        />
+        <input class="form-val-input" placeholder="请填写"
+          value="{{publishForm.city}}" bindinput="onInputCity" />
       </view>
 
       <view class="form-row">
         <text class="form-key"><text class="required">*</text>所在小区</text>
-        <input
-          class="form-val-input"
-          placeholder="请填写"
-          value="{{publishForm.community}}"
-          bindinput="onInputCommunity"
-        />
+        <input class="form-val-input" placeholder="请填写"
+          value="{{publishForm.community}}" bindinput="onInputCommunity" />
       </view>
 
       <view class="form-row">
         <text class="form-key"><text class="required">*</text>房屋面积</text>
         <view class="form-val-right">
-          <input
-            class="form-val-input-sm"
-            placeholder="若不清楚，可填大概"
-            value="{{publishForm.area}}"
-            type="digit"
-            bindinput="onInputArea"
-          />
+          <input class="form-val-input-sm" placeholder="若不清楚，可填大概"
+            value="{{publishForm.area}}" type="digit" bindinput="onInputArea" />
           <text class="unit">㎡</text>
         </view>
       </view>
@@ -94,13 +96,8 @@
       <view class="form-row">
         <text class="form-key"><text class="required">*</text>期望租金</text>
         <view class="form-val-right">
-          <input
-            class="form-val-input-sm"
-            placeholder="请填写"
-            value="{{publishForm.price}}"
-            type="digit"
-            bindinput="onInputPrice"
-          />
+          <input class="form-val-input-sm" placeholder="请填写"
+            value="{{publishForm.price}}" type="digit" bindinput="onInputPrice" />
           <text class="unit">元/月</text>
         </view>
       </view>
@@ -131,28 +128,13 @@
           <text class="img-tip">图片规范</text>
         </view>
         <view class="img-tip-bar">遵守图片上传规范，杜绝房源下架风险</view>
-
         <view class="img-grid">
-          <view
-            class="img-thumb"
-            wx:for="{{publishForm.images}}"
-            wx:key="*this"
-            wx:for-index="idx"
-          >
-            <image
-              class="thumb-img"
-              src="{{item}}"
-              mode="aspectFill"
-              data-idx="{{idx}}"
-              bindtap="onPreviewImage"
-            />
+          <view class="img-thumb" wx:for="{{publishForm.images}}" wx:key="*this" wx:for-index="idx">
+            <image class="thumb-img" src="{{item}}" mode="aspectFill"
+              data-idx="{{idx}}" bindtap="onPreviewImage" />
             <view class="thumb-del" data-idx="{{idx}}" bindtap="onDeleteImage">✕</view>
           </view>
-          <view
-            class="img-add-btn"
-            wx:if="{{publishForm.images.length < 9}}"
-            bindtap="onChooseImage"
-          >
+          <view class="img-add-btn" wx:if="{{publishForm.images.length < 9}}" bindtap="onChooseImage">
             <text class="img-add-icon">＋</text>
             <text class="img-add-text">添加图片</text>
             <text class="img-add-count">{{publishForm.images.length}}/9</text>
@@ -171,12 +153,7 @@
         </view>
         <view class="tag-desc">丰富信息，可以更快的找到合适租客</view>
         <view class="selected-tags" wx:if="{{publishForm.tags.length > 0}}">
-          <view
-            class="selected-tag"
-            wx:for="{{publishForm.tags}}"
-            wx:key="*this"
-            wx:for-index="idx"
-          >
+          <view class="selected-tag" wx:for="{{publishForm.tags}}" wx:key="*this" wx:for-index="idx">
             <text>{{item}}</text>
             <text class="tag-remove" data-idx="{{idx}}" bindtap="onRemoveTag">×</text>
           </view>
@@ -189,13 +166,11 @@
           <text class="desc-tip" bindtap="onViewAgreement">填写规范›</text>
         </view>
         <view class="desc-tip-bar">遵守房源描述规范,杜绝房源下架风险</view>
-        <textarea
-          class="desc-textarea"
+        <textarea class="desc-textarea"
           placeholder="请描述房源情况、周边配套等信息..."
           value="{{publishForm.desc}}"
           bindinput="onInputDesc"
-          maxlength="300"
-        />
+          maxlength="300" />
         <view class="desc-count">{{descCount}}/300</view>
       </view>
     </view>
@@ -204,56 +179,99 @@
     <view class="form-section vip-section">
       <view class="vip-header">
         <text class="vip-title">🛡️ VIP房源保护</text>
-        <switch
-          class="vip-switch"
-          checked="{{publishForm.isVipHouse}}"
-          bindchange="onVipToggle"
-          color="#D4820A"
-        />
+        <switch class="vip-switch" checked="{{publishForm.isVipHouse}}"
+          bindchange="onVipToggle" color="#D4820A" />
       </view>
-      <text class="vip-desc">开通后，用户将通过虚拟号码联系您，既能避免真实号码被骚扰，又能让有真实需求的租客能及时联系到您。</text>
+      <text class="vip-desc">
+        开通后，用户将通过虚拟号码联系您，既能避免真实号码被骚扰，又能让有真实需求的租客能及时联系到您。
+      </text>
     </view>
 
-    <!-- ====== 新增：套餐选择 ====== -->
+    <!-- 限时优惠提示 -->
     <view class="promo-tip">🎁 限时优惠券抵扣，免费发布</view>
 
+    <!-- ===== ✅ 套餐选择（4档）===== -->
     <view class="form-section package-section-wrap">
       <view class="section-title-bar">
         <text class="section-title">选择发布套餐</text>
+        <text class="section-sub">必选一个基础套餐</text>
       </view>
 
-      <!-- 基础套餐 -->
-      <view 
-        class="package-card {{selectedPackage === 'basic' ? 'package-active' : ''}}" 
-        bindtap="selectPackage" 
-        data-type="basic"
+      <!-- 基础宣传标题 -->
+      <view class="pkg-group-title">📢 基础宣传</view>
+
+      <!-- 基础30天 -->
+      <view
+        class="package-card {{selectedPackage === 'basic_30' ? 'package-active' : ''}}"
+        bindtap="selectPackage"
+        data-type="basic_30"
       >
-        <view class="package-header">📢 基础宣传</view>
+        <view class="package-header-row">
+          <text class="package-name">30天展示</text>
+          <text class="package-tag" wx:if="{{false}}"></text>
+        </view>
         <view class="package-info">
-          <text class="duration">7天展示</text>
-          <text class="original-price">原价 ¥10</text>
-          <text class="discount-price">6折 ¥6</text>
-          <text class="points-cost">或 60积分</text>
+          <text class="original-price">原价 ¥100</text>
+          <text class="discount-price">6折 ¥60</text>
+          <text class="points-cost">或 6000积分</text>
         </view>
       </view>
 
-      <!-- 置顶套餐 -->
-      <view 
-        class="package-card {{selectedPackage === 'top' ? 'package-active' : ''}}" 
-        bindtap="selectPackage" 
-        data-type="top"
+      <!-- 基础60天 -->
+      <view
+        class="package-card {{selectedPackage === 'basic_60' ? 'package-active' : ''}}"
+        bindtap="selectPackage"
+        data-type="basic_60"
       >
-        <view class="package-header">🔥 置顶推荐</view>
+        <view class="package-header-row">
+          <text class="package-name">60天展示</text>
+          <text class="package-tag-recommend">推荐</text>
+        </view>
         <view class="package-info">
-          <text class="duration">7天置顶</text>
-          <text class="original-price">原价 ¥30</text>
-          <text class="discount-price">6折 ¥18</text>
-          <text class="points-cost">或 180积分</text>
+          <text class="original-price">原价 ¥150</text>
+          <text class="discount-price">6折 ¥90</text>
+          <text class="points-cost">或 9000积分</text>
+        </view>
+      </view>
+
+      <!-- 置顶推荐标题 -->
+      <view class="pkg-group-title pkg-group-title--top">🔝 置顶推荐（可叠加）</view>
+
+      <!-- 置顶一周 -->
+      <view
+        class="package-card {{selectedPackage === 'top_week' ? 'package-active' : ''}}"
+        bindtap="selectPackage"
+        data-type="top_week"
+      >
+        <view class="package-header-row">
+          <text class="package-name">置顶一周</text>
+        </view>
+        <view class="package-info">
+          <text class="original-price">原价 ¥100</text>
+          <text class="discount-price">6折 ¥60</text>
+          <text class="points-cost">或 6000积分</text>
+        </view>
+      </view>
+
+      <!-- 置顶一月 -->
+      <view
+        class="package-card {{selectedPackage === 'top_month' ? 'package-active' : ''}}"
+        bindtap="selectPackage"
+        data-type="top_month"
+      >
+        <view class="package-header-row">
+          <text class="package-name">置顶一月</text>
+          <text class="package-tag-hot">超值</text>
+        </view>
+        <view class="package-info">
+          <text class="original-price">原价 ¥300</text>
+          <text class="discount-price">6折 ¥180</text>
+          <text class="points-cost">或 18000积分</text>
         </view>
       </view>
     </view>
 
-    <!-- ====== 新增：支付方式 ====== -->
+    <!-- 支付方式 -->
     <view class="form-section payment-section-wrap">
       <radio-group bindchange="onPaymentChange">
         <label class="payment-option">
@@ -262,7 +280,7 @@
         </label>
         <label class="payment-option">
           <radio value="points" checked="{{paymentMethod === 'points'}}" color="#D4820A"/>
-          <text>积分兑换</text>
+          <text>积分兑换（当前 {{userPoints}} 积分）</text>
         </label>
       </radio-group>
 
@@ -272,8 +290,9 @@
       </label>
 
       <view class="payment-summary">
-        <text wx:if="{{paymentMethod === 'cash'}}">应付金额：¥{{finalPrice}}</text>
-        <text wx:else>消耗积分：{{finalPoints}}</text>
+        <text wx:if="{{useCoupon}}">应付金额：¥0（优惠券抵扣）</text>
+        <text wx:elif="{{paymentMethod === 'cash'}}">应付金额：¥{{finalPrice}}</text>
+        <text wx:else>消耗积分：{{finalPoints}} 积分</text>
       </view>
     </view>
 
