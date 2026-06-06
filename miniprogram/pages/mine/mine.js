@@ -1,60 +1,48 @@
 // miniprogram/pages/mine/mine.js
-// 功能：个人中心页面逻辑
-// 版本：d295002
-// 规则：
-//   - 移除全屏弹窗，改为列表入口
-//   - 实名状态读取本地缓存 key：userAuthStatus
-//   - 积分读取本地缓存 key：userPoints
-//   - 便民服务 / 贴吧社区分区入口
-//   - 禁用云开发，仅使用 wx.getStorageSync / wx.setStorageSync
+// 修复：
+//   1. goMyActivity 改为跳转社区首页（与 goMyPosts 区分）
+//   2. goPointsCenter 改为 wx.navigateTo 直接跳转，移除可能导致闪现的多余逻辑
+//   3. _loadPoints 全面兼容积分存储格式，加日志排查
 
 const app = getApp();
+
+// 统一日期格式
+function getTodayStr() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
 
 Page({
 
   data: {
-    /* 用户基本信息 */
     userInfo: {
       nickName: '微信用户',
       avatarUrl: '/images/avatar.png'
     },
-
-    /* 实名状态：读取缓存 key: userAuthStatus */
     isAuthed: false,
-
-    /* 积分总数：读取缓存 key: userPoints */
     totalPoints: 0,
-
-    /* 便民服务发布数量 */
+    hasSigned: false,
     myJobCount: 0,
     myRentalCount: 0,
-
-    /* 贴吧社区 */
     myPostCount: 0,
     unreadActivity: 0,
-
-    /* 联系我们弹窗 */
     showContactModal: false,
-    contactWechatId: 'pjhsh2025',   // ← 替换为实际微信号
+    contactWechatId: 'pjhsh2025',
   },
-
-  // ─── 生命周期 ────────────────────────────────────────────
 
   onLoad() {
     this._initPage();
   },
 
   onShow() {
-    // 每次显示时刷新，保证数据实时
     this._initPage();
   },
 
   // ─── 初始化 ──────────────────────────────────────────────
 
-  /**
-   * 页面数据初始化
-   * 全部从本地缓存读取，无需网络请求
-   */
   _initPage() {
     this._loadUserInfo();
     this._loadAuthStatus();
@@ -65,7 +53,6 @@ Page({
     this._loadUnreadActivity();
   },
 
-  /** 读取用户信息（微信登录后写入的昵称/头像） */
   _loadUserInfo() {
     try {
       const info = wx.getStorageSync('userInfo');
@@ -77,11 +64,6 @@ Page({
     }
   },
 
-  /**
-   * 读取实名状态
-   * 缓存 key: userAuthStatus
-   * true = 已实名，false/空 = 未实名
-   */
   _loadAuthStatus() {
     try {
       const status = wx.getStorageSync('userAuthStatus');
@@ -93,24 +75,72 @@ Page({
   },
 
   /**
-   * 读取积分
-   * 缓存 key: userPoints（存储格式：{ total: Number }）
+   * ✅ 问题3修复：全面兼容积分存储格式
+   * 兼容以下所有情况：
+   *   - { total: 30 }         points页标准格式
+   *   - { points: 30 }        部分旧版格式
+   *   - 30                    直接存数字
+   *   - { totalPoints: 30 }   变体字段名
    */
   _loadPoints() {
     try {
+      // ✅ 优先尝试读取 userPoints（标准key）
       const pts = wx.getStorageSync('userPoints');
-      const total = (pts && typeof pts.total === 'number') ? pts.total : 0;
-      this.setData({ totalPoints: total });
+
+      // ✅ 同时尝试读取其他可能的key（积分页可能用不同key存储）
+      const pts2 = wx.getStorageSync('pointsData');
+      const pts3 = wx.getStorageSync('myPoints');
+
+      // 调试：打印所有积分相关缓存值，帮助排查格式问题
+      console.log('[mine] userPoints原始值:', JSON.stringify(pts));
+      console.log('[mine] pointsData原始值:', JSON.stringify(pts2));
+      console.log('[mine] myPoints原始值:', JSON.stringify(pts3));
+
+      let total = 0;
+
+      // 解析 userPoints
+      if (pts !== null && pts !== undefined && pts !== '') {
+        if (typeof pts === 'number') {
+          total = pts;
+        } else if (typeof pts === 'object') {
+          // 兼容多种字段名
+          if (typeof pts.total === 'number') total = pts.total;
+          else if (typeof pts.points === 'number') total = pts.points;
+          else if (typeof pts.totalPoints === 'number') total = pts.totalPoints;
+          else if (typeof pts.score === 'number') total = pts.score;
+        }
+      }
+
+      // 如果 userPoints 没取到，尝试其他key
+      if (total === 0 && pts2 !== null && pts2 !== undefined && pts2 !== '') {
+        if (typeof pts2 === 'number') total = pts2;
+        else if (typeof pts2 === 'object') {
+          if (typeof pts2.total === 'number') total = pts2.total;
+          else if (typeof pts2.points === 'number') total = pts2.points;
+        }
+      }
+
+      if (total === 0 && pts3 !== null && pts3 !== undefined && pts3 !== '') {
+        if (typeof pts3 === 'number') total = pts3;
+        else if (typeof pts3 === 'object') {
+          if (typeof pts3.total === 'number') total = pts3.total;
+          else if (typeof pts3.points === 'number') total = pts3.points;
+        }
+      }
+
+      // 读取签到状态
+      const signedDate = wx.getStorageSync('signedDate') || '';
+      const hasSigned = (signedDate === getTodayStr());
+
+      console.log('[mine] 最终积分:', total, '今日已签到:', hasSigned);
+      this.setData({ totalPoints: total, hasSigned });
+
     } catch (e) {
-      console.warn('[mine] 读取 userPoints 失败', e);
-      this.setData({ totalPoints: 0 });
+      console.warn('[mine] 读取积分失败', e);
+      this.setData({ totalPoints: 0, hasSigned: false });
     }
   },
 
-  /**
-   * 读取我发布的招聘数量
-   * 缓存 key: myPublishedJobs（Array）
-   */
   _loadMyJobCount() {
     try {
       const list = wx.getStorageSync('myPublishedJobs') || [];
@@ -120,10 +150,6 @@ Page({
     }
   },
 
-  /**
-   * 读取我发布的房源数量
-   * 缓存 key: myPublishedRentals（Array）
-   */
   _loadMyRentalCount() {
     try {
       const list = wx.getStorageSync('myPublishedRentals') || [];
@@ -133,10 +159,6 @@ Page({
     }
   },
 
-  /**
-   * 读取我发布的帖子数量
-   * 缓存 key: myPublishedPosts（Array）
-   */
   _loadMyPostCount() {
     try {
       const list = wx.getStorageSync('myPublishedPosts') || [];
@@ -146,10 +168,6 @@ Page({
     }
   },
 
-  /**
-   * 读取未读互动数（评论/点赞）
-   * 缓存 key: myUnreadActivity（Number）
-   */
   _loadUnreadActivity() {
     try {
       const count = wx.getStorageSync('myUnreadActivity') || 0;
@@ -161,18 +179,11 @@ Page({
 
   // ─── 跳转事件 ─────────────────────────────────────────────
 
-  /** 跳转实名认证页 */
   goAuth() {
-    // 已实名：提示无需重复认证
     if (this.data.isAuthed) {
-      wx.showToast({
-        title: '您已完成实名认证',
-        icon: 'success',
-        duration: 1500
-      });
+      wx.showToast({ title: '您已完成实名认证', icon: 'success', duration: 1500 });
       return;
     }
-    // 未实名：跳转认证流程（沿用原有逻辑，调用微信授权+人脸）
     wx.showModal({
       title: '微信一键实名',
       content: '即将调用微信授权+人脸识别完成实名认证，信息仅用于平台安全验证。',
@@ -180,65 +191,45 @@ Page({
       cancelText: '取消',
       success: (res) => {
         if (res.confirm) {
-          // 模拟实名完成（实际项目中对接真实认证接口）
           wx.setStorageSync('userAuthStatus', true);
           this.setData({ isAuthed: true });
-          wx.showToast({
-            title: '实名认证完成',
-            icon: 'success',
-            duration: 1500
-          });
+          wx.showToast({ title: '实名认证完成', icon: 'success', duration: 1500 });
         }
       }
     });
   },
 
-  /** 跳转积分中心 */
+  /**
+   * ✅ 问题2修复：直接跳转积分中心，不做任何前置操作
+   * 移除原来的 fail 回调中的 showToast（避免跳转前闪现提示）
+   */
   goPointsCenter() {
     wx.navigateTo({
-      url: '/pages/mine/points/index',
-      fail: () => {
-        // 积分中心页面尚未建立时的友好提示
-        wx.showToast({
-          title: '积分中心开发中',
-          icon: 'none',
-          duration: 1500
-        });
-      }
+      url: '/pages/mine/points/index'
     });
   },
 
-  // Claude 新增：积分页跳转方法
-  onGoPoints() {
-    wx.navigateTo({ url: '/pages/mine/points/index' });
-  },
-
-  // Claude 新增：签到页跳转方法
-  onGoSign() {
-    wx.navigateTo({ url: '/pages/mine/sign/index' });
-  },
-
-  /** 跳转我发布的招聘 */
   goMyJobs() {
     wx.navigateTo({
-      url: '/pages/services/convenience/job/job?filter=mine',
+      url: '/pages/mine/my-jobs/index',
       fail: () => {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
     });
   },
 
-  /** 跳转我发布的房源 */
   goMyRentals() {
     wx.navigateTo({
-      url: '/pages/services/convenience/rental/rental?filter=mine',
+      url: '/pages/mine/my-rentals/index',
       fail: () => {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
     });
   },
 
-  /** 跳转我发布的帖子 */
+  /**
+   * ✅ 问题1修复：我发布的帖子 → 跳转社区用户页，筛选我的帖子
+   */
   goMyPosts() {
     wx.navigateTo({
       url: '/pages/community/user/index?filter=myPosts',
@@ -248,14 +239,18 @@ Page({
     });
   },
 
-  /** 跳转我的帖子动态（评论/点赞） */
+  /**
+   * ✅ 问题1修复：我的帖子动态 → 跳转社区首页（不再与goMyPosts同一页面）
+   * 社区首页可以看到互动消息，与"我发布的帖子"列表区分开
+   */
   goMyActivity() {
     // 清空未读计数
     wx.setStorageSync('myUnreadActivity', 0);
     this.setData({ unreadActivity: 0 });
 
-    wx.navigateTo({
-      url: '/pages/community/user/index?filter=myActivity',
+    // ✅ 改为跳转贴吧社区首页（switchTab，因为community是tabBar页）
+    wx.switchTab({
+      url: '/pages/community/community',
       fail: () => {
         wx.showToast({ title: '页面跳转失败', icon: 'none' });
       }
@@ -264,46 +259,31 @@ Page({
 
   // ─── 联系我们 ─────────────────────────────────────────────
 
-  /** 显示联系我们弹窗 */
   showContactModal() {
     this.setData({ showContactModal: true });
   },
 
-  /** 关闭联系我们弹窗 */
   hideContactModal() {
     this.setData({ showContactModal: false });
   },
 
-  /** 阻止弹窗内容区点击事件冒泡（防止点内部触发关闭） */
-  stopProp() {
-    // 空函数，用于 catchtap 阻止冒泡
-  },
+  stopProp() {},
 
-  /** 复制微信号到剪贴板 */
   copyWechatId() {
     const wechatId = this.data.contactWechatId;
     wx.setClipboardData({
       data: wechatId,
       success: () => {
-        wx.showToast({
-          title: '微信号已复制',
-          icon: 'success',
-          duration: 1500
-        });
+        wx.showToast({ title: '微信号已复制', icon: 'success', duration: 1500 });
       },
       fail: () => {
-        wx.showToast({
-          title: '复制失败，请手动记录',
-          icon: 'none',
-          duration: 1500
-        });
+        wx.showToast({ title: '复制失败，请手动记录', icon: 'none', duration: 1500 });
       }
     });
   },
 
   // ─── 退出登录 ─────────────────────────────────────────────
 
-  /** 退出登录：清空用户相关缓存，回到首页 */
   handleLogout() {
     wx.showModal({
       title: '提示',
@@ -312,22 +292,13 @@ Page({
       cancelText: '取消',
       success: (res) => {
         if (res.confirm) {
-          // 清除登录相关缓存（保留积分等业务数据）
           wx.removeStorageSync('userInfo');
           wx.removeStorageSync('userAuthStatus');
-
           this.setData({
             userInfo: { nickName: '微信用户', avatarUrl: '/images/avatar.png' },
             isAuthed: false
           });
-
-          wx.showToast({
-            title: '已退出登录',
-            icon: 'success',
-            duration: 1200
-          });
-
-          // 延迟跳回首页
+          wx.showToast({ title: '已退出登录', icon: 'success', duration: 1200 });
           setTimeout(() => {
             wx.switchTab({ url: '/pages/home/home' });
           }, 1300);

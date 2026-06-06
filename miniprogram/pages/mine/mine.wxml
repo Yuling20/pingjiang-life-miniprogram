@@ -1,12 +1,8 @@
-<!--
-  文件路径：miniprogram/pages/mine/mine.wxml
-  功能：个人中心页面
-  版本：d295002
-  规则：
-  - 移除全屏霸屏实名弹窗，改为列表入口
-  - 新增积分中心入口
-  - 整合便民服务 / 贴吧社区 / 通用功能分区
-  - 暖橙+米黄配色，适配中老年用户
+<!-- miniprogram/pages/mine/mine.wxml -->
+<!-- 修复：
+  1. 便民服务区：我发布的招聘/房源 跳独立页
+  2. 账户功能区：合并三个积分入口为一个，新增签到状态标签
+  3. 积分数值实时同步显示
 -->
 
 <view class="page-wrap">
@@ -22,7 +18,6 @@
   </view>
   <view class="user-info">
     <text class="user-name">{{userInfo.nickName || '微信用户'}}</text>
-    <!-- 实名状态标签 -->
     <view class="auth-badge {{isAuthed ? 'authed' : 'unauthed'}}">
       <text class="auth-badge-text">{{isAuthed ? '✔ 已实名' : '未实名'}}</text>
     </view>
@@ -36,7 +31,7 @@
     <text class="section-title-text">便民服务</text>
   </view>
 
-  <!-- 我发布的招聘 -->
+  <!-- ✅ 跳转独立"我发布的招聘"页面 -->
   <view class="menu-item" bindtap="goMyJobs">
     <view class="menu-left">
       <text class="menu-icon">💼</text>
@@ -50,7 +45,7 @@
 
   <view class="divider"></view>
 
-  <!-- 我发布的房源 -->
+  <!-- ✅ 跳转独立"我发布的房源"页面 -->
   <view class="menu-item" bindtap="goMyRentals">
     <view class="menu-left">
       <text class="menu-icon">🏡</text>
@@ -70,7 +65,6 @@
     <text class="section-title-text">贴吧社区</text>
   </view>
 
-  <!-- 我发布的帖子 -->
   <view class="menu-item" bindtap="goMyPosts">
     <view class="menu-left">
       <text class="menu-icon">📝</text>
@@ -84,7 +78,6 @@
 
   <view class="divider"></view>
 
-  <!-- 我的帖子动态 -->
   <view class="menu-item" bindtap="goMyActivity">
     <view class="menu-left">
       <text class="menu-icon">🔔</text>
@@ -92,7 +85,6 @@
       <text class="menu-sub">评论 / 点赞 / 互动</text>
     </view>
     <view class="menu-right">
-      <!-- 未读红点 -->
       <view class="red-dot" wx:if="{{unreadActivity > 0}}">
         <text class="red-dot-text">{{unreadActivity > 99 ? '99+' : unreadActivity}}</text>
       </view>
@@ -101,21 +93,20 @@
   </view>
 </view>
 
-<!-- ===== 通用功能模块 ===== -->
+<!-- ===== 账户功能模块 ===== -->
 <view class="section-block">
   <view class="section-title">
     <text class="section-title-icon">⚙️</text>
     <text class="section-title-text">账户功能</text>
   </view>
 
-  <!-- 实名认证入口（替代霸屏弹窗） -->
+  <!-- 实名认证 -->
   <view class="menu-item" bindtap="goAuth">
     <view class="menu-left">
       <text class="menu-icon">🪪</text>
       <text class="menu-label">实名认证</text>
     </view>
     <view class="menu-right">
-      <!-- 已实名：绿色标签；未实名：橙色提示 -->
       <text class="auth-status-tag {{isAuthed ? 'tag-authed' : 'tag-unauthed'}}">
         {{isAuthed ? '已认证' : '去认证'}}
       </text>
@@ -125,33 +116,23 @@
 
   <view class="divider"></view>
 
-  <!-- Claude新增：我的积分、每日签到（放在原有积分上边，沿用同区块） -->
-  <view class="mine-menu-item" bindtap="onGoPoints">
-    <text class="mine-menu-item__icon">🏆</text>
-    <text class="mine-menu-item__label">我的积分</text>
-    <text class="mine-menu-item__arrow">›</text>
-  </view>
-  <view class="divider"></view>
-  <view class="mine-menu-item" bindtap="onGoSign">
-    <text class="mine-menu-item__icon">📅</text>
-    <text class="mine-menu-item__label">每日签到</text>
-    <text class="mine-menu-item__arrow">›</text>
-  </view>
-  <view class="divider"></view>
-
-  <!-- 原有积分中心入口 -->
+  <!-- ✅ 问题2修复：三个入口合并为一个"积分中心"，含当前积分数值 + 签到状态标签 -->
   <view class="menu-item" bindtap="goPointsCenter">
     <view class="menu-left">
       <text class="menu-icon">⭐</text>
-      <text class="menu-label">积分中心</text>
+      <text class="menu-label">积分中心 / 每日签到</text>
     </view>
     <view class="menu-right">
+      <!-- ✅ 问题3修复：实时显示积分数值 -->
       <text class="points-value">{{totalPoints}} 分</text>
+      <!-- ✅ 签到状态标签 -->
+      <text class="sign-tag {{hasSigned ? 'sign-tag-done' : 'sign-tag-todo'}}">
+        {{hasSigned ? '已签到' : '未签到'}}
+      </text>
       <text class="menu-arrow">›</text>
     </view>
   </view>
 
-  <!-- 【新增】联系我们入口（紧跟积分中心下方） -->
   <view class="divider"></view>
 
   <!-- 联系我们 -->
@@ -171,18 +152,15 @@
   <button class="logout-btn" bindtap="handleLogout">退出登录</button>
 </view>
 
-<!-- 【新增】联系我们 微信二维码弹窗（在 page-wrap 闭合标签前） -->
-<!-- ===== 联系我们 微信二维码弹窗 ===== -->
+<!-- ===== 联系我们弹窗 ===== -->
 <view class="modal-mask" wx:if="{{showContactModal}}" bindtap="hideContactModal">
   <view class="modal-box" catchtap="stopProp">
 
-    <!-- 弹窗标题 -->
     <view class="modal-header">
       <text class="modal-title">联系我们</text>
       <text class="modal-close" bindtap="hideContactModal">✕</text>
     </view>
 
-    <!-- 二维码图片 -->
     <view class="qrcode-wrap">
       <image
         class="qrcode-img"
@@ -192,16 +170,12 @@
       <text class="qrcode-tip">长按图片识别二维码添加微信</text>
     </view>
 
-    <!-- 微信号展示 + 复制 -->
     <view class="wechat-id-wrap">
       <text class="wechat-id-label">微信号：</text>
       <text class="wechat-id-value">{{contactWechatId}}</text>
     </view>
 
-    <!-- 复制微信号按钮 -->
     <button class="copy-btn" bindtap="copyWechatId">复制微信号</button>
-
-    <!-- 合规说明 -->
     <text class="modal-notice">请在微信中搜索以上微信号或扫码添加</text>
 
   </view>

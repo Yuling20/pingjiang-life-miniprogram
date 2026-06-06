@@ -1,0 +1,60 @@
+<!-- miniprogram/pages/mine/my-rentals/index.wxml -->
+<view class="page-wrap">
+
+<!-- 空状态 -->
+<view class="empty-wrap" wx:if="{{isEmpty}}">
+  <text class="empty-icon">🏠</text>
+  <text class="empty-text">您还没有发布过房源</text>
+  <button class="publish-btn" bindtap="goPublish">立即发布房源</button>
+</view>
+
+<!-- 房源列表 -->
+<view class="list-wrap" wx:else>
+
+  <view class="rental-card" wx:for="{{rentalList}}" wx:key="id">
+
+    <view class="card-header">
+      <text class="rental-title">{{item.title || '出租房源'}}</text>
+      <text class="rental-status">出租中</text>
+    </view>
+
+    <view class="card-body">
+      <view class="info-row">
+        <text class="info-label">租金：</text>
+        <text class="info-value price">{{item.price || '面议'}}/月</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">地址：</text>
+        <text class="info-value">{{item.address || '平江'}}</text>
+      </view>
+      <view class="info-row" wx:if="{{item.area}}">
+        <text class="info-label">面积：</text>
+        <text class="info-value">{{item.area}}㎡</text>
+      </view>
+      <view class="info-row" wx:if="{{item.contact}}">
+        <text class="info-label">联系：</text>
+        <text class="info-value">{{item.contact}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">发布：</text>
+        <text class="info-value time">{{item.createTime || ''}}</text>
+      </view>
+    </view>
+
+    <view class="card-footer">
+      <button
+        class="delete-btn"
+        bindtap="deleteRental"
+        data-index="{{index}}"
+      >删除</button>
+    </view>
+
+  </view>
+
+  <view class="bottom-publish">
+    <button class="publish-btn" bindtap="goPublish">+ 继续发布房源</button>
+  </view>
+
+</view>
+
+</view>

@@ -1,0 +1,147 @@
+/* miniprogram/pages/mine/my-jobs/index.wxss */
+
+.page-wrap {
+  min-height: 100vh;
+  background-color: #fdf6ec;
+  padding: 24rpx 28rpx 60rpx;
+  box-sizing: border-box;
+}
+
+/* 空状态 */
+.empty-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 160rpx;
+}
+
+.empty-icon {
+  font-size: 100rpx;
+  margin-bottom: 28rpx;
+}
+
+.empty-text {
+  font-size: 30rpx;
+  color: #aaa;
+  margin-bottom: 48rpx;
+}
+
+/* 卡片 */
+.job-card {
+  background-color: #fff;
+  border-radius: 20rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(255, 140, 0, 0.08);
+}
+
+.card-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.job-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #333;
+  flex: 1;
+}
+
+.job-status {
+  font-size: 22rpx;
+  color: #27ae60;
+  background-color: #e8f5e9;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  margin-left: 16rpx;
+}
+
+.card-body {
+  margin-bottom: 20rpx;
+}
+
+.info-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.info-label {
+  font-size: 26rpx;
+  color: #999;
+  width: 80rpx;
+  flex-shrink: 0;
+}
+
+.info-value {
+  font-size: 28rpx;
+  color: #555;
+}
+
+.info-value.salary {
+  color: #ff8c00;
+  font-weight: bold;
+}
+
+.info-value.time {
+  color: #bbb;
+  font-size: 24rpx;
+}
+
+.card-footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  border-top: 1rpx solid #f5ead8;
+  padding-top: 20rpx;
+}
+
+/* 按钮 */
+.delete-btn {
+  font-size: 26rpx;
+  color: #e53935;
+  background-color: #fff5f5;
+  border-radius: 12rpx;
+  padding: 10rpx 32rpx;
+  border: none;
+  line-height: 1.6;
+}
+
+.delete-btn::after {
+  border: none;
+}
+
+.delete-btn:active {
+  background-color: #ffebee;
+}
+
+.publish-btn {
+  background-color: #ff8c00;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: bold;
+  border-radius: 16rpx;
+  border: none;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  letter-spacing: 2rpx;
+  width: 100%;
+}
+
+.publish-btn::after {
+  border: none;
+}
+
+.publish-btn:active {
+  background-color: #e07b00;
+}
+
+.bottom-publish {
+  margin-top: 16rpx;
+}

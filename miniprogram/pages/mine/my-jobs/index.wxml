@@ -1,0 +1,56 @@
+<!-- miniprogram/pages/mine/my-jobs/index.wxml -->
+<view class="page-wrap">
+
+<!-- 空状态 -->
+<view class="empty-wrap" wx:if="{{isEmpty}}">
+  <text class="empty-icon">📭</text>
+  <text class="empty-text">您还没有发布过招聘</text>
+  <button class="publish-btn" bindtap="goPublish">立即发布招聘</button>
+</view>
+
+<!-- 招聘列表 -->
+<view class="list-wrap" wx:else>
+
+  <view class="job-card" wx:for="{{jobList}}" wx:key="id">
+
+    <view class="card-header">
+      <text class="job-title">{{item.title || '招聘职位'}}</text>
+      <text class="job-status">招聘中</text>
+    </view>
+
+    <view class="card-body">
+      <view class="info-row">
+        <text class="info-label">薪资：</text>
+        <text class="info-value salary">{{item.salary || '面议'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">地点：</text>
+        <text class="info-value">{{item.location || '平江'}}</text>
+      </view>
+      <view class="info-row" wx:if="{{item.contact}}">
+        <text class="info-label">联系：</text>
+        <text class="info-value">{{item.contact}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">发布：</text>
+        <text class="info-value time">{{item.createTime || ''}}</text>
+      </view>
+    </view>
+
+    <view class="card-footer">
+      <button
+        class="delete-btn"
+        bindtap="deleteJob"
+        data-index="{{index}}"
+      >删除</button>
+    </view>
+
+  </view>
+
+  <view class="bottom-publish">
+    <button class="publish-btn" bindtap="goPublish">+ 继续发布招聘</button>
+  </view>
+
+</view>
+
+</view>

@@ -6,6 +6,8 @@
     "pages/mine/mine",
     "pages/mine/points/index",
     "pages/mine/sign/index",
+    "pages/mine/my-jobs/index",
+    "pages/mine/my-rentals/index",
     "pages/services/convenience/job/publish/publish",
     "pages/services/convenience/rental/publish-pay/publish-pay",
     "pages/services/convenience/job/job",
