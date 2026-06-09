@@ -1,2 +1,234 @@
-<!--pages/community/publish/index.wxml-->
-<text>pages/community/publish/index.wxml</text>
+<!-- pages/community/publish/index.wxml -->
+<view class="publish-page">
+
+<!-- ═══ 顶部导航 ═══ -->
+<view class="nav-bar">
+  <view class="nav-close" bindtap="onClose">
+    <text class="nav-close-icon">✕</text>
+  </view>
+  <text class="nav-title">发帖子</text>
+  <view
+    class="nav-pub-btn {{canPublish && !isPublishing ? 'nav-pub-btn--on' : ''}}"
+    bindtap="onPublish"
+  >
+    <text>{{isPublishing ? '发布中' : '发布'}}</text>
+  </view>
+</view>
+
+<!-- ═══ 实名提示条 ═══ -->
+<view class="auth-bar" wx:if="{{!isAuthed}}">
+  <text class="auth-bar__icon">🔐</text>
+  <text class="auth-bar__text">发帖、点赞、评论等互动均需实名认证</text>
+  <view class="auth-bar__btn" bindtap="_checkAuth">去认证</view>
+</view>
+
+<!-- ═══ 主体滚动区 ═══ -->
+<scroll-view class="pub-body" scroll-y>
+
+  <!-- 正文输入 -->
+  <view class="text-area-wrap">
+    <textarea
+      class="text-input"
+      placeholder="分享你的平江生活，超过10字获得更多曝光～"
+      placeholder-class="text-ph"
+      value="{{content}}"
+      bindinput="onContentInput"
+      maxlength="1000"
+      auto-height
+      focus="{{isAuthed}}"
+    />
+    <text class="text-count">{{contentCount}}/1000</text>
+  </view>
+
+  <!-- AI 灵感卡 -->
+  <view class="ai-card" wx:if="{{showAiTip}}">
+    <view class="ai-card__head">
+      <text class="ai-card__label">✨ AI创作灵感</text>
+      <text class="ai-card__close" bindtap="onCloseAiTip">✕</text>
+    </view>
+    <text class="ai-card__tip">{{currentAiTip}}</text>
+    <view class="ai-card__use" bindtap="onUseAiTip">使用这个灵感</view>
+  </view>
+
+  <!-- 已选话题 -->
+  <view class="topic-tag" wx:if="{{selectedTopic}}">
+    <text class="topic-tag__hash">#</text>
+    <text class="topic-tag__name">{{selectedTopic}}</text>
+    <text class="topic-tag__del" bindtap="onClearTopic">✕</text>
+  </view>
+
+  <!-- ══ 媒体区：图片 + 视频互斥 ══ -->
+
+  <!-- 图片区（无视频时显示） -->
+  <view class="media-section" wx:if="{{!video}}">
+
+    <!-- 有图片时展示网格 -->
+    <view class="img-grid" wx:if="{{images.length > 0}}">
+      <view
+        class="img-cell"
+        wx:for="{{images}}"
+        wx:key="*this"
+        wx:for-index="idx"
+      >
+        <image
+          class="img-cell__img"
+          src="{{item}}"
+          mode="aspectFill"
+          data-idx="{{idx}}"
+          bindtap="onPreviewImage"
+        />
+        <view class="img-cell__del" data-idx="{{idx}}" bindtap="onDeleteImage">
+          <text>✕</text>
+        </view>
+      </view>
+
+      <!-- 未满9张显示添加按钮 -->
+      <view
+        class="img-add-btn"
+        wx:if="{{images.length < 9}}"
+        bindtap="onChooseImage"
+      >
+        <text class="img-add-btn__plus">＋</text>
+        <text class="img-add-btn__label">添加图片</text>
+      </view>
+    </view>
+
+  </view>
+
+  <!-- 视频区（有视频时显示） -->
+  <view class="video-section" wx:if="{{video}}">
+    <view class="video-wrap">
+      <!-- 封面预览 -->
+      <image
+        class="video-thumb"
+        src="{{videoThumb}}"
+        mode="aspectFill"
+        bindtap="onPreviewVideo"
+      />
+      <!-- 播放图标 -->
+      <view class="video-play-icon" bindtap="onPreviewVideo">
+        <text class="video-play-icon__tri">▶</text>
+      </view>
+      <!-- 时长 -->
+      <view class="video-duration">
+        <text class="video-duration__txt">
+          {{video.duration ? (video.duration > 60 ? (Math.floor(video.duration/60) + ':' + (video.duration%60 < 10 ? '0' : '') + (video.duration%60)) : ('0:' + (video.duration < 10 ? '0' : '') + video.duration)) : '--:--'}}
+        </text>
+      </view>
+      <!-- 删除 -->
+      <view class="video-del" bindtap="onDeleteVideo">
+        <text>🗑️ 删除视频</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ══ 工具栏 ══ -->
+  <view class="tool-bar">
+    <view class="tool-item" bindtap="onAiInspire">
+      <text class="tool-item__icon">✨</text>
+      <text class="tool-item__label">AI灵感</text>
+    </view>
+    <view class="tool-item" bindtap="onOpenTopic">
+      <text class="tool-item__icon">#</text>
+      <text class="tool-item__label">{{selectedTopic ? selectedTopic : '加话题'}}</text>
+    </view>
+    <view class="tool-item tool-item--vis" bindtap="onToggleVisibility">
+      <text class="tool-item__icon">{{visibility === 'public' ? '🌐' : '👥'}}</text>
+      <text class="tool-item__label">{{visibility === 'public' ? '广场可见' : '仅关注'}}</text>
+      <text class="tool-item__arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 规则提示 -->
+  <view class="rule-tip">
+    <text class="rule-tip__icon">📋</text>
+    <text class="rule-tip__text">
+      禁止发布广告、联系方式、违规信息。优质帖子可获 +10 积分奖励 🎁
+    </text>
+  </view>
+
+  <!-- 积分激励 -->
+  <view class="pts-tip">
+    <text class="pts-tip__icon">🎁</text>
+    <text class="pts-tip__text">发帖 +10积分 · 被点赞 +2积分 · 被评论 +3积分</text>
+  </view>
+
+  <view style="height:200rpx;"></view>
+</scroll-view>
+
+<!-- ═══ 底部类型切换栏 ═══ -->
+<view class="bottom-bar">
+  <!-- 发文字（始终高亮，因为文字区始终存在） -->
+  <view
+    class="bottom-tab {{activeTab === 'text' ? 'bottom-tab--on' : ''}}"
+    bindtap="onSwitchTab"
+    data-tab="text"
+  >
+    <text class="bottom-tab__icon">📝</text>
+    <text class="bottom-tab__label">文字</text>
+  </view>
+
+  <!-- 发图片（有图片时高亮） -->
+  <view
+    class="bottom-tab {{images.length > 0 || activeTab === 'image' ? 'bottom-tab--on' : ''}}"
+    bindtap="onSwitchTab"
+    data-tab="image"
+  >
+    <text class="bottom-tab__icon">🖼️</text>
+    <text class="bottom-tab__label">
+      {{images.length > 0 ? images.length + '张图片' : '图片'}}
+    </text>
+  </view>
+
+  <!-- 发视频（有视频时高亮） -->
+  <view
+    class="bottom-tab {{video || activeTab === 'video' ? 'bottom-tab--on' : ''}}"
+    bindtap="onSwitchTab"
+    data-tab="video"
+  >
+    <text class="bottom-tab__icon">🎬</text>
+    <text class="bottom-tab__label">{{video ? '已添视频' : '视频'}}</text>
+  </view>
+
+  <!-- 分割线 -->
+  <view class="bottom-divider"></view>
+
+  <!-- @Ta（预留） -->
+  <view class="bottom-extra" bindtap="onAiInspire">
+    <text class="bottom-extra__icon">✨</text>
+    <text class="bottom-extra__label">灵感</text>
+  </view>
+  <view class="bottom-extra" bindtap="onOpenTopic">
+    <text class="bottom-extra__icon">#</text>
+    <text class="bottom-extra__label">话题</text>
+  </view>
+</view>
+
+<!-- ═══ 话题面板 ═══ -->
+<view
+  class="topic-mask {{showTopicPanel ? 'topic-mask--show' : ''}}"
+  bindtap="onCloseTopic"
+>
+  <view class="topic-panel" catchtap="">
+    <view class="topic-panel__handle"></view>
+    <text class="topic-panel__title">选择话题</text>
+    <text class="topic-panel__sub">选对话题，让更多人看到你的帖子</text>
+    <scroll-view class="topic-scroll" scroll-y>
+      <view class="topic-grid">
+        <view
+          class="topic-item {{selectedTopic === item ? 'topic-item--on' : ''}}"
+          wx:for="{{hotTopics}}"
+          wx:key="*this"
+          data-topic="{{item}}"
+          bindtap="onSelectTopic"
+        >
+          <text class="topic-item__hash">#</text>
+          <text class="topic-item__name">{{item}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="topic-panel__close" bindtap="onCloseTopic">关闭</view>
+  </view>
+</view>
+
+</view>

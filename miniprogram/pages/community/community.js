@@ -233,9 +233,33 @@ Page({
     this.setData({ filteredPosts: result })
   },
 
-  // ==================== 点赞 ====================
+  // ==================== 统一实名拦截 ====================
+  _requireAuth(action) {
+    const info1 = wx.getStorageSync('userRealNameInfo');
+    const info2 = wx.getStorageSync('userAuthStatus');
+    const isAuthed = !!(
+      (info1 && info1.verified) || info2 === true
+    );
+    if (!isAuthed) {
+      wx.showModal({
+        title: '需要实名认证',
+        content: `${action}需要完成实名认证，请前往「我的」页面完成认证。`,
+        confirmText: '去认证',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            wx.switchTab({ url: '/pages/mine/mine' });
+          }
+        },
+      });
+      return false;
+    }
+    return true;
+  },
 
+  // ==================== 点赞（需实名） ====================
   onLikeTap(e) {
+    if (!this._requireAuth('点赞')) return;
     const { id } = e.currentTarget.dataset
     const updateList = (list) => list.map(p => {
       if (p.id === id) {
@@ -250,9 +274,9 @@ Page({
     // 预留后端接口：POST /api/post/like { postId: id }
   },
 
-  // ==================== 评论跳转 ====================
-
+  // ==================== 评论跳转（需实名） ====================
   onCommentTap(e) {
+    if (!this._requireAuth('评论')) return;
     const { id } = e.currentTarget.dataset
     wx.navigateTo({
       url: `/pages/community/detail/index?postId=${id}&focus=comment`
@@ -260,7 +284,6 @@ Page({
   },
 
   // ==================== 帖子详情 ====================
-
   onPostTap(e) {
     const { id } = e.currentTarget.dataset
     wx.navigateTo({
@@ -268,15 +291,15 @@ Page({
     })
   },
 
-  // ==================== 发帖 ====================
-
+  // ==================== 发帖（需实名） ====================
   onPublishTap() {
+    if (!this._requireAuth('发帖')) return;
     wx.navigateTo({ url: '/pages/community/publish/index' })
   },
 
-  // ==================== 分享菜单 ====================
-
+  // ==================== 分享菜单（需实名） ====================
   onShareTap(e) {
+    if (!this._requireAuth('转发')) return;
     const { id } = e.currentTarget.dataset
     const post = this.data.posts.find(p => p.id === id) || null
     this.setData({ showShareMenu: true, currentSharePost: post })
@@ -527,7 +550,6 @@ Page({
   },
 
   // ==================== 实名校验守卫 ====================
-
   _checkRealNameGuard() {
     if (!this.data.isRealNameVerified) {
       wx.showModal({
@@ -537,7 +559,7 @@ Page({
         cancelText: '取消',
         success(res) {
           if (res.confirm) {
-            wx.navigateTo({ url: '/pages/community/user/index' })
+            wx.switchTab({ url: '/pages/mine/mine' })
           }
         }
       })
@@ -547,7 +569,6 @@ Page({
   },
 
   // ==================== 关注 ====================
-
   onFollowTap() {
     wx.navigateTo({ url: '/pages/community/follow/index' })
   },
