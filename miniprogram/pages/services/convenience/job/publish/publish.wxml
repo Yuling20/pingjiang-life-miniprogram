@@ -1,82 +1,265 @@
-<view class="container">
+<!-- pages/services/convenience/job/publish/publish.wxml -->
+<view class="page">
 
-<!-- 表单区 -->
-<view class="section">
-  <view class="section__title">招聘信息</view>
-  <view class="form-item">
-    <text class="form-item__label">职位标题</text>
-    <input class="form-item__input" placeholder="请输入职位名称"
-      data-field="title" bindinput="onFormInput" value="{{form.title}}" />
+<!-- ═══ 步骤条 ═══ -->
+<view class="steps-bar">
+  <view class="step">
+    <view class="step__dot step__dot--done">✓</view>
+    <text class="step__label step__label--done">选择类型</text>
   </view>
-  <view class="form-item">
-    <text class="form-item__label">岗位描述</text>
-    <textarea class="form-item__textarea" placeholder="请输入岗位描述、要求等"
-      data-field="content" bindinput="onFormInput" value="{{form.content}}" />
-  </view>
-  <view class="form-item">
-    <text class="form-item__label">联系方式</text>
-    <input class="form-item__input" placeholder="请输入联系电话或微信"
-      data-field="contact" bindinput="onFormInput" value="{{form.contact}}" />
+  <view class="step__line"></view>
+  <view class="step">
+    <view class="step__dot step__dot--active">2</view>
+    <text class="step__label step__label--active">填写信息</text>
   </view>
 </view>
 
-<!-- ===== 删除原有旧套餐+旧支付+旧优惠券，替换为新套餐结构 ===== -->
-<!-- 限时优惠提示 -->
-<view class="promo-tip">限时优惠券抵扣，免费发布</view>
+<!-- ═══ 已选类型标签 ═══ -->
+<view class="type-badge-wrap">
+  <view class="type-badge">{{jobTypeLabel}}</view>
+</view>
 
-<!-- 套餐选择 -->
-<view class="package-section">
-  <view class="section-title">选择发布套餐</view>
-  
-  <!-- 基础套餐 -->
-  <view class="package-card {{selectedPackage === 'basic' ? 'active' : ''}}" bindtap="selectPackage" data-type="basic">
-    <view class="package-header">基础宣传</view>
-    <view class="package-info">
-      <text class="duration">7天展示</text>
-      <text class="original-price">¥10</text>
-      <text class="discount-price">¥6</text>
-      <text class="points-cost">或 60积分</text>
+<!-- ════════════════════════════════════════════════════
+     一、职位信息表单
+════════════════════════════════════════════════════ -->
+<view class="card">
+  <view class="card__title">招聘信息</view>
+
+  <!-- 职位名称 -->
+  <view class="form-item">
+    <text class="form-label">职位名称 <text class="req">*</text></text>
+    <input
+      class="form-input {{formErrors.title ? 'input-error' : ''}}"
+      placeholder="请输入职位名称，如：前台收银员"
+      data-field="title"
+      bindinput="onFormInput"
+      value="{{form.title}}"
+      maxlength="30"
+    />
+    <text class="error-tip" wx:if="{{formErrors.title}}">{{formErrors.title}}</text>
+  </view>
+
+  <!-- 薪资范围 -->
+  <view class="form-item">
+    <text class="form-label">薪资范围 <text class="req">*</text></text>
+    <input
+      class="form-input {{formErrors.salary ? 'input-error' : ''}}"
+      placeholder="示例：3000-4500元/月 或 150/天"
+      data-field="salary"
+      bindinput="onFormInput"
+      value="{{form.salary}}"
+      maxlength="40"
+    />
+    <text class="error-tip" wx:if="{{formErrors.salary}}">{{formErrors.salary}}</text>
+  </view>
+
+  <!-- 工作地址 -->
+  <view class="form-item">
+    <text class="form-label">工作地址 <text class="req">*</text></text>
+    <view class="addr-wrap">
+      <input
+        class="form-input addr-input {{formErrors.address ? 'input-error' : ''}}"
+        placeholder="请输入或选择工作地点"
+        data-field="address"
+        bindinput="onFormInput"
+        value="{{form.address}}"
+        maxlength="80"
+      />
+      <view class="addr-btn-group">
+        <view class="addr-btn" bindtap="getLocation">📍 定位</view>
+        <view class="addr-btn" bindtap="chooseLocation">🗺️ 地图</view>
+      </view>
+    </view>
+    <text class="error-tip" wx:if="{{formErrors.address}}">{{formErrors.address}}</text>
+  </view>
+
+  <!-- 职位描述 -->
+  <view class="form-item">
+    <text class="form-label">职位描述 <text class="req">*</text></text>
+    <text class="form-hint">请描述工作内容、工作时间等信息</text>
+    <text class="form-warn">注意：请勿填写任何联系方式</text>
+    <textarea
+      class="form-textarea {{formErrors.description ? 'input-error' : ''}}"
+      placeholder="请填写工作内容、工作时间等"
+      data-field="description"
+      bindinput="onFormInput"
+      value="{{form.description}}"
+      maxlength="500"
+      auto-height
+    />
+    <text class="error-tip" wx:if="{{formErrors.description}}">{{formErrors.description}}</text>
+  </view>
+
+  <!-- 任职要求 -->
+  <view class="form-item">
+    <text class="form-label">任职要求</text>
+    <text class="form-hint">请填写学历、经验、技能等要求</text>
+    <text class="form-warn">注意：请勿填写任何联系方式</text>
+    <textarea
+      class="form-textarea"
+      placeholder="请填写学历、经验、技能等要求（选填）"
+      data-field="requirement"
+      bindinput="onFormInput"
+      value="{{form.requirement}}"
+      maxlength="300"
+      auto-height
+    />
+  </view>
+
+  <!-- 违规提示 -->
+  <view class="rule-tip">
+    <text class="rule-tip__icon">🚫</text>
+    <text class="rule-tip__text">
+      严禁在发布内容中填写电话、微信、QQ等联系方式，
+      违规内容将被自动拦截，请通过平台提供的安全通道与应聘者联系。
+    </text>
+  </view>
+
+  <!-- 风险声明 -->
+  <view class="risk-tip">
+    <text class="risk-tip__icon">⚠️</text>
+    <text class="risk-tip__text">
+      平台不担保线下招聘安全，谨防诈骗，平台不承担任何线下交易责任。
+    </text>
+  </view>
+</view>
+
+<!-- ════════════════════════════════════════════════════
+     二、虚拟号说明 + 限时优惠
+════════════════════════════════════════════════════ -->
+<view class="notice-bar">
+  <text class="notice-bar__icon">🔒</text>
+  <text class="notice-bar__text">
+    开通后，用户将通过虚拟号联系您，既能避免真实号码被骚扰，
+    又能让有真实需求的求职者及时联系到您。
+  </text>
+</view>
+
+<view class="promo-bar">
+  <text class="promo-bar__icon">🎉</text>
+  <text class="promo-bar__text">限时优惠券抵扣，免费发布</text>
+</view>
+
+<!-- ════════════════════════════════════════════════════
+     三、基础套餐（必选）
+════════════════════════════════════════════════════ -->
+<view class="card">
+  <view class="card__title">
+    选择发布套餐
+    <text class="card__title--sub">必选一个基础套餐</text>
+  </view>
+
+  <view class="pkg-grid">
+    <view
+      wx:for="{{publishPackages}}"
+      wx:key="id"
+      class="pkg-card {{selectedPublishPkg === item.id ? 'pkg-card--active' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="onSelectPublishPkg"
+    >
+      <view class="pkg-card__tag" wx:if="{{item.tag}}">{{item.tag}}</view>
+      <view class="pkg-card__check {{selectedPublishPkg === item.id ? 'pkg-card__check--on' : ''}}">
+        <text wx:if="{{selectedPublishPkg === item.id}}">✓</text>
+      </view>
+      <text class="pkg-card__name">{{item.name}}</text>
+      <text class="pkg-card__desc">{{item.desc}}</text>
+      <view class="pkg-card__price-row">
+        <text class="pkg-card__orig">原价¥{{item.originalCash}}</text>
+        <text class="pkg-card__cash">6折¥{{item.cashPrice}}</text>
+      </view>
+      <text class="pkg-card__points">或 {{item.pointsPrice}} 积分</text>
     </view>
   </view>
+</view>
 
-  <!-- 置顶套餐 -->
-  <view class="package-card {{selectedPackage === 'top' ? 'active' : ''}}" bindtap="selectPackage" data-type="top">
-    <view class="package-header">置顶推荐</view>
-    <view class="package-info">
-      <text class="duration">7天置顶</text>
-      <text class="original-price">¥30</text>
-      <text class="discount-price">¥18</text>
-      <text class="points-cost">或 180积分</text>
+<!-- ════════════════════════════════════════════════════
+     四、置顶套餐（可叠加）
+════════════════════════════════════════════════════ -->
+<view class="card">
+  <view class="card__title">
+    置顶推荐
+    <text class="card__title--sub">可叠加，提升曝光</text>
+  </view>
+
+  <view class="pkg-grid">
+    <view
+      wx:for="{{topPackages}}"
+      wx:key="id"
+      class="pkg-card {{selectedTopPkg === item.id ? 'pkg-card--active' : ''}}"
+      data-id="{{item.id}}"
+      bindtap="onSelectTopPkg"
+    >
+      <view class="pkg-card__tag pkg-card__tag--gift" wx:if="{{item.tag}}">{{item.tag}}</view>
+      <view class="pkg-card__check {{selectedTopPkg === item.id ? 'pkg-card__check--on' : ''}}">
+        <text wx:if="{{selectedTopPkg === item.id}}">✓</text>
+      </view>
+      <text class="pkg-card__name">{{item.name}}</text>
+      <text class="pkg-card__desc">{{item.desc}}</text>
+      <view class="pkg-card__price-row">
+        <text class="pkg-card__orig">原价¥{{item.originalCash}}</text>
+        <text class="pkg-card__cash">6折¥{{item.cashPrice}}</text>
+      </view>
+      <text class="pkg-card__points">或 {{item.pointsPrice}} 积分</text>
     </view>
   </view>
 </view>
 
-<!-- 支付方式 -->
-<view class="payment-section">
-  <radio-group bindchange="onPaymentChange">
-    <label class="payment-option">
-      <radio value="cash" checked="{{paymentMethod === 'cash'}}"/>现金支付
-    </label>
-    <label class="payment-option">
-      <radio value="points" checked="{{paymentMethod === 'points'}}"/>积分兑换
-    </label>
-  </radio-group>
+<!-- ════════════════════════════════════════════════════
+     五、支付方式
+════════════════════════════════════════════════════ -->
+<view class="card">
+  <view class="card__title">支付方式</view>
 
-  <label class="coupon-checkbox">
-    <checkbox checked="{{useCoupon}}" bindchange="onCouponChange"/>使用优惠券（限时免费）
-  </label>
+  <view
+    class="pay-row {{payType === 'cash' ? 'pay-row--on' : ''}}"
+    data-type="cash" bindtap="onSwitchPayType"
+  >
+    <view class="pay-row__radio {{payType === 'cash' ? 'pay-row__radio--on' : ''}}"></view>
+    <text class="pay-row__label">💳 现金支付</text>
+  </view>
+
+  <view
+    class="pay-row {{payType === 'points' ? 'pay-row--on' : ''}}"
+    data-type="points" bindtap="onSwitchPayType"
+  >
+    <view class="pay-row__radio {{payType === 'points' ? 'pay-row__radio--on' : ''}}"></view>
+    <text class="pay-row__label">🎁 积分兑换</text>
+    <text class="pay-row__hint">（当前 {{totalPoints}} 积分）</text>
+  </view>
+
+  <view
+    class="pay-row pay-row--coupon {{payType === 'coupon' ? 'pay-row--on' : ''}}"
+    data-type="coupon" bindtap="onSwitchPayType"
+    wx:if="{{couponEnabled}}"
+  >
+    <view class="pay-row__radio {{payType === 'coupon' ? 'pay-row__radio--on' : ''}}"></view>
+    <text class="pay-row__label pay-row__label--coupon">🎟️ 使用优惠券</text>
+    <text class="pay-row__coupon-tag">限时免费</text>
+  </view>
 </view>
 
-<!-- 应付金额 -->
-<view class="payment-summary">
-  <text wx:if="{{paymentMethod === 'cash'}}">应付：¥{{finalPrice}}</text>
-  <text wx:else>消耗积分：{{finalPoints}}</text>
+<!-- ═══ 应付金额 ═══ -->
+<view class="total-bar">
+  <text class="total-bar__label">应付金额：</text>
+  <text class="total-bar__amount">{{displayTotal}}</text>
 </view>
 
-<!-- 底部提交：bindtap由onSubmit改成submitJob -->
+<!-- ═══ 协议提示 ═══ -->
+<view class="agreement">
+  <text class="agreement__text">
+    发布即表示同意《招聘信息发布规范》及《平台服务协议》
+  </text>
+</view>
+
+<view class="safe-bottom"></view>
+
+<!-- ═══ 固定底部按钮 ═══ -->
 <view class="footer">
   <view class="footer__tip">招聘发布须消耗积分/现金，不赠送积分</view>
-  <view class="submit-btn" bindtap="submitJob">确认发布并支付</view>
+  <view class="footer__btn {{isSubmitting ? 'footer__btn--disabled' : ''}}" bindtap="onSubmit">
+    <text wx:if="{{!isSubmitting}}">确认发布并支付</text>
+    <text wx:else>提交中...</text>
+  </view>
 </view>
 
 </view>

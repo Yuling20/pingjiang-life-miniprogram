@@ -1,158 +1,447 @@
-page { background: #f5f5f5; }
-.container { padding: 24rpx 24rpx 160rpx; }
+/* pages/services/convenience/job/publish/publish.wxss */
 
-/* section */
-.section { background: #fff; border-radius: 16rpx; padding: 28rpx; margin-bottom: 20rpx; }
-.section__title { font-size: 28rpx; font-weight: 600; color: #222; margin-bottom: 20rpx; }
-
-/* 表单 */
-.form-item { margin-bottom: 20rpx; }
-.form-item__label { font-size: 24rpx; color: #888; margin-bottom: 8rpx; display: block; }
-.form-item__input {
-  border: 1rpx solid #eee; border-radius: 10rpx;
-  padding: 18rpx 20rpx; font-size: 26rpx; width: 100%; box-sizing: border-box;
-}
-.form-item__textarea {
-  border: 1rpx solid #eee; border-radius: 10rpx;
-  padding: 18rpx 20rpx; font-size: 26rpx; width: 100%;
-  min-height: 160rpx; box-sizing: border-box;
+page {
+  background: #F5F0E8;
+  font-family: -apple-system, 'PingFang SC', sans-serif;
 }
 
-/* 套餐网格 */
-.pkg-grid { display: flex; flex-wrap: wrap; gap: 16rpx; }
-.pkg-card {
-  flex: 1 1 calc(50% - 8rpx);
-  border: 2rpx solid #eee; border-radius: 14rpx;
-  padding: 20rpx 18rpx; position: relative;
-  box-sizing: border-box; text-align: center;
-  background: #fafafa;
+.page {
+  padding: 24rpx 24rpx 200rpx;
+  box-sizing: border-box;
 }
-.pkg-card--active { border-color: #f90; background: #fff8f0; }
-.pkg-card__tag {
-  position: absolute; top: -1rpx; right: -1rpx;
-  background: #f90; color: #fff; font-size: 18rpx;
-  padding: 4rpx 14rpx; border-radius: 0 14rpx 0 10rpx;
-}
-.pkg-card__name { font-size: 24rpx; color: #333; margin-bottom: 10rpx; }
-.pkg-card__cash { font-size: 30rpx; font-weight: 700; color: #f90; }
-.pkg-card__points { font-size: 22rpx; color: #aaa; margin-top: 4rpx; }
 
-/* 支付方式 */
-.pay-type-row { display: flex; gap: 20rpx; }
-.pay-type-btn {
-  flex: 1; text-align: center; padding: 20rpx;
-  border: 2rpx solid #eee; border-radius: 12rpx;
-  font-size: 24rpx; color: #666;
+/* ══ 步骤条 ══════════════════════════════════════════════ */
+.steps-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24rpx 0 16rpx;
 }
-.pay-type-btn--active { border-color: #f90; color: #f90; background: #fff8f0; }
 
-/* 优惠券 */
-.coupon-row {
-  display: flex; justify-content: space-between; align-items: center;
+.step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
 }
-.coupon-row__label { font-size: 26rpx; color: #e67e22; }
-.coupon-row__hint { font-size: 24rpx; color: #999; }
 
-/* 底部 */
-.footer {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  background: #fff; padding: 16rpx 32rpx;
-  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
-  box-shadow: 0 -2rpx 12rpx rgba(0,0,0,.06);
+.step__dot {
+  width: 48rpx;
+  height: 48rpx;
+  border-radius: 50%;
+  font-size: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  background: #E0E0E0;
+  color: #999;
 }
-.footer__tip { font-size: 22rpx; color: #bbb; text-align: center; margin-bottom: 12rpx; }
-.submit-btn {
-  background: #f90; color: #fff; font-size: 30rpx; font-weight: 600;
-  text-align: center; padding: 26rpx 0; border-radius: 50rpx;
+
+.step__dot--done   { background: #D4820A; color: #FFF; }
+.step__dot--active { background: #D4820A; color: #FFF; }
+
+.step__label        { font-size: 22rpx; color: #999; }
+.step__label--done  { color: #D4820A; }
+.step__label--active{ color: #D4820A; font-weight: 700; }
+
+.step__line {
+  width: 120rpx;
+  height: 2rpx;
+  background: #D4820A;
+  margin: 0 12rpx 24rpx;
 }
-.promo-tip {
-  background: linear-gradient(135deg, #FFD700, #FFA500);
-  color: #fff;
-  text-align: center;
-  padding: 12rpx 0;
-  font-size: 28rpx;
+
+/* ══ 职位类型标签 ════════════════════════════════════════ */
+.type-badge-wrap {
+  padding: 0 0 16rpx;
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 8rpx 28rpx;
+  background: #FFF0D4;
+  color: #D4820A;
+  border-radius: 24rpx;
+  font-size: 26rpx;
+  font-weight: 700;
+  border: 1rpx solid #D4820A;
+}
+
+/* ══ 卡片 ════════════════════════════════════════════════ */
+.card {
+  background: #FFF;
+  border-radius: 16rpx;
+  padding: 28rpx;
   margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,.05);
 }
 
-.package-section {
-  margin: 20rpx 0;
+.card__title {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #3D2B1F;
+  margin-bottom: 24rpx;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12rpx;
 }
 
-.section-title {
-  font-size: 32rpx;
-  font-weight: bold;
-  margin-bottom: 20rpx;
+.card__title--sub {
+  font-size: 22rpx;
+  font-weight: 400;
+  color: #999;
 }
 
-.package-card {
-  border: 2rpx solid #E0E0E0;
+/* ══ 表单 ════════════════════════════════════════════════ */
+.form-item {
+  margin-bottom: 28rpx;
+}
+
+.form-label {
+  display: block;
+  font-size: 26rpx;
+  font-weight: 600;
+  color: #5A4030;
+  margin-bottom: 8rpx;
+}
+
+.req { color: #C0392B; margin-left: 4rpx; }
+
+.form-hint {
+  display: block;
+  font-size: 22rpx;
+  color: #AAAAAA;
+  margin-bottom: 4rpx;
+}
+
+.form-warn {
+  display: block;
+  font-size: 22rpx;
+  color: #E67E22;
+  margin-bottom: 10rpx;
+}
+
+.form-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1rpx solid #D4C4B0;
   border-radius: 12rpx;
-  padding: 24rpx;
-  margin-bottom: 20rpx;
+  padding: 20rpx 24rpx;
+  font-size: 26rpx;
+  color: #3D2B1F;
   background: #FFF;
 }
 
-.package-card.active {
+.form-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1rpx solid #D4C4B0;
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+  font-size: 26rpx;
+  color: #3D2B1F;
+  background: #FFF;
+  min-height: 160rpx;
+  line-height: 1.7;
+}
+
+.input-error { border-color: #C0392B !important; }
+
+.error-tip {
+  display: block;
+  font-size: 22rpx;
+  color: #C0392B;
+  margin-top: 8rpx;
+}
+
+/* 地址行 */
+.addr-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.addr-input { width: 100%; }
+
+.addr-btn-group {
+  display: flex;
+  gap: 16rpx;
+}
+
+.addr-btn {
+  flex: 1;
+  padding: 16rpx 0;
+  background: #FFF0D4;
+  border: 1rpx solid #D4820A;
+  border-radius: 10rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: #D4820A;
+  font-weight: 600;
+}
+
+/* 违规提示 */
+.rule-tip {
+  display: flex;
+  align-items: flex-start;
+  padding: 20rpx 24rpx;
+  background: #FFF5F5;
+  border-radius: 12rpx;
+  margin-bottom: 16rpx;
+  border: 1rpx solid #FFD0D0;
+  gap: 10rpx;
+}
+
+.rule-tip__icon { font-size: 26rpx; flex-shrink: 0; }
+.rule-tip__text { font-size: 22rpx; color: #C0392B; line-height: 1.6; }
+
+/* 风险声明 */
+.risk-tip {
+  display: flex;
+  align-items: flex-start;
+  padding: 20rpx 24rpx;
+  background: #FFFDE7;
+  border-radius: 12rpx;
+  border: 1rpx solid #FFE082;
+  gap: 10rpx;
+}
+
+.risk-tip__icon { font-size: 26rpx; flex-shrink: 0; }
+.risk-tip__text { font-size: 22rpx; color: #856404; line-height: 1.6; }
+
+/* ══ 虚拟号提示条 ════════════════════════════════════════ */
+.notice-bar {
+  display: flex;
+  align-items: flex-start;
+  background: #EAF4FB;
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 20rpx;
+  gap: 12rpx;
+}
+
+.notice-bar__icon { font-size: 28rpx; flex-shrink: 0; }
+.notice-bar__text { font-size: 24rpx; color: #3A7CA5; line-height: 1.7; }
+
+/* ══ 限时优惠提示条 ══════════════════════════════════════ */
+.promo-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  background: linear-gradient(135deg, #FFD700, #FFA500);
+  border-radius: 12rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.promo-bar__icon { font-size: 28rpx; }
+.promo-bar__text { font-size: 28rpx; color: #FFF; font-weight: 700; }
+
+/* ══ 套餐网格 ════════════════════════════════════════════ */
+.pkg-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20rpx;
+}
+
+.pkg-card {
+  flex: 1 1 calc(50% - 10rpx);
+  min-width: 260rpx;
+  box-sizing: border-box;
+  border: 2rpx solid #E0E0E0;
+  border-radius: 16rpx;
+  padding: 20rpx 18rpx 18rpx;
+  position: relative;
+  background: #FAFAFA;
+}
+
+.pkg-card--active {
   border-color: #D4820A;
   background: #FFF8EE;
 }
 
-.package-header {
-  font-size: 30rpx;
-  font-weight: bold;
-  margin-bottom: 12rpx;
+.pkg-card__tag {
+  position: absolute;
+  top: -1rpx; right: -1rpx;
+  background: #D4820A;
+  color: #FFF;
+  font-size: 18rpx;
+  font-weight: 700;
+  padding: 4rpx 16rpx;
+  border-radius: 0 14rpx 0 12rpx;
 }
 
-.package-info {
+.pkg-card__tag--gift { background: #E53935; }
+
+.pkg-card__check {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  border: 2rpx solid #E0E0E0;
+  background: #FFF;
   display: flex;
   align-items: center;
-  gap: 16rpx;
-  flex-wrap: wrap;
+  justify-content: center;
+  font-size: 20rpx;
+  color: transparent;
+  margin-bottom: 10rpx;
 }
 
-.duration {
-  font-size: 26rpx;
-  color: #666;
+.pkg-card__check--on {
+  border-color: #D4820A;
+  background: #D4820A;
+  color: #FFF;
 }
 
-.original-price {
-  font-size: 24rpx;
+.pkg-card__name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #333;
+  margin-bottom: 6rpx;
+}
+
+.pkg-card__desc {
+  display: block;
+  font-size: 22rpx;
   color: #999;
+  margin-bottom: 14rpx;
+}
+
+.pkg-card__price-row {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-bottom: 8rpx;
+}
+
+.pkg-card__orig {
+  font-size: 20rpx;
+  color: #AAA;
   text-decoration: line-through;
 }
 
-.discount-price {
-  font-size: 32rpx;
+.pkg-card__cash {
+  font-size: 30rpx;
+  font-weight: 700;
   color: #D4820A;
-  font-weight: bold;
 }
 
-.points-cost {
-  font-size: 26rpx;
-  color: #666;
-}
-
-.payment-section {
-  margin: 30rpx 0;
-}
-
-.payment-option {
+.pkg-card__points {
   display: block;
+  font-size: 22rpx;
+  color: #888;
+}
+
+/* ══ 支付方式 ════════════════════════════════════════════ */
+.pay-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 24rpx 20rpx;
+  border: 2rpx solid #EEE;
+  border-radius: 12rpx;
+  margin-bottom: 16rpx;
+  background: #FAFAFA;
+}
+
+.pay-row--on { border-color: #D4820A; background: #FFF8EE; }
+.pay-row--coupon { border-color: #FFD700; }
+.pay-row--coupon.pay-row--on { border-color: #D4820A; }
+
+.pay-row__radio {
+  width: 36rpx;
+  height: 36rpx;
+  border-radius: 50%;
+  border: 2rpx solid #CCC;
+  background: #FFF;
+  flex-shrink: 0;
+}
+
+.pay-row__radio--on {
+  border-color: #D4820A;
+  background: #D4820A;
+  box-shadow: inset 0 0 0 6rpx #FFF;
+}
+
+.pay-row__label { font-size: 28rpx; color: #333; }
+.pay-row__label--coupon { color: #D4820A; font-weight: 700; }
+.pay-row__hint { font-size: 22rpx; color: #999; }
+
+.pay-row__coupon-tag {
+  margin-left: auto;
+  font-size: 20rpx;
+  color: #FFF;
+  background: #E53935;
+  border-radius: 6rpx;
+  padding: 4rpx 12rpx;
+  font-weight: 700;
+}
+
+/* ══ 应付金额 ════════════════════════════════════════════ */
+.total-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 20rpx 28rpx;
+  background: #FFF;
+  border-radius: 16rpx;
   margin-bottom: 20rpx;
-  font-size: 28rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,.05);
+  gap: 8rpx;
 }
 
-.coupon-checkbox {
-  display: block;
-  margin-top: 30rpx;
-  font-size: 28rpx;
-  color: #D4820A;
-}
+.total-bar__label { font-size: 26rpx; color: #666; }
+.total-bar__amount { font-size: 40rpx; font-weight: 700; color: #D4820A; }
 
-.payment-summary {
+/* ══ 协议 ════════════════════════════════════════════════ */
+.agreement {
   text-align: center;
-  font-size: 36rpx;
-  font-weight: bold;
-  color: #D4820A;
-  margin: 30rpx 0;
+  padding: 0 24rpx 16rpx;
+}
+
+.agreement__text {
+  font-size: 20rpx;
+  color: #BBB;
+  line-height: 1.6;
+}
+
+/* ══ 底部安全区 ══════════════════════════════════════════ */
+.safe-bottom { height: 40rpx; }
+
+/* ══ 固定底部 ════════════════════════════════════════════ */
+.footer {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  background: #FFF;
+  padding: 16rpx 32rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+  box-shadow: 0 -2rpx 16rpx rgba(0,0,0,.08);
+  z-index: 100;
+}
+
+.footer__tip {
+  font-size: 22rpx;
+  color: #BBB;
+  text-align: center;
+  margin-bottom: 14rpx;
+}
+
+.footer__btn {
+  background: linear-gradient(135deg, #F0A840, #D4820A);
+  color: #FFF;
+  font-size: 30rpx;
+  font-weight: 700;
+  text-align: center;
+  padding: 28rpx 0;
+  border-radius: 50rpx;
+  letter-spacing: 2rpx;
+}
+
+.footer__btn--disabled {
+  opacity: 0.6;
 }

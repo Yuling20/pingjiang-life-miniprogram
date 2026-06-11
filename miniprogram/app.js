@@ -1,19 +1,60 @@
 // app.js
 App({
-  onLaunch: function () {
-    console.log('平江汇生活小程序启动');
+  globalData: {
+    communityInitCategory: null,
 
-    // 云开发初始化（如已开通云开发则保留，否则可删除这段）
-    // wx.cloud.init({ env: '你的云环境ID', traceUser: true })
+    // ✅ 开发模式开关：上线前改为 false
+    // 为 true 时跳过实名拦截，并自动写入实名缓存
+    DEV_MODE: true,
   },
 
-  globalData: {
-    userInfo: null,
-    // 豆包API配置（临时放这里，上线前移到云函数）
-    doubaoConfig: {
-      apiKey: 'ark-daf061d4-f178-4bb6-83a4-d6768fd152d1-f010c',   // ⚠️ 替换成控制台复制的真实Key
-      endpoint: 'ep-20260526225719-ntbpw',
-      model: 'doubao-seed-2-0-mini-250428'
+  onLaunch() {
+    this._initDevAuth()
+    this._initUserInfo()
+  },
+
+  // ─── 开发模式：自动写入实名状态 ──────────────────
+  _initDevAuth() {
+    if (!this.globalData.DEV_MODE) return
+
+    // 写入两种格式，兼容所有页面的校验逻辑
+    try {
+      const existing1 = wx.getStorageSync('userRealNameInfo')
+      const existing2 = wx.getStorageSync('userAuthStatus')
+
+      // 只在未设置时写入，避免覆盖真实用户数据
+      if (!existing1 || !existing1.verified) {
+        wx.setStorageSync('userRealNameInfo', {
+          verified: true,
+          name: '开发者',
+          idCard: '430000199001010000', // 脱敏占位
+          verifiedAt: new Date().toISOString(),
+        })
+      }
+      if (existing2 !== true) {
+        wx.setStorageSync('userAuthStatus', true)
+      }
+
+      console.log('[DEV] 已自动写入实名认证状态')
+    } catch (e) {
+      console.warn('[DEV] 写入实名状态失败', e)
     }
-  }
-});
+  },
+
+  // ─── 初始化用户基本信息 ───────────────────────────
+  _initUserInfo() {
+    try {
+      wx.getSetting({
+        success: (res) => {
+          if (res.authSetting['scope.userInfo']) {
+            wx.getUserInfo({
+              success: (userRes) => {
+                this.globalData.userInfo = userRes.userInfo
+              }
+            })
+          }
+        }
+      })
+    } catch (e) {}
+  },
+})

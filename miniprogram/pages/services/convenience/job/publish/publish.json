@@ -1,4 +1,7 @@
 {
-  "navigationBarTitleText": "发布招聘",
+  "navigationBarTitleText": "发布职位",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#F5F0E8",
   "usingComponents": {}
 }

@@ -122,9 +122,9 @@ Page({
     showDetail: false,
     currentJob: null,
 
-    // ---- 发布弹窗 ----
+    // ---- 发布弹窗（只保留步骤1：选择类型） ----
     showPublish: false,
-    publishStep: 1, // 1=类型选择 2=填写信息
+    publishStep: 1,
     jobTypes: JOB_TYPES,
     publishForm: {
       type: '',
@@ -294,6 +294,7 @@ Page({
   stopPropagation() {},
 
   // ===================== 发布职位 =====================
+  // ✅ 改动1：openPublish 恢复为打开弹窗（步骤1选类型）
   openPublish() {
     if (!this.data.isRealName) {
       this.doRealNameAuth();
@@ -329,12 +330,17 @@ Page({
     });
   },
 
+  // ✅ 改动2：goPublishStep2 改为跳转 publish 页，携带类型参数
   goPublishStep2() {
     if (!this.data.publishForm.type) {
       wx.showToast({ title: '请选择招聘类型', icon: 'none' });
       return;
     }
-    this.setData({ publishStep: 2 });
+    const { type, typeLabel } = this.data.publishForm;
+    this.setData({ showPublish: false });
+    wx.navigateTo({
+      url: `/pages/services/convenience/job/publish/publish?jobType=${type}&jobTypeLabel=${encodeURIComponent(typeLabel)}`,
+    });
   },
 
   backPublishStep1() {
