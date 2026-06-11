@@ -869,6 +869,7 @@ page {
   padding: 0 32rpx;
 }
 
+/* 旧标题样式（被下方新样式覆盖） */
 .resume-section-title {
   font-size: 28rpx;
   font-weight: 700;
@@ -992,4 +993,109 @@ page {
 .type-short {
   background: #FFF3E0;
   color: #E65100;
+}
+
+/* ══ 我的简历弹窗输入修复 ═══════════════════════════════ */
+/* 简历弹窗外层滚动限制 */
+.resume-modal {
+  max-height: 85vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* 简历板块标题（覆盖旧样式，左侧竖线） */
+.resume-section-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #D4820A;
+  border-left: 6rpx solid #D4820A;
+  padding-left: 16rpx;
+  margin: 30rpx 0 20rpx;
+  border-bottom: none;
+}
+
+/* 简历单行输入框 替换原有 form-input */
+.resume-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx;
+  background: #F8F4EE;
+  border-radius: 12rpx;
+  border: 2rpx solid #E8E0D0;
+  font-size: 28rpx;
+  color: #333333;
+  min-height: 80rpx;
+  display: flex;
+  align-items: center;
+  line-height: 1.5;
+}
+
+/* 简历下拉选择框 替换原有 form-picker */
+.resume-picker {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx;
+  background: #F8F4EE;
+  border-radius: 12rpx;
+  border: 2rpx solid #E8E0D0;
+  font-size: 28rpx;
+  color: #333333;
+  min-height: 80rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.resume-picker__placeholder {
+  color: #BBBBBB;
+  font-size: 26rpx;
+}
+
+.resume-picker__arrow {
+  font-size: 22rpx;
+  color: #AAAAAA;
+}
+
+/* 简历多行文本框 替换原有 form-textarea */
+.resume-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 20rpx 24rpx;
+  background: #F8F4EE;
+  border-radius: 12rpx;
+  border: 2rpx solid #E8E0D0;
+  font-size: 28rpx;
+  color: #333333;
+  line-height: 1.7;
+  min-height: 220rpx;
+  height: auto;
+}
+
+/* placeholder 统一颜色 */
+.resume-input::placeholder,
+.resume-textarea::placeholder {
+  color: #BBBBBB;
+  font-size: 26rpx;
+}
+
+/* 简历表单项间距 */
+.resume-form-item {
+  margin-bottom: 24rpx;
+}
+
+.resume-form-label {
+  font-size: 24rpx;
+  color: #666666;
+  margin-bottom: 10rpx;
+  display: block;
+}
+
+/* 同行布局：性别+年龄 */
+.resume-row {
+  display: flex;
+  gap: 20rpx;
+}
+
+.resume-row .resume-form-item {
+  flex: 1;
 }

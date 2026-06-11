@@ -53,7 +53,7 @@
     <text class="error-tip" wx:if="{{formErrors.salary}}">{{formErrors.salary}}</text>
   </view>
 
-  <!-- 工作地址 -->
+  <!-- 工作地址（已修改：只保留地图按钮） -->
   <view class="form-item">
     <text class="form-label">工作地址 <text class="req">*</text></text>
     <view class="addr-wrap">
@@ -66,7 +66,6 @@
         maxlength="80"
       />
       <view class="addr-btn-group">
-        <view class="addr-btn" bindtap="getLocation">📍 定位</view>
         <view class="addr-btn" bindtap="chooseLocation">🗺️ 地图</view>
       </view>
     </view>
@@ -75,7 +74,7 @@
 
   <!-- 职位描述 -->
   <view class="form-item">
-    <text class="form-label">职位描述 <text class="req">*</text></text>
+    <text class="form-label">职位描述 <text class>req">*</text></text>
     <text class="form-hint">请描述工作内容、工作时间等信息</text>
     <text class="form-warn">注意：请勿填写任何联系方式</text>
     <textarea

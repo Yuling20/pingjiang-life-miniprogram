@@ -110,38 +110,22 @@ Page({
   },
 
   // ══════════════════════════════════════════════════════
-  //  定位 / 地图选点
+  //  地图选点（按截图方案修改）
   // ══════════════════════════════════════════════════════
-  getLocation() {
-    wx.showLoading({ title: '定位中...' });
-    wx.getLocation({
-      type: 'gcj02',
-      success: (res) => {
-        wx.hideLoading();
-        this.setData({
-          'form.latitude':  res.latitude,
-          'form.longitude': res.longitude,
-          'form.address':   `当前位置（${res.latitude.toFixed(4)}, ${res.longitude.toFixed(4)}）`,
-        });
-        wx.showToast({ title: '定位成功', icon: 'success' });
-      },
-      fail: () => {
-        wx.hideLoading();
-        wx.showToast({ title: '定位失败，请手动输入地址', icon: 'none' });
-      },
-    });
-  },
-
-  chooseLocation() {
+  onOpenMap() {
     wx.chooseLocation({
       success: (res) => {
         this.setData({
-          'form.address':   res.name || res.address,
+          'form.address': res.address || res.name,
           'form.latitude':  res.latitude,
           'form.longitude': res.longitude,
         });
       },
-      fail: () => wx.showToast({ title: '取消选择', icon: 'none' }),
+      fail: (err) => {
+        if (err.errMsg && err.errMsg.indexOf('cancel') === -1) {
+          wx.showToast({ title: '地图选点失败', icon: 'none' });
+        }
+      },
     });
   },
 

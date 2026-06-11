@@ -249,7 +249,7 @@
         <text class="error-tip" wx:if="{{publishErrors.salary}}">{{publishErrors.salary}}</text>
       </view>
 
-      <!-- 工作地址 -->
+      <!-- 工作地址（修改：只保留地图按钮） -->
       <view class="form-item">
         <view class="form-label required">工作地址</view>
         <view class="address-input-wrap">
@@ -262,8 +262,7 @@
             maxlength="80"
           />
           <view class="address-btns">
-            <view class="addr-btn" bindtap="getLocation">📍 定位</view>
-            <view class="addr-btn" bindtap="chooseLocation">🗺️ 地图</view>
+            <view class="addr-btn" bindtap="chooseLocation">🗺️ 地图定位</view>
           </view>
         </view>
         <text class="error-tip" wx:if="{{publishErrors.address}}">{{publishErrors.address}}</text>
@@ -320,9 +319,9 @@
   </view>
 </view>
 
-<!-- ===================== 简历弹窗 ===================== -->
+<!-- ===================== 简历弹窗（修复版） ===================== -->
 <view class="modal-mask" wx:if="{{showResume}}" bindtap="closeResume">
-  <view class="modal-sheet resume-sheet" catchtap="stopPropagation">
+  <view class="modal-sheet resume-sheet resume-modal" catchtap="stopPropagation">
     <view class="sheet-handle"></view>
 
     <!-- 简历标题 -->
@@ -337,76 +336,76 @@
 
       <view class="resume-section-title">📋 基本信息</view>
 
-      <view class="form-item">
-        <view class="form-label required">姓名</view>
-        <input class="form-input {{resumeErrors.name ? 'input-error' : ''}}" placeholder="请输入您的真实姓名" value="{{resumeForm.name}}" bindinput="onResumeInput" data-field="name" maxlength="10" />
+      <view class="resume-form-item">
+        <view class="resume-form-label required">姓名</view>
+        <input class="resume-input {{resumeErrors.name ? 'input-error' : ''}}" placeholder="请输入您的真实姓名" value="{{resumeForm.name}}" bindinput="onResumeInput" data-field="name" maxlength="10" />
         <text class="error-tip" wx:if="{{resumeErrors.name}}">{{resumeErrors.name}}</text>
       </view>
 
-      <view class="form-row">
-        <view class="form-item form-half">
-          <view class="form-label">性别</view>
+      <view class="resume-row">
+        <view class="resume-form-item">
+          <view class="resume-form-label">性别</view>
           <picker mode="selector" range="{{genderOptions}}" value="{{genderIndex}}" bindchange="onGenderChange">
-            <view class="form-picker">
-              <text>{{resumeForm.gender || '请选择'}}</text>
-              <text class="picker-arrow">▼</text>
+            <view class="resume-picker">
+              <text class="{{resumeForm.gender ? '' : 'resume-picker__placeholder'}}">{{resumeForm.gender || '请选择'}}</text>
+              <text class="resume-picker__arrow">▼</text>
             </view>
           </picker>
         </view>
-        <view class="form-item form-half">
-          <view class="form-label">年龄</view>
-          <input class="form-input" placeholder="如：25" value="{{resumeForm.age}}" bindinput="onResumeInput" data-field="age" type="number" maxlength="3" />
+        <view class="resume-form-item">
+          <view class="resume-form-label">年龄</view>
+          <input class="resume-input" placeholder="如：25" value="{{resumeForm.age}}" bindinput="onResumeInput" data-field="age" type="number" maxlength="3" />
         </view>
       </view>
 
-      <view class="form-item">
-        <view class="form-label required">联系电话</view>
-        <input class="form-input {{resumeErrors.phone ? 'input-error' : ''}}" placeholder="请输入手机号" value="{{resumeForm.phone}}" bindinput="onResumeInput" data-field="phone" type="number" maxlength="11" />
+      <view class="resume-form-item">
+        <view class="resume-form-label required">联系电话</view>
+        <input class="resume-input {{resumeErrors.phone ? 'input-error' : ''}}" placeholder="请输入手机号" value="{{resumeForm.phone}}" bindinput="onResumeInput" data-field="phone" type="number" maxlength="11" />
         <text class="error-tip" wx:if="{{resumeErrors.phone}}">{{resumeErrors.phone}}</text>
       </view>
 
-      <view class="form-item">
-        <view class="form-label">邮箱</view>
-        <input class="form-input" placeholder="请输入邮箱地址（选填）" value="{{resumeForm.email}}" bindinput="onResumeInput" data-field="email" maxlength="50" />
+      <view class="resume-form-item">
+        <view class="resume-form-label">邮箱</view>
+        <input class="resume-input" placeholder="请输入邮箱地址（选填）" value="{{resumeForm.email}}" bindinput="onResumeInput" data-field="email" maxlength="50" />
       </view>
 
       <view class="resume-section-title">🎓 教育背景</view>
 
-      <view class="form-row">
-        <view class="form-item form-half">
-          <view class="form-label required">最高学历</view>
+      <view class="resume-row">
+        <view class="resume-form-item">
+          <view class="resume-form-label required">最高学历</view>
           <picker mode="selector" range="{{educationOptions}}" value="{{educationIndex}}" bindchange="onEducationChange">
-            <view class="form-picker {{resumeErrors.education ? 'input-error' : ''}}">
-              <text>{{resumeForm.education || '请选择'}}</text>
-              <text class="picker-arrow">▼</text>
+            <view class="resume-picker {{resumeErrors.education ? 'input-error' : ''}}">
+              <text class="{{resumeForm.education ? '' : 'resume-picker__placeholder'}}">{{resumeForm.education || '请选择'}}</text>
+              <text class="resume-picker__arrow">▼</text>
             </view>
           </picker>
           <text class="error-tip" wx:if="{{resumeErrors.education}}">{{resumeErrors.education}}</text>
         </view>
-        <view class="form-item form-half">
-          <view class="form-label">专业</view>
-          <input class="form-input" placeholder="所学专业" value="{{resumeForm.major}}" bindinput="onResumeInput" data-field="major" maxlength="20" />
+        <view class="resume-form-item">
+          <view class="resume-form-label">专业</view>
+          <input class="resume-input" placeholder="所学专业" value="{{resumeForm.major}}" bindinput="onResumeInput" data-field="major" maxlength="20" />
         </view>
       </view>
 
-      <view class="form-item">
-        <view class="form-label">毕业院校</view>
-        <input class="form-input" placeholder="请输入毕业院校" value="{{resumeForm.school}}" bindinput="onResumeInput" data-field="school" maxlength="30" />
+      <view class="resume-form-item">
+        <view class="resume-form-label">毕业院校</view>
+        <input class="resume-input" placeholder="请输入毕业院校" value="{{resumeForm.school}}" bindinput="onResumeInput" data-field="school" maxlength="30" />
       </view>
 
       <view class="resume-section-title">💼 工作经历</view>
-      <view class="form-item">
-        <textarea class="form-textarea" placeholder="请描述您的工作经历（时间、公司、职位、主要职责）" value="{{resumeForm.workExp}}" bindinput="onResumeInput" data-field="workExp" maxlength="800" auto-height />
+      <view class="resume-form-item">
+        <textarea class="resume-textarea" placeholder="请描述您的工作经历（时间、公司、职位、主要职责）" value="{{resumeForm.workExp}}" bindinput="onResumeInput" data-field="workExp" maxlength="800" auto-height />
       </view>
 
       <view class="resume-section-title">🔧 技能特长</view>
-      <view class="form-item">
-        <textarea class="form-textarea" placeholder="如：熟练使用Office办公软件、有驾照等" value="{{resumeForm.skills}}" bindinput="onResumeInput" data-field="skills" maxlength="300" auto-height />
+      <view class="resume-form-item">
+        <textarea class="resume-textarea" placeholder="如：熟练使用Office办公软件、有驾照等" value="{{resumeForm.skills}}" bindinput="onResumeInput" data-field="skills" maxlength="300" auto-height />
       </view>
 
       <view class="resume-section-title">🙋 自我介绍</view>
-      <view class="form-item">
-        <textarea class="form-textarea" placeholder="简要介绍您的优势和求职意向" value="{{resumeForm.selfIntro}}" bindinput="onResumeInput" data-field="selfIntro" maxlength="300" auto-height />
+      <view class="resume-form-item">
+        <textarea class="resume-textarea" placeholder="简要介绍您的优势和求职意向" value="{{resumeForm.selfIntro}}" bindinput="onResumeInput" data-field="selfIntro" maxlength="300" auto-height />
       </view>
 
       <view class="resume-footer-btns">

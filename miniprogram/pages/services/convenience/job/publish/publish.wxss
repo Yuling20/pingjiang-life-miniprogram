@@ -94,17 +94,18 @@ page {
   color: #999;
 }
 
-/* ══ 表单 ════════════════════════════════════════════════ */
+/* ══ 表单（已按截图方案修复）════════════════════════════ */
+
+/* ══ 输入框通用修复 ══════════════════════════════════════ */
 .form-item {
   margin-bottom: 28rpx;
 }
 
 .form-label {
-  display: block;
   font-size: 26rpx;
-  font-weight: 600;
-  color: #5A4030;
-  margin-bottom: 8rpx;
+  color: #555555;
+  margin-bottom: 10rpx;
+  display: block;
 }
 
 .req { color: #C0392B; margin-left: 4rpx; }
@@ -123,28 +124,45 @@ page {
   margin-bottom: 10rpx;
 }
 
+/* 单行输入框 */
 .form-input {
   width: 100%;
   box-sizing: border-box;
-  border: 1rpx solid #D4C4B0;
-  border-radius: 12rpx;
   padding: 20rpx 24rpx;
-  font-size: 26rpx;
-  color: #3D2B1F;
-  background: #FFF;
+  background: #F8F4EE;
+  border-radius: 12rpx;
+  border: 2rpx solid #E8E0D0;
+  font-size: 28rpx;
+  color: #333333;
+  line-height: 1.5;
+  /* ✅ 修复：垂直居中 */
+  display: flex;
+  align-items: center;
+  min-height: 80rpx;
 }
 
+/* 多行输入框（职位描述 / 任职要求） */
 .form-textarea {
   width: 100%;
   box-sizing: border-box;
-  border: 1rpx solid #D4C4B0;
-  border-radius: 12rpx;
   padding: 20rpx 24rpx;
-  font-size: 26rpx;
-  color: #3D2B1F;
-  background: #FFF;
-  min-height: 160rpx;
+  background: #F8F4EE;
+  border-radius: 12rpx;
+  border: 2rpx solid #E8E0D0;
+  font-size: 28rpx;
+  color: #333333;
   line-height: 1.7;
+  /* ✅ 修复：高度足够，不截断 */
+  min-height: 200rpx;
+  /* ✅ 修复：自动扩展 */
+  height: auto;
+}
+
+/* placeholder 颜色 */
+.form-input::placeholder,
+.form-textarea::placeholder {
+  color: #BBBBBB;
+  font-size: 26rpx;
 }
 
 .input-error { border-color: #C0392B !important; }
@@ -156,7 +174,45 @@ page {
   margin-top: 8rpx;
 }
 
-/* 地址行 */
+/* ══ 地址行（按你的方案修改）═════════════════════════════ */
+.address-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.address-input {
+  flex: 1;
+}
+
+/* 地图按钮样式（保留并按截图方案修改） */
+.map-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100rpx;
+  height: 80rpx;
+  background: #FFF3E0;
+  border: 2rpx solid #D4820A;
+  border-radius: 12rpx;
+  flex-shrink: 0;
+  gap: 4rpx;
+}
+
+.map-btn__icon {
+  font-size: 28rpx;
+  line-height: 1;
+}
+
+.map-btn__text {
+  font-size: 20rpx;
+  color: #D4820A;
+  font-weight: 600;
+  line-height: 1;
+}
+
+/* 地址相关的旧样式已删除 */
 .addr-wrap {
   display: flex;
   flex-direction: column;
@@ -180,6 +236,16 @@ page {
   font-size: 24rpx;
   color: #D4820A;
   font-weight: 600;
+}
+
+.address-btn {
+  flex-shrink: 0;
+  padding: 12rpx 28rpx;
+  background: #FFF0D9;
+  border: 2rpx solid #D4820A;
+  border-radius: 40rpx;
+  font-size: 24rpx;
+  color: #D4820A;
 }
 
 /* 违规提示 */
