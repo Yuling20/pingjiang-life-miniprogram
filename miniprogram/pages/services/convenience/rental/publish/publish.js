@@ -66,7 +66,7 @@ Page({
     isVip: false,
   },
 
-  onLoad() {
+  onLoad(options) {
     this.setData({
       publishForm: {
         rentType: '整租',
@@ -93,6 +93,18 @@ Page({
       finalPoints: 0
     });
 
+    // ✅ 修复：兼容多种积分存储格式（与招聘发布页保持一致）
+    const pts = wx.getStorageSync('userPoints');
+    let totalPoints = 0;
+    if (typeof pts === 'number') {
+      totalPoints = pts;
+    } else if (pts && typeof pts.total === 'number') {
+      totalPoints = pts.total;
+    } else if (pts && typeof pts.totalPoints === 'number') {
+      totalPoints = pts.totalPoints;
+    }
+    this.setData({ userPoints: totalPoints });
+
     this._loadUserStatus();
   },
 
@@ -107,13 +119,15 @@ Page({
     const isAuthed = wx.getStorageSync('userAuthStatus') === true;
     const isVip    = wx.getStorageSync('userVipStatus')  === true;
 
-    // 积分格式兼容：Number 或 {total: N}
+    // 积分格式兼容：Number 或 {total: N} 或 {totalPoints: N}（与招聘发布页保持一致）
     let userPoints = 0;
     const pts = wx.getStorageSync('userPoints');
     if (typeof pts === 'number') {
       userPoints = pts;
     } else if (pts && typeof pts.total === 'number') {
       userPoints = pts.total;
+    } else if (pts && typeof pts.totalPoints === 'number') {
+      userPoints = pts.totalPoints;
     }
 
     this.setData({ isAuthed, isVip, userPoints });
@@ -403,7 +417,7 @@ Page({
 
     if (!useCoupon) {
       if (paymentMethod === 'points') {
-        // ✅ 积分支付：扣除积分（兼容两种格式）
+        // ✅ 积分支付：扣除积分（兼容多种格式，与招聘发布页保持一致）
         const pts = wx.getStorageSync('userPoints');
         const newPoints = userPoints - finalPoints;
 
@@ -411,6 +425,8 @@ Page({
           wx.setStorageSync('userPoints', newPoints);
         } else if (pts && typeof pts.total === 'number') {
           wx.setStorageSync('userPoints', { ...pts, total: newPoints });
+        } else if (pts && typeof pts.totalPoints === 'number') {
+          wx.setStorageSync('userPoints', { ...pts, totalPoints: newPoints });
         } else {
           wx.setStorageSync('userPoints', newPoints);
         }
