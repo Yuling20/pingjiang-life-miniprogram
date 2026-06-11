@@ -1,39 +1,47 @@
 <view class="home-container">
-  <view class="top-bar">
-    <view class="weather-row">
-      <text class="weather-text">☀️ {{weatherInfo.city}} {{weatherInfo.temp}} {{weatherInfo.weather}} {{weatherInfo.wind}}</text>
-      <text class="weather-air">{{weatherInfo.air}}</text>
-    </view>
-    <view class="search-row">
-      <view class="search-box">
-        <text class="search-icon">🔍</text>
-        <text class="search-placeholder">搜索服务/信息/商品</text>
+  <!-- 一体化顶部通栏 -->
+  <view class="top-hero">
+    <!-- 背景图 -->
+    <image class="top-hero__bg" src="/images/a_副本1.png" mode="aspectFill" />
+    <!-- 渐变遮罩 -->
+    <view class="top-hero__mask"></view>
+
+    <!-- 天气+搜索栏 -->
+    <view class="top-hero__header">
+      <view class="weather-row">
+        <text class="weather-text">☀️ {{weatherInfo.city}} {{weatherInfo.temp}} {{weatherInfo.weather}} {{weatherInfo.wind}}</text>
+        <text class="weather-air">{{weatherInfo.air}}</text>
       </view>
-      <!-- 【修改：删除原有两个top-icon，替换为签到标签】 -->
-      <view class="top-icons">
-        <view class="search-sign-tag" bindtap="onModalGoSign">
-          <text class="search-sign-tag__icon">📅</text>
-          <text class="search-sign-tag__text">签到</text>
+      <view class="search-row">
+        <view class="search-box">
+          <text class="search-icon">🔍</text>
+          <text class="search-placeholder">搜索服务/信息/商品</text>
+        </view>
+        <view class="top-icons">
+          <view class="search-sign-tag" bindtap="onModalGoSign">
+            <text class="search-sign-tag__icon">📅</text>
+            <text class="search-sign-tag__text">签到</text>
+          </view>
         </view>
       </view>
     </view>
+
+    <!-- 轮播横幅 -->
+    <swiper class="banner-swiper" autoplay="{{true}}" interval="4000" circular="{{true}}" indicator-dots="{{true}}" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#ffffff" bindchange="onBannerChange">
+      <swiper-item wx:for="{{bannerList}}" wx:key="id">
+        <view class="banner-card" bindtap="onBannerTap" data-item="{{item}}">
+          <text class="banner-icon">{{item.icon}}</text>
+          <view class="banner-content">
+            <text class="banner-title">{{item.title}}</text>
+            <text class="banner-desc">{{item.desc}}</text>
+            <view class="banner-btn">查看详情 ›</view>
+          </view>
+        </view>
+      </swiper-item>
+    </swiper>
   </view>
 
-  <!-- 轮播横幅 -->
-  <swiper class="banner-swiper" autoplay="{{true}}" interval="4000" circular="{{true}}" indicator-dots="{{true}}" indicator-color="rgba(255,255,255,0.5)" indicator-active-color="#ffffff" bindchange="onBannerChange">
-    <swiper-item wx:for="{{bannerList}}" wx:key="id">
-      <view class="banner-card" style="background-color: {{item.bgColor}};" bindtap="onBannerTap" data-item="{{item}}">
-        <text class="banner-icon">{{item.icon}}</text>
-        <view class="banner-content">
-          <text class="banner-title">{{item.title}}</text>
-          <text class="banner-desc">{{item.desc}}</text>
-          <view class="banner-btn">查看详情 ›</view>
-        </view>
-      </view>
-    </swiper-item>
-  </swiper>
-
-  <!-- 便民服务板块（直接衔接轮播下方） -->
+  <!-- 便民服务板块 -->
   <view class="section-card">
     <view class="section-header">
       <text class="section-title">便民服务</text>
@@ -51,32 +59,25 @@
     </view>
   </view>
 
-  <!-- ===== 平江贴吧模块（已按方案替换） ===== -->
+  <!-- 平江贴吧模块 -->
   <view class="section-block tieba-section">
     <view class="section-header">
       <text class="section-title">平江贴吧</text>
       <text class="section-more" bindtap="goToCommunity">进入社区 ›</text>
     </view>
-
-    <!-- 第一行：3个入口 -->
     <view class="tieba-grid service-grid">
-      <!-- 随手拍 → 游玩 -->
       <view class="tieba-item service-item" bindtap="goToCommunityCategory" data-category="游玩" hover-class="service-item-hover">
         <view class="tieba-icon-wrap service-icon-wrap tieba-icon-snap" style="background: #4A90D920;">
           <text class="tieba-icon service-icon">📷</text>
         </view>
         <text class="tieba-label service-name">随手拍</text>
       </view>
-
-      <!-- 求助互助 → 求助互助 -->
       <view class="tieba-item service-item" bindtap="goToCommunityCategory" data-category="求助互助" hover-class="service-item-hover">
         <view class="tieba-icon-wrap service-icon-wrap tieba-icon-help" style="background: #4A90D920;">
           <text class="tieba-icon service-icon">🤝</text>
         </view>
         <text class="tieba-label service-name">求助互助</text>
       </view>
-
-      <!-- 二手转让 → 二手交易 -->
       <view class="tieba-item service-item" bindtap="goToCommunityCategory" data-category="二手交易" hover-class="service-item-hover">
         <view class="tieba-icon-wrap service-icon-wrap tieba-icon-trade" style="background: #4A90D920;">
           <text class="tieba-icon service-icon">🛍️</text>
@@ -84,26 +85,19 @@
         <text class="tieba-label service-name">二手转让</text>
       </view>
     </view>
-
-    <!-- 第二行：3个入口 -->
     <view class="tieba-grid tieba-grid-second service-grid">
-      <!-- 今日话题 → 扯闲谈 -->
       <view class="tieba-item service-item" bindtap="goToCommunityCategory" data-category="扯闲谈" hover-class="service-item-hover">
         <view class="tieba-icon-wrap service-icon-wrap tieba-icon-topic" style="background: #4A90D920;">
           <text class="tieba-icon service-icon">💬</text>
         </view>
         <text class="tieba-label service-name">今日话题</text>
       </view>
-
-      <!-- 本地活动 → 活动 -->
       <view class="tieba-item service-item" bindtap="goToCommunityCategory" data-category="活动" hover-class="service-item-hover">
         <view class="tieba-icon-wrap service-icon-wrap tieba-icon-notice" style="background: #4A90D920;">
           <text class="tieba-icon service-icon">📢</text>
         </view>
         <text class="tieba-label service-name">本地活动</text>
       </view>
-
-      <!-- 萌宠交流 → 宠物 -->
       <view class="tieba-item service-item" bindtap="goToCommunityCategory" data-category="宠物" hover-class="service-item-hover">
         <view class="tieba-icon-wrap service-icon-wrap tieba-icon-pet" style="background: #4A90D920;">
           <text class="tieba-icon service-icon">🐾</text>
@@ -112,7 +106,6 @@
       </view>
     </view>
   </view>
-  <!-- ===== 平江贴吧模块结束 ===== -->
 
   <view class="section-card section-locked">
     <view class="section-header">
@@ -160,32 +153,23 @@
     <text class="float-ai-text">AI助手</text>
   </view>
 
-  <!-- ====== 页面末尾追加签到弹窗整体代码 ====== -->
-  <!-- ===== 签到弹窗 ===== -->
+  <!-- 签到弹窗 -->
   <view class="sign-modal-mask" wx:if="{{showSignModal}}" bindtap="onModalMaskTap">
     <view class="sign-modal" catchtap="stopPropagation">
-
-      <!-- 弹窗头部装饰 -->
       <view class="sign-modal__header">
         <view class="sign-modal__coin">🏆</view>
         <view class="sign-modal__title">签到领积分</view>
         <view class="sign-modal__subtitle">积分当钱用</view>
       </view>
-
-      <!-- 固定文案 -->
       <view class="sign-modal__desc">
         每日签到即可获得积分，积分可用于发布招聘租房等付费服务
       </view>
       <view class="sign-modal__rule-link" bindtap="onGoIntegral">
         具体规则查看积分中心 ›
       </view>
-
-      <!-- 今日可得积分提示 -->
       <view class="sign-modal__reward-tip">
         今日签到可得 <text class="highlight">+5积分</text>
       </view>
-
-      <!-- 按钮区 -->
       <view class="sign-modal__btns">
         <view class="sign-modal__btn sign-modal__btn--primary" bindtap="onModalGoSign">
           立即签到
@@ -194,7 +178,6 @@
           今日不再提醒
         </view>
       </view>
-
     </view>
   </view>
 </view>

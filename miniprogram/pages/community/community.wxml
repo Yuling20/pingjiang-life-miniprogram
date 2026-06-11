@@ -35,11 +35,7 @@
       class="category-tab-item {{activeCategory === item ? 'category-tab-active' : ''}}"
       bindtap="onCategoryTap"
       data-category="{{item}}"
-      style="
-        background-color: {{activeCategory === item ? categoryColorMap[item].text : categoryColorMap[item].bg}};
-        color: {{activeCategory === item ? '#fff' : categoryColorMap[item].text}};
-        border-color: {{categoryColorMap[item].text}};
-      "
+      style="background-color: {{activeCategory === item ? categoryColorMap[item].text : categoryColorMap[item].bg}};color: {{activeCategory === item ? '#fff' : categoryColorMap[item].text}};border-color: {{categoryColorMap[item].text}};"
     >
       {{item}}
     </view>

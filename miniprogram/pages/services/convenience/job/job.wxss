@@ -949,7 +949,7 @@ page {
 }
 
 .preview-contact {
-  font-size: 26rpx;Community
+  font-size: 26rpx;
   color: #5A4030;
   margin-bottom: 24rpx;
   line-height: 1.8;
