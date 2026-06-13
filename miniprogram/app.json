@@ -13,6 +13,7 @@
     "pages/services/convenience/job/job",
     "pages/services/convenience/rental/rental",
     "pages/services/convenience/rental/publish/publish",
+    "pages/services/convenience/rental/detail/detail",
     "pages/services/convenience/homeservice/homeservice",
     "pages/services/convenience/water/water",
     "pages/services/convenience/guide/guide",

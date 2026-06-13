@@ -37,7 +37,9 @@
       <text>暂无符合条件的房源</text>
     </view>
 
-    <view class="house-card" wx:for="{{filteredList}}" wx:key="id">
+    <!-- 修改后的房源卡片：添加了 bindtap 和 data-item -->
+    <view class="house-card" wx:for="{{filteredList}}" wx:key="id"
+          bindtap="onCardTap" data-item="{{item}}">
       <view class="house-img-wrap">
         <image
           wx:if="{{item.images && item.images.length > 0}}"

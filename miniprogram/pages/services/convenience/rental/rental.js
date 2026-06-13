@@ -65,6 +65,14 @@ Page({
     this.setData({ filteredList: list })
   },
 
+  // 按Claude要求：插入在 onContact 之前
+  onCardTap(e) {
+    const item = e.currentTarget.dataset.item
+    wx.navigateTo({
+      url: `/pages/services/convenience/rental/detail/detail?data=${encodeURIComponent(JSON.stringify(item))}`
+    })
+  },
+
   onContact(e) {
     const item = e.currentTarget.dataset.item
     if (item.isVip) {
@@ -75,7 +83,8 @@ Page({
     } else {
       wx.showModal({
         title: '房源联系方式提示',
-        content: '该房东暂未开通VIP房源保护，联系方式暂不开放。后续平台开通VIP服务后，您将可直接拨打房东虚拟号码联系，敬请留意~',
+        // ✅ 修复问题6：移除承诺性文案，避免微信审核风险
+        content: '该房东暂未开通VIP房源保护服务，联系方式暂不对外展示，请通过平台内其他方式沟通。',
         showCancel: false,
         confirmText: '我知道了'
       })
@@ -84,34 +93,32 @@ Page({
 
   // 跳转到发布页
   onPublishHouse() {
+    let info = null;
     try {
-      const raw = wx.getStorageSync('userRealNameInfo')
-      const info = raw ? (typeof raw === 'string' ? JSON.parse(raw) : raw) : null
-      if (!info || !info.verified) {
-        wx.showModal({
-          title: '需要实名认证',
-          content: '发布房源需完成实名认证，请前往「我的」页面完成认证后再发布。',
-          confirmText: '去认证',
-          cancelText: '取消',
-          success: (res) => {
-            if (res.confirm) {
-              wx.switchTab({ url: '/pages/mine/mine' })
-            }
-          }
-        })
-        return
+      const raw = wx.getStorageSync('userRealNameInfo');
+      // ✅ 修复问题7：用 try-catch 包裹 JSON.parse，避免格式异常导致误判
+      try {
+        info = typeof raw === 'string' ? JSON.parse(raw) : raw;
+      } catch (_) {
+        info = null;
       }
     } catch (e) {
+      info = null;
+    }
+
+    if (!info || !info.verified) {
       wx.showModal({
         title: '需要实名认证',
         content: '发布房源需完成实名认证，请前往「我的」页面完成认证后再发布。',
         confirmText: '去认证',
         cancelText: '取消',
         success: (res) => {
-          if (res.confirm) wx.switchTab({ url: '/pages/mine/mine' })
+          if (res.confirm) {
+            wx.switchTab({ url: '/pages/mine/mine' })
+          }
         }
       })
-      return
+      return;
     }
 
     // 已实名，跳转到独立发布页

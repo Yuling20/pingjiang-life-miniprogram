@@ -6,7 +6,8 @@
 //   4. 价格按新规：基础30天¥60/6000积分，60天¥90/9000积分
 //                  置顶一周¥60/6000积分，一月¥180/18000积分
 //   5. 积分读取兼容 Number 和 {total:N} 两种格式
-//   6. 不改变其他界面功能
+//   6. ✅ 新增 storage 大小限制控制：最多保留50条记录，避免超出1MB上限
+//   7. ✅ 实名认证/VIP状态由云函数获取，符合微信审核规范
 
 // ─── 套餐价格配置 ─────────────────────────────────────────
 // cashPrice 单位：元；pointsPrice 单位：积分；100积分=1元
@@ -93,18 +94,6 @@ Page({
       finalPoints: 0
     });
 
-    // ✅ 修复：兼容多种积分存储格式（与招聘发布页保持一致）
-    const pts = wx.getStorageSync('userPoints');
-    let totalPoints = 0;
-    if (typeof pts === 'number') {
-      totalPoints = pts;
-    } else if (pts && typeof pts.total === 'number') {
-      totalPoints = pts.total;
-    } else if (pts && typeof pts.totalPoints === 'number') {
-      totalPoints = pts.totalPoints;
-    }
-    this.setData({ userPoints: totalPoints });
-
     this._loadUserStatus();
   },
 
@@ -113,35 +102,31 @@ Page({
     this._loadUserStatus();
   },
 
-  // ─── ✅ 读取用户状态 ────────────────────────────────────
-
+  // ─── ✅ 读取用户状态（云函数版，符合微信审核要求） ────────────────────────────────────
   _loadUserStatus() {
-    const isAuthed = wx.getStorageSync('userAuthStatus') === true;
-    const isVip    = wx.getStorageSync('userVipStatus')  === true;
-
-    // 积分格式兼容：Number 或 {total: N} 或 {totalPoints: N}（与招聘发布页保持一致）
-    let userPoints = 0;
-    const pts = wx.getStorageSync('userPoints');
-    if (typeof pts === 'number') {
-      userPoints = pts;
-    } else if (pts && typeof pts.total === 'number') {
-      userPoints = pts.total;
-    } else if (pts && typeof pts.totalPoints === 'number') {
-      userPoints = pts.totalPoints;
-    }
-
-    this.setData({ isAuthed, isVip, userPoints });
-    console.log('[publish] 实名:', isAuthed, 'VIP:', isVip, '积分:', userPoints);
+    wx.cloud.callFunction({
+      name: 'getUserStatus',
+      success: (res) => {
+        this.setData({
+          isAuthed: res.result.isAuthed,
+          isVip: res.result.isVip,
+          userPoints: res.result.points || 0
+        });
+        console.log('[publish] 实名:', res.result.isAuthed, 'VIP:', res.result.isVip, '积分:', res.result.points || 0);
+      },
+      fail: () => {
+        this.setData({ isAuthed: false, isVip: false, userPoints: 0 });
+        console.warn('[publish] 获取用户状态失败，默认设为未认证/非VIP');
+      }
+    });
   },
 
   // ─── 出租方式切换 ────────────────────────────────────────
-
   onRentTypeChange(e) {
     this.setData({ 'publishForm.rentType': e.currentTarget.dataset.type });
   },
 
   // ─── 表单输入 ────────────────────────────────────────────
-
   onInputCity(e) {
     this.setData({ 'publishForm.city': e.detail.value });
   },
@@ -160,7 +145,6 @@ Page({
   },
 
   // ─── Picker 选择 ─────────────────────────────────────────
-
   onPickerRoomType(e) {
     this.setData({ 'publishForm.roomType': this.data.roomTypeOptions[e.detail.value] });
   },
@@ -175,7 +159,6 @@ Page({
   },
 
   // ─── 图片上传 ────────────────────────────────────────────
-
   onChooseImage() {
     const remain = 9 - this.data.publishForm.images.length;
     if (remain <= 0) {
@@ -206,7 +189,6 @@ Page({
   },
 
   // ─── 标签管理 ────────────────────────────────────────────
-
   onOpenTagModal() {
     this.setData({ showTagModal: true });
   },
@@ -235,13 +217,11 @@ Page({
   },
 
   // ─── VIP 开关 ────────────────────────────────────────────
-
   onVipToggle(e) {
     this.setData({ 'publishForm.isVipHouse': e.detail.value });
   },
 
   // ─── ✅ 套餐选择（4档） ──────────────────────────────────
-
   selectPackage(e) {
     const type = e.currentTarget.dataset.type;
     this.setData({ selectedPackage: type }, () => {
@@ -250,7 +230,6 @@ Page({
   },
 
   // ─── 切换支付方式 ────────────────────────────────────────
-
   onPaymentChange(e) {
     this.setData({ paymentMethod: e.detail.value }, () => {
       this.calculatePayment();
@@ -258,7 +237,6 @@ Page({
   },
 
   // ─── 切换优惠券 ──────────────────────────────────────────
-
   onCouponToggle() {
     this.setData({ useCoupon: !this.data.useCoupon }, () => {
       this.calculatePayment();
@@ -266,7 +244,6 @@ Page({
   },
 
   // ─── ✅ 计算应付金额（按新套餐规则） ─────────────────────
-
   calculatePayment() {
     const { selectedPackage, paymentMethod, useCoupon } = this.data;
 
@@ -294,7 +271,6 @@ Page({
   },
 
   // ─── 协议勾选 ────────────────────────────────────────────
-
   onToggleAgreed() {
     this.setData({ 'publishForm.agreed': !this.data.publishForm.agreed });
   },
@@ -308,7 +284,6 @@ Page({
   },
 
   // ─── 表单校验 ────────────────────────────────────────────
-
   _validateForm() {
     const f = this.data.publishForm;
     const checks = [
@@ -334,7 +309,6 @@ Page({
   },
 
   // ─── ✅ 提交（新增实名+VIP前置校验） ────────────────────
-
   onSubmitPublish() {
     const { isAuthed, isVip, paymentMethod, useCoupon, finalPoints, userPoints } = this.data;
 
@@ -370,6 +344,7 @@ Page({
               cancelText: '取消',
               success: (r) => {
                 if (r.confirm) {
+                  // 上线后这一步也需要改为调用云函数开通VIP
                   wx.setStorageSync('userVipStatus', true);
                   this.setData({ isVip: true });
                   wx.showToast({ title: 'VIP已开通，请继续发布', icon: 'success', duration: 2000 });
@@ -409,7 +384,6 @@ Page({
   },
 
   // ─── 执行发布 ────────────────────────────────────────────
-
   _doPublish() {
     this.setData({ isPublishing: true });
 
@@ -446,9 +420,9 @@ Page({
         }
 
       } else {
-        // 现金支付：预留支付接口
-        wx.showToast({ title: '支付功能开发中', icon: 'none' });
+        // ✅ 现金支付：按 Claude 方案修复顺序，先重置状态再提示
         this.setData({ isPublishing: false });
+        wx.showToast({ title: '支付功能开发中，请使用积分发布', icon: 'none', duration: 2500 });
         return;
       }
     }
@@ -472,9 +446,10 @@ Page({
         pkgId: this.data.selectedPackage,
       };
 
-      // 写入"我发布的房源"列表
+      // ✅ 写入"我发布的房源"列表：按 Claude 方案限制最多保留50条，避免超出 storage 1MB 上限
       try {
-        const list = wx.getStorageSync('myPublishedRentals') || [];
+        // 读取现有列表并限制为最多保留49条，加上新的1条共50条
+        const list = (wx.getStorageSync('myPublishedRentals') || []).slice(0, 49);
         list.unshift(newItem);
         wx.setStorageSync('myPublishedRentals', list);
       } catch (e) {

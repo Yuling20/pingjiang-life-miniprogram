@@ -77,7 +77,29 @@ Page({
         : `需消耗 ${total.toLocaleString()} 积分`,
       success: (res) => {
         if (res.confirm) {
-          wx.showToast({ title: '发布成功', icon: 'success' });
+          // 👇 按 Claude 方案修改：现金支付分支接入 wx.requestPayment
+          if (payType === 'cash') {
+            // 上线前需替换为后端返回的真实支付参数
+            wx.requestPayment({
+              // timeStamp, nonceStr, package, signType, paySign 由后端接口返回
+              timeStamp: '',
+              nonceStr: '',
+              package: '',
+              signType: 'RSA',
+              paySign: '',
+              success: () => {
+                wx.showToast({ title: '发布成功', icon: 'success' });
+                // 支付成功后的后续逻辑（如跳转页面、更新订单状态等）可在此补充
+              },
+              fail: (err) => {
+                console.warn('支付失败', err);
+                wx.showToast({ title: '支付取消', icon: 'none' });
+              }
+            });
+          } else {
+            // 积分支付保持原有逻辑
+            wx.showToast({ title: '发布成功', icon: 'success' });
+          }
         }
       },
     });

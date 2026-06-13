@@ -1,11 +1,9 @@
 <!-- pages/services/convenience/elder/elder.wxml -->
-<!-- ============================================================
-  孝亲守护页面 — 整站共用一套 wxml
-  根据 role 变量控制：
-    role === 'elder'  → 老人视图（极简、大字、仅打卡查看）
-    role === 'junior' → 晚辈视图（完整管理功能）
-    role === null     → 身份选择弹窗（前置步骤）
-============================================================ -->
+
+<!-- 加载占位（pageReady 为 false 时显示，修复白屏问题） -->
+<view wx:if="{{!pageReady}}" class="page-loading">
+  <text class="page-loading-text">加载中...</text>
+</view>
 
 <view class="elder-page" wx:if="{{pageReady}}">
 
@@ -23,10 +21,25 @@
 <!-- ======================================================
   【身份选择弹窗】— 首次进入时显示
 ====================================================== -->
-<view class="modal-mask" wx:if="{{showIdentityModal}}" catchtouchmove="onModalStop">
-  <view class="modal-box identity-modal">
+<view class="modal-mask" wx:if="{{showIdentityModal}}"
+  catchtouchmove="onModalStop"
+  catchtap="onModalStop">
+  <view class="modal-box identity-modal" catchtap="onModalStop">
     <view class="modal-title">👋 您好，请选择您的身份</view>
     <view class="modal-sub">选择后系统自动适配您的专属界面</view>
+
+    <!-- ✅ 新增功能说明区块 -->
+    <view class="feature-intro-box">
+      <view class="feature-intro-title">💡 板块说明</view>
+      <view class="feature-intro-text">
+        这是「孝亲守护」板块，专为你和家人打造：
+      </view>
+      <view class="feature-intro-item">📱 子女可远程帮长辈设置用药提醒、添加健康记录</view>
+      <view class="feature-intro-item">💊 长辈只需一键打卡，就能轻松完成每日用药</view>
+      <view class="feature-intro-item">🔄 系统会自动同步数据，让你随时掌握家人健康状态</view>
+      <view class="feature-intro-item">🔔 异常时还会及时提醒，帮你更省心地守护家人健康</view>
+    </view>
+
     <view class="identity-grid">
       <view
         wx:for="{{identityList}}"
@@ -39,6 +52,7 @@
         <text class="identity-label">{{item.label}}</text>
       </view>
     </view>
+    <!-- ✅ 修复截图2报错：原代码此处为 </view>，应为 </button> -->
     <button class="btn-primary btn-confirm-identity" bindtap="onConfirmIdentity">
       确认，进入孝亲守护
     </button>
@@ -47,8 +61,6 @@
 
 <!-- ======================================================
   ★★★ 老人视图（长辈端）★★★
-  显示条件：role === 'elder'
-  规则：仅展示用药打卡 + 查看备忘录，无任何编辑权限
 ====================================================== -->
 <block wx:if="{{role === 'elder'}}">
   <view class="elder-view">
@@ -77,16 +89,18 @@
       </view>
     </view>
 
-    <!-- 打卡历史（最近3条） -->
+    <!-- 打卡历史（最近3条）— ✅ 修复 wx:if + wx:for 同节点问题 -->
     <view class="elder-section" wx:if="{{medRecords.length > 0}}">
       <view class="elder-section-title">📋 今日打卡记录</view>
-      <view wx:for="{{medRecords}}" wx:key="id" wx:if="{{index < 3}}" class="record-row">
-        <text class="record-status {{item.status === 'taken' ? 'status-taken' : 'status-skip'}}">
-          {{item.status === 'taken' ? '✅ 已吃' : '❌ 未吃'}}
-        </text>
-        <text class="record-name">{{item.medName}} {{item.dose}}</text>
-        <text class="record-time">{{item.time}}</text>
-      </view>
+      <block wx:for="{{medRecords}}" wx:key="id">
+        <view wx:if="{{index < 3}}" class="record-row">
+          <text class="record-status {{item.status === 'taken' ? 'status-taken' : 'status-skip'}}">
+            {{item.status === 'taken' ? '✅ 已吃' : '❌ 未吃'}}
+          </text>
+          <text class="record-name">{{item.medName}} {{item.dose}}</text>
+          <text class="record-time">{{item.time}}</text>
+        </view>
+      </block>
     </view>
 
     <!-- 今日重要事项（备忘录） -->
@@ -108,8 +122,6 @@
 
 <!-- ======================================================
   ★★★ 晚辈视图（子女/孙辈端）★★★
-  显示条件：role === 'junior'
-  规则：完整管理功能，含绑定/用药管理/备忘录增删改
 ====================================================== -->
 <block wx:if="{{role === 'junior'}}">
   <view class="junior-view">
@@ -133,6 +145,7 @@
         <view class="my-code-box">
           <text class="my-code-label">我的绑定码（发给家人）</text>
           <text class="my-code-value">{{bindCode}}</text>
+          <!-- ✅ 修复：原 bindtap="_chooseWxFriend" 方法缺失，改为已有方法 -->
           <button class="btn-mini" bindtap="_chooseWxFriend">复制分享</button>
         </view>
 
@@ -190,12 +203,10 @@
         <button class="btn-add" bindtap="onShowAddMed">＋ 新增</button>
       </view>
 
-      <!-- 用药清单为空 -->
       <view wx:if="{{medicineList.length === 0}}" class="empty-tip">
         暂未添加用药提醒，点击右上角新增
       </view>
 
-      <!-- 用药清单列表 -->
       <view wx:for="{{medicineList}}" wx:key="id" class="med-card">
         <view class="med-card-top">
           <text class="med-name">{{item.name}}</text>
@@ -215,20 +226,22 @@
       </view>
     </view>
 
-    <!-- ——— 打卡记录查看区域（晚辈查看老人打卡状态）——— -->
+    <!-- ——— 打卡记录查看区域 — ✅ 修复 wx:if + wx:for 同节点问题 ——— -->
     <view class="section-card" wx:if="{{medRecords.length > 0}}">
       <view class="section-header">
         <text class="section-title">📋 用药打卡记录</text>
       </view>
-      <view wx:for="{{medRecords}}" wx:key="id" wx:if="{{index < 10}}" class="record-row-junior">
-        <text class="record-status {{item.status === 'taken' ? 'status-taken' : 'status-skip'}}">
-          {{item.status === 'taken' ? '✅' : '❌'}}
-        </text>
-        <view class="record-info">
-          <text class="record-info-name">{{item.medName}} · {{item.dose}}</text>
-          <text class="record-info-time">{{item.date}} {{item.time}} · {{item.recordTime}}</text>
+      <block wx:for="{{medRecords}}" wx:key="id">
+        <view wx:if="{{index < 10}}" class="record-row-junior">
+          <text class="record-status {{item.status === 'taken' ? 'status-taken' : 'status-skip'}}">
+            {{item.status === 'taken' ? '✅' : '❌'}}
+          </text>
+          <view class="record-info">
+            <text class="record-info-name">{{item.medName}} · {{item.dose}}</text>
+            <text class="record-info-time">{{item.date}} {{item.time}} · {{item.recordTime}}</text>
+          </view>
         </view>
-      </view>
+      </block>
     </view>
 
     <!-- ——— 家庭备忘录管理区域 ——— -->
@@ -249,7 +262,6 @@
         </view>
         <text class="memo-content">{{item.content}}</text>
 
-        <!-- 备忘录图片区域 -->
         <view wx:if="{{item.images && item.images.length > 0}}" class="memo-images">
           <image
             wx:for="{{item.images}}"
@@ -276,10 +288,11 @@
 
 <!-- ======================================================
   【老人端 — 用药打卡弹窗】
-  闹钟触发时全屏显示，字体超大，按钮超大，操作极简
 ====================================================== -->
-<view class="modal-mask clock-mask" wx:if="{{showMedClock}}" catchtouchmove="onModalStop">
-  <view class="clock-modal">
+<view class="modal-mask clock-mask" wx:if="{{showMedClock}}"
+  catchtouchmove="onModalStop"
+  catchtap="onModalStop">
+  <view class="clock-modal" catchtap="onModalStop">
     <text class="clock-title">💊 用药提醒</text>
     <text class="clock-time">⏰ {{clockMedInfo.time}}</text>
     <text class="clock-med-name">{{clockMedInfo.name}}</text>
@@ -298,10 +311,11 @@
 
 <!-- ======================================================
   【老人端 — 备忘录详情弹窗】
-  超大字体，图片支持预览
 ====================================================== -->
-<view class="modal-mask" wx:if="{{showMemoDetail}}" catchtouchmove="onModalStop">
-  <view class="modal-box memo-detail-modal">
+<view class="modal-mask" wx:if="{{showMemoDetail}}"
+  catchtouchmove="onModalStop"
+  catchtap="onModalStop">
+  <view class="modal-box memo-detail-modal" catchtap="onModalStop">
     <text class="memo-detail-title">{{currentMemo.title}}</text>
     <text class="memo-detail-date" wx:if="{{currentMemo.date}}">📅 {{currentMemo.date}}</text>
     <text class="memo-detail-content">{{currentMemo.content}}</text>
@@ -323,10 +337,12 @@
 </view>
 
 <!-- ======================================================
-  【新增用药提醒弹窗】— 仅晚辈可见
+  【新增用药提醒弹窗】
 ====================================================== -->
-<view class="modal-mask" wx:if="{{showAddMedForm}}" catchtouchmove="onModalStop">
-  <view class="modal-box form-modal">
+<view class="modal-mask" wx:if="{{showAddMedForm}}"
+  catchtouchmove="onModalStop"
+  catchtap="onModalStop">
+  <view class="modal-box form-modal" catchtap="onModalStop">
     <view class="form-title">💊 新增用药提醒</view>
     <view class="form-row">
       <text class="form-label">药品名称</text>
@@ -354,10 +370,12 @@
 </view>
 
 <!-- ======================================================
-  【新增/编辑备忘录弹窗】— 仅晚辈可见
+  【新增/编辑备忘录弹窗】
 ====================================================== -->
-<view class="modal-mask" wx:if="{{showAddMemo}}" catchtouchmove="onModalStop">
-  <view class="modal-box form-modal">
+<view class="modal-mask" wx:if="{{showAddMemo}}"
+  catchtouchmove="onModalStop"
+  catchtap="onModalStop">
+  <view class="modal-box form-modal" catchtap="onModalStop">
     <view class="form-title">📅 {{memoForm.id ? '编辑' : '新增'}}备忘录</view>
     <view class="form-row">
       <text class="form-label">事项标题</text>

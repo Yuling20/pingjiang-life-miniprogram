@@ -1,6 +1,7 @@
 <!-- pages/services/convenience/rental/publish/publish.wxml -->
 <view class="page-wrap">
-  <scroll-view scroll-y class="drawer-body" enhanced="{{true}}">
+  <!-- 👇 已删除 enhanced="{{true}}" 属性，解决低版本基础库兼容性问题 -->
+  <scroll-view scroll-y class="drawer-body">
 
     <!-- ===== ✅ 顶部实名/VIP状态条 ===== -->
     <view class="status-bar status-bar--warn" wx:if="{{!isAuthed}}">

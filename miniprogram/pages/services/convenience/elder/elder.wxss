@@ -88,9 +88,13 @@
 /* ============================================================
   【身份选择弹窗】
 ============================================================ */
+/* ✅ 问题10修复：替换 inset:0 为兼容写法 */
 .modal-mask {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
   background: rgba(0,0,0,0.55);
   display: flex;
   align-items: center;
@@ -168,6 +172,7 @@
   padding: 22rpx 40rpx;
   text-align: center;
 }
+/* ✅ 问题12修复：给 .btn-cancel 增加 box-sizing */
 .btn-cancel {
   background: #F0EAE0;
   color: #8B5E3C;
@@ -178,6 +183,7 @@
   padding: 22rpx 40rpx;
   flex: 1;
   margin-right: 20rpx;
+  box-sizing: border-box;
 }
 .btn-add {
   background: #FFF3E0;
@@ -218,6 +224,20 @@
   font-size: 26rpx;
   margin-left: 16rpx;
   margin-top: 0;
+}
+
+/* ✅ 问题13修复：清除按钮默认边框 */
+.btn-primary::after {
+  display: none;
+}
+.btn-cancel::after {
+  display: none;
+}
+.btn-add::after {
+  display: none;
+}
+.btn-mini::after {
+  display: none;
 }
 
 /* ============================================================
@@ -660,11 +680,11 @@
   margin-bottom: 16rpx;
   flex-wrap: wrap;
 }
+/* ✅ 问题11修复：删除无效的 object-fit: cover */
 .memo-img {
   width: 180rpx;
   height: 180rpx;
   border-radius: 12rpx;
-  object-fit: cover;
 }
 .memo-actions {
   display: flex;
@@ -684,6 +704,7 @@
   width: 160rpx;
   height: 160rpx;
 }
+/* ✅ 问题11修复：删除无效的 object-fit: cover */
 .img-thumb {
   width: 100%;
   height: 100%;
@@ -803,6 +824,7 @@
   justify-content: center;
   margin-bottom: 32rpx;
 }
+/* ✅ 问题11修复：删除无效的 object-fit: cover */
 .memo-detail-img {
   width: 200rpx;
   height: 200rpx;
@@ -813,4 +835,41 @@
   margin-top: 8rpx;
   font-size: 34rpx;
   height: 100rpx;
+}
+/* ── 功能说明区块 ── */
+.feature-intro-box {
+  background: #FFF8EE;
+  border-radius: 16rpx;
+  padding: 24rpx 28rpx;
+  margin-bottom: 36rpx;
+  border: 1rpx solid #F5D5A0;
+}
+.feature-intro-title {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #D4820A;
+  margin-bottom: 16rpx;
+}
+.feature-intro-text {
+  font-size: 26rpx;
+  color: #5C3A1E;
+  line-height: 1.7;
+  margin-bottom: 12rpx;
+}
+.feature-intro-item {
+  font-size: 25rpx;
+  color: #8B5E3C;
+  line-height: 1.8;
+  padding-left: 8rpx;
+}
+.page-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F5F0E8;
+}
+.page-loading-text {
+  font-size: 28rpx;
+  color: #B09070;
 }

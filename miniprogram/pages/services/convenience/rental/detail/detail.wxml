@@ -1,0 +1,28 @@
+<view class="page-wrap" wx:if="{{house}}">
+  <view class="house-img-wrap">
+    <image wx:if="{{house.images.length}}" src="{{house.images[0]}}"
+      class="house-img" mode="aspectFill"/>
+    <view wx:else class="house-img-placeholder">暂无房源图片</view>
+    <text class="tag-type">{{house.type}}</text>
+    <text wx:if="{{house.isVip}}" class="tag-vip">VIP</text>
+  </view>
+
+  <view class="house-info">
+    <text class="house-title">{{house.title}}</text>
+    <view class="house-price-row">
+      <text class="house-price">{{house.price}}元/月</text>
+      <text class="house-room">{{house.room}}</text>
+    </view>
+    <text class="house-area">📍 {{house.area}}</text>
+    <text class="house-desc">{{house.desc}}</text>
+    <view class="house-tags">
+      <text class="house-tag" wx:for="{{house.tags}}" wx:key="index">{{item}}</text>
+    </view>
+    <view class="house-footer">
+      <text class="publish-time">{{house.publishTime}}</text>
+      <button class="btn-contact" bindtap="onContact">联系房东</button>
+    </view>
+    <text class="anti-fraud-tip">请当面核实合同，核实房东证件，谨防诈骗</text>
+  </view>
+</view>
+<view wx:else class="empty-tip">房源信息不存在</view>
