@@ -1,0 +1,1362 @@
+// miniprogram/pages/community/user/index.js
+// 个人主页 — 微信朋友圈风格布局
+// 问题2修复：同步"我的"页面的简介（读 userInfo.bio）
+// 问题3修复：贴吧主页参考微信朋友圈，头像+简介同步"我的"，VIP可换背景图
+
+Page({
+  data: {
+    // 按 Claude 要求追加：
+    profileBg: '',           // VIP自定义背景图
+    isSelf: false,           // 是否是自己的主页（mine跳来时为true）
+    // 原有字段：
+    userInfo: {
+      nickName:  '平江用户',
+      avatarUrl: '/images/avatars男/avatar01.png',
+      bio:       '',
+      isVip:     false,
+    },
+    defaultBg: '',           // 默认背景（纯色渐变，不需要图片）
+    stats: {
+      follow: 20,
+      fans:   15,
+      posts:  5,
+      likes:  48,
+    },
+    postList: [],
+    isLoading: true,
+  },
+
+  onLoad(options) {
+    // 按 Claude 要求追加：
+    const isSelf = options.self === '1';
+    this.setData({ isSelf });
+
+    // 同步"我的"页面的 userInfo（头像、昵称、简介）
+    try {
+      const info = wx.getStorageSync('userInfo');
+      if (info && info.nickName) {
+        this.setData({
+          // 只覆盖这几个展示字段，不影响原有userId等逻辑
+          nickName:  info.nickName,
+          avatarUrl: info.avatarUrl,
+          bio:       info.bio || '',
+          isVip:     !!info.isVip,
+        });
+      }
+    } catch(e) {}
+
+    // 读取VIP背景图
+    try {
+      const bg = wx.getStorageSync('profileBgImage') || '';
+      this.setData({ profileBg: bg });
+    } catch(e) {}
+
+    // 原有逻辑
+    this._loadUserInfo();
+    this._loadProfileBg();
+    this._loadStats();
+    this._loadPosts();
+  },
+
+  onShow() {
+    // 每次显示时重新同步，保证简介实时更新
+    this._loadUserInfo();
+    this._loadProfileBg();
+  },
+
+  // ✅ 问题2：从 userInfo 同步简介（与"我的"页面完全一致）
+  _loadUserInfo() {
+    try {
+      const info = wx.getStorageSync('userInfo');
+      if (info && info.nickName) {
+        this.setData({ userInfo: info });
+      }
+    } catch(e) {}
+  },
+
+  // ✅ VIP背景：从 storage 读取用户自定义背景
+  _loadProfileBg() {
+    try {
+      const bg = wx.getStorageSync('profileBgImage') || '';
+      this.setData({ profileBg: bg });
+    } catch(e) {}
+  },
+
+  _loadStats() {
+    try {
+      const s = wx.getStorageSync('profileStats') || {};
+      this.setData({
+        stats: {
+          follow: s.follow || 20,
+          fans:   s.fans   || 15,
+          posts:  (wx.getStorageSync('myPublishedPosts') || []).length || 5,
+          likes:  s.likes  || 48,
+        }
+      });
+    } catch(e) {}
+  },
+
+  _loadPosts() {
+    try {
+      const list = wx.getStorageSync('myPublishedPosts') || [];
+      // 格式化时间显示
+      const formatted = list.map(p => ({
+        ...p,
+        timeLabel: this._formatTime(p.createTime || p.time || Date.now()),
+      }));
+      this.setData({ postList: formatted, isLoading: false });
+    } catch(e) {
+      this.setData({ isLoading: false });
+    }
+  },
+
+  _formatTime(ts) {
+    const now  = Date.now();
+    const diff = now - Number(ts);
+    if (diff < 60 * 1000)           return '刚刚';
+    if (diff < 60 * 60 * 1000)      return `${Math.floor(diff/60000)}分钟前`;
+    if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff/3600000)}小时前`;
+    const d = new Date(Number(ts));
+    return `${d.getMonth()+1}月${d.getDate()}日`;
+  },
+
+  // ─── VIP换背景 ─────────────────────────────────────────────
+  onChangeBg() {
+    const info = this.data.userInfo;
+    if (!info.isVip) {
+      wx.showModal({
+        title: 'VIP专属权益',
+        content: '自定义贴吧主页背景图是VIP专属功能，开通VIP后即可使用。',
+        confirmText: '去开通',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            wx.navigateBack();
+            // 返回"我的"页面后可点击"开通VIP"
+          }
+        }
+      });
+      return;
+    }
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const path = res.tempFiles[0].tempFilePath;
+        wx.setStorageSync('profileBgImage', path);
+        this.setData({ profileBg: path });
+        wx.showToast({ title: '背景已更新', icon: 'success' });
+      }
+    });
+  },
+
+  // ─── 帖子互动（点赞/评论跳转） ────────────────────────────
+  onLikePost(e) {
+    const idx = e.currentTarget.dataset.idx;
+    const list = this.data.postList;
+    list[idx].liked   = !list[idx].liked;
+    list[idx].likeCount = (list[idx].likeCount || 0) + (list[idx].liked ? 1 : -1);
+    this.setData({ postList: list });
+  },
+
+  goPostDetail(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    wx.navigateTo({
+      url: `/pages/community/detail/index?id=${id}`,
+      fail: () => wx.showToast({ title: '跳转失败', icon: 'none' })
+    });
+  },
+
+  goBack() {
+    wx.navigateBack();
+  },
+});{
+  "navigationBarTitleText": "个人主页",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {}
+}
+<!-- miniprogram/pages/community/profile/index.wxml -->
+<!-- 问题3修复：参考微信朋友圈风格，大背景图+头像悬浮+简介同步 -->
+<view class="profile-page">
+
+<!-- ══════ 顶部背景区（朋友圈风格，按Claude方案修改） ══════ -->
+<view class="profile-top">
+  <!-- VIP自定义背景 / 默认渐变 -->
+  <image wx:if="{{profileBg}}" class="profile-bg-img" src="{{profileBg}}" mode="aspectFill"/>
+  <view class="profile-bg-gradient" wx:else></view>
+
+  <!-- 返回按钮（保留原有） -->
+  <view class="nav-back" bindtap="goBack">
+    <text class="nav-back-icon">‹</text>
+  </view>
+
+  <!-- 换背景按钮（仅自己主页显示） -->
+  <view class="change-bg-btn" wx:if="{{isSelf}}" bindtap="onChangeBg">
+    <text class="change-bg-icon">🖼</text>
+    <text class="change-bg-text">{{isVip ? '换背景' : '换背景(VIP)'}}</text>
+  </view>
+
+  <!-- 头像悬浮右下角 -->
+  <view class="profile-avatar-wrap">
+    <image class="profile-avatar" src="{{avatarUrl}}" mode="aspectFill"/>
+    <view class="vip-crown" wx:if="{{isVip}}">
+      <text class="vip-crown-text">👑VIP</text>
+    </view>
+  </view>
+</view>
+
+<!-- ══════ 用户信息区（按Claude方案修改字段绑定） ══════ -->
+<view class="profile-info-block">
+  <view class="profile-nick-row">
+    <text class="profile-nick">{{nickName}}</text>
+  </view>
+  <view class="profile-id-row">
+    <text class="profile-id">平江号：{{userId || '99999'}}</text>
+  </view>
+  <!-- 简介同步"我的"页面 -->
+  <text class="profile-bio">{{bio || '这个人很懒，还没有填写简介～'}}</text>
+
+  <!-- 数据统计 -->
+  <view class="profile-stats">
+    <view class="stat-item">
+      <text class="stat-num">{{followCount || 0}}</text>
+      <text class="stat-label">关注</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-num">{{fansCount || 0}}</text>
+      <text class="stat-label">粉丝</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-num">{{postCount || 0}}</text>
+      <text class="stat-label">帖子</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-num">{{likeCount || 0}}</text>
+      <text class="stat-label">获赞</text>
+    </view>
+  </view>
+</view>
+
+<!-- ══════ 动态列表（原封不动保留） ══════ -->
+<view class="posts-section">
+  <view class="posts-section__title">
+    <text class="posts-title-text">TA的动态</text>
+    <text class="posts-title-count" wx:if="{{postList.length > 0}}">共{{postList.length}}条</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="posts-empty" wx:if="{{!isLoading && postList.length === 0}}">
+    <text class="posts-empty-icon">📭</text>
+    <text class="posts-empty-text">还没有发布过帖子</text>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="posts-empty" wx:if="{{isLoading}}">
+    <text class="posts-empty-text">加载中...</text>
+  </view>
+
+  <!-- 帖子列表 -->
+  <view class="post-card" wx:for="{{postList}}" wx:key="id"
+    bindtap="goPostDetail" data-id="{{shturl.}}">
+    <!-- 帖子头部：时间 -->
+    <view class="post-card__meta">
+      <text class="post-time">{{item.timeLabel}}</text>
+    </view>
+
+    <!-- 帖子内容 -->
+    <text class="post-content">{{item.content || item.title}}</text>
+
+    <!-- 帖子图片（如有） -->
+    <view class="post-images" wx:if="{{item.images && item.images.length > 0}}">
+      <image wx:for="{{item.images}}" wx:key="*this" wx:for-item="img"
+        class="post-img post-img--{{item.images.length === 1 ? 'single' : 'multi'}}"
+        src="{{img}}" mode="aspectFill"/>
+    </view>
+
+    <!-- 话题标签 -->
+    <view class="post-tags" wx:if="{{item.tags && item.tags.length > 0}}">
+      <text class="post-tag" wx:for="{{item.tags}}" wx:key="*this">#{{item}}</text>
+    </view>
+
+    <!-- 互动栏 -->
+    <view class="post-actions">
+      <view class="post-action">
+        <text class="post-action-icon">💬</text>
+        <text class="post-action-count">{{item.commentCount || 0}}</text>
+      </view>
+      <view class="post-action" catchtap="onLikePost" data-idx="{{index}}">
+        <text class="post-action-icon">{{item.liked ? '❤️' : '🤍'}}</text>
+        <text class="post-action-count">{{item.likeCount || item.likeCount === 0 ? item.likeCount : 0}}</text>
+      </view>
+      <view class="post-action">
+        <text class="post-action-icon">↗</text>
+        <text class="post-action-count">转发</text>
+      </view>
+    </view>
+  </view>
+
+</view>
+
+</view>/* miniprogram/pages/community/profile/index.wxss */
+/* 朋友圈风格 + 暖棕米调，与"我的"页面统一风格 */
+
+page {
+  background: #FFFFFF;
+}
+
+.profile-page {
+  min-height: 100vh;
+  background: #FFFFFF;
+  padding-bottom: 80rpx;
+}
+
+/* ══════ 顶部背景区 ══════════════════════════════════════════ */
+.profile-top {
+  position: relative;
+  width: 100%;
+  height: 380rpx;
+  overflow: visible;
+}
+
+.profile-bg-img {
+  width: 100%;
+  height: 380rpx;
+  display: block;
+  object-fit: cover;
+}
+
+/* 默认渐变背景（无自定义图片时） */
+.profile-bg-gradient {
+  width: 100%;
+  height: 380rpx;
+  background: linear-gradient(160deg, #C8860A 0%, #8B4513 60%, #5C2D0E 100%);
+}
+
+/* 底部柔和渐变遮罩（让头像区域过渡自然） */
+.profile-top::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 120rpx;
+  background: linear-gradient(to bottom, transparent, rgba(255,248,240,0.85));
+  pointer-events: none;
+}
+
+/* 返回按钮 */
+.nav-back {
+  position: absolute;
+  top: 50rpx; left: 24rpx;
+  width: 72rpx; height: 72rpx;
+  background: rgba(0,0,0,0.35);
+  border-radius: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.nav-back-icon {
+  font-size: 50rpx;
+  color: #FFFFFF;
+  font-weight: 300;
+  line-height: 1;
+  margin-top: -4rpx;
+}
+
+/* 换背景按钮 */
+.change-bg-btn {
+  position: absolute;
+  top: 50rpx; right: 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  background: rgba(0,0,0,0.35);
+  border-radius: 30rpx;
+  padding: 10rpx 20rpx;
+  z-index: 10;
+}
+.change-bg-icon { font-size: 26rpx; }
+.change-bg-text { font-size: 22rpx; color: #FFFFFF; font-weight: 500; }
+
+/* 头像悬浮在背景底部（朋友圈风格） */
+.profile-avatar-wrap {
+  position: absolute;
+  right: 32rpx;
+  bottom: -56rpx;          /* 悬浮到信息区上方 */
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.profile-avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 20rpx;    /* 微信朋友圈头像是圆角方形 */
+  border: 4rpx solid #FFFFFF;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.25);
+  display: block;
+}
+.vip-crown {
+  position: absolute;
+  top: -18rpx;
+  background: linear-gradient(135deg, #C8860A, #F0C040);
+  border-radius: 16rpx;
+  padding: 3rpx 12rpx;
+}
+.vip-crown-text { font-size: 18rpx; color: #FFFFFF; font-weight: 700; }
+
+/* ══════ 用户信息区 ══════════════════════════════════════════ */
+.profile-info-block {
+  background: #FFF8F0;
+  padding: 28rpx 32rpx 24rpx;
+  margin-top: 0;
+  border-bottom: 1rpx solid #E6D0B8;
+  /* 为右侧悬浮头像留出空间 */
+  padding-right: 200rpx;
+}
+
+.profile-nick-row {
+  margin-bottom: 8rpx;
+  margin-top: 8rpx;
+}
+.profile-nick {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+  letter-spacing: 1rpx;
+}
+
+.profile-id-row { margin-bottom: 10rpx; }
+.profile-id {
+  font-size: 24rpx;
+  color: #888888;
+}
+
+/* ✅ 简介文字（同步"我的"页面） */
+.profile-bio {
+  display: block;
+  font-size: 26rpx;
+  color: #555555;
+  line-height: 1.6;
+  margin-bottom: 24rpx;
+}
+
+/* 数据统计行 */
+.profile-stats {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 32rpx 0 0;
+}
+.stat-item:first-child { padding-left: 0; }
+.stat-num {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+  line-height: 1.2;
+}
+.stat-label {
+  font-size: 22rpx;
+  color: #888888;
+  margin-top: 4rpx;
+}
+.stat-divider {
+  width: 1rpx;
+  height: 40rpx;
+  background: #E6D0B8;
+  margin-right: 32rpx;
+}
+
+/* ══════ 动态列表 ══════════════════════════════════════════ */
+.posts-section {
+  margin: 20rpx 0 0;
+  background: #FFFFFF;
+}
+
+.posts-section__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 32rpx 16rpx;
+  border-bottom: 1rpx solid #E6D0B8;
+  background: #FFF8F0;
+}
+.posts-title-text {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #8B4513;
+}
+.posts-title-count {
+  font-size: 22rpx;
+  color: #AAAAAA;
+}
+
+/* 空状态 */
+.posts-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0 60rpx;
+}
+.posts-empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
+.posts-empty-text { font-size: 28rpx; color: #AAAAAA; }
+
+/* 帖子卡片 */
+.post-card {
+  padding: 28rpx 32rpx 24rpx;
+  border-bottom: 1rpx solid #F0E8D8;
+  background: #FFFFFF;
+}
+.post-card:active { background: #FFF8F0; }
+
+.post-card__meta {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+.post-time {
+  font-size: 22rpx;
+  color: #AAAAAA;
+}
+
+.post-content {
+  display: block;
+  font-size: 30rpx;
+  color: #1A1A1A;
+  line-height: 1.7;
+  margin-bottom: 16rpx;
+  font-weight: 400;
+}
+
+/* 帖子图片 */
+.post-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-bottom: 16rpx;
+}
+.post-img--single {
+  width: 360rpx;
+  height: 270rpx;
+  border-radius: 12rpx;
+  object-fit: cover;
+}
+.post-img--multi {
+  width: 218rpx;
+  height: 218rpx;
+  border-radius: 10rpx;
+  object-fit: cover;
+}
+
+/* 话题标签 */
+.post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-bottom: 16rpx;
+}
+.post-tag {
+  font-size: 24rpx;
+  color: #B06A36;
+  background: #FFF0E6;
+  border-radius: 20rpx;
+  padding: 4rpx 16rpx;
+  border: 1rpx solid #DDB08A;
+}
+
+/* 互动栏 */
+.post-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 40rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid #F5EDE0;
+}
+.post-action {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+.post-action-icon {
+  font-size: 30rpx;
+  color: #888888;
+}
+.post-action-count {
+  font-size: 24rpx;
+  color: #888888;
+}
+/* ══ 朋友圈风格顶部（追加，不影响原有样式） ══ */
+.profile-top {
+  position: relative;
+  width: 100%;
+  height: 380rpx;
+  overflow: visible;
+}
+.profile-bg-img {
+  width: 100%;
+  height: 380rpx;
+  display: block;
+}
+.profile-bg-gradient {
+  width: 100%;
+  height: 380rpx;
+  background: linear-gradient(160deg, #C8860A 0%, #8B4513 60%, #5C2D0E 100%);
+}
+.profile-top::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 120rpx;
+  background: linear-gradient(to bottom, transparent, rgba(255,248,240,0.85));
+  pointer-events: none;
+}
+.change-bg-btn {
+  position: absolute;
+  top: 50rpx; right: 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  background: rgba(0,0,0,0.35);
+  border-radius: 30rpx;
+  padding: 10rpx 20rpx;
+  z-index: 10;
+}
+.change-bg-icon { font-size: 26rpx; }
+.change-bg-text { font-size: 22rpx; color: #FFFFFF; font-weight: 500; }
+
+.profile-avatar-wrap {
+  position: absolute;
+  right: 32rpx;
+  bottom: -56rpx;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.profile-avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 20rpx;
+  border: 4rpx solid #FFFFFF;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.25);
+  display: block;
+}
+.vip-crown {
+  position: absolute;
+  top: -18rpx;
+  background: linear-gradient(135deg, #C8860A, #F0C040);
+  border-radius: 16rpx;
+  padding: 3rpx 12rpx;
+}
+.vip-crown-text { font-size: 18rpx; color: #FFFFFF; font-weight: 700; }
+
+.profile-info-block {
+  background: #FFF8F0;
+  padding: 28rpx 200rpx 24rpx 32rpx;
+  border-bottom: 1rpx solid #E6D0B8;
+}
+.profile-nick { font-size: 40rpx; font-weight: 700; color: #1A1A1A; }
+.profile-nick-row { margin-bottom: 8rpx; margin-top: 8rpx; }
+.profile-id { font-size: 24rpx; color: #888888; }
+.profile-id-row { margin-bottom: 10rpx; }
+.profile-bio { display: block; font-size: 26rpx; color: #555555; line-height: 1.6; margin-bottom: 24rpx; }
+.profile-stats { display: flex; flex-direction: row; align-items: center; }
+.stat-item { display: flex; flex-direction: column; align-items: center; padding-right: 32rpx; }
+.stat-num { font-size: 36rpx; font-weight: 700; color: #1A1A1A; }
+.stat-label { font-size: 22rpx; color: #888888; margin-top: 4rpx; }
+.stat-divider { width: 1rpx; height: 40rpx; background: #E6D0B8; margin-right: 32rpx; }
+// miniprogram/pages/community/user/index.js
+// 个人主页 — 微信朋友圈风格布局
+// 问题2修复：同步"我的"页面的简介（读 userInfo.bio）
+// 问题3修复：贴吧主页参考微信朋友圈，头像+简介同步"我的"，VIP可换背景图
+
+Page({
+  data: {
+    // 按 Claude 要求追加：
+    profileBg: '',           // VIP自定义背景图
+    isSelf: false,           // 是否是自己的主页（mine跳来时为true）
+    // 原有字段：
+    userInfo: {
+      nickName:  '平江用户',
+      avatarUrl: '/images/avatars男/avatar01.png',
+      bio:       '',
+      isVip:     false,
+    },
+    defaultBg: '',           // 默认背景（纯色渐变，不需要图片）
+    stats: {
+      follow: 20,
+      fans:   15,
+      posts:  5,
+      likes:  48,
+    },
+    postList: [],
+    isLoading: true,
+  },
+
+  onLoad(options) {
+    // 按 Claude 要求追加：
+    const isSelf = options.self === '1';
+    this.setData({ isSelf });
+
+    // 同步"我的"页面的 userInfo（头像、昵称、简介）
+    try {
+      const info = wx.getStorageSync('userInfo');
+      if (info && info.nickName) {
+        this.setData({
+          // 只覆盖这几个展示字段，不影响原有userId等逻辑
+          nickName:  info.nickName,
+          avatarUrl: info.avatarUrl,
+          bio:       info.bio || '',
+          isVip:     !!info.isVip,
+        });
+      }
+    } catch(e) {}
+
+    // 读取VIP背景图
+    try {
+      const bg = wx.getStorageSync('profileBgImage') || '';
+      this.setData({ profileBg: bg });
+    } catch(e) {}
+
+    // 原有逻辑
+    this._loadUserInfo();
+    this._loadProfileBg();
+    this._loadStats();
+    this._loadPosts();
+  },
+
+  onShow() {
+    // 每次显示时重新同步，保证简介实时更新
+    this._loadUserInfo();
+    this._loadProfileBg();
+  },
+
+  // ✅ 问题2：从 userInfo 同步简介（与"我的"页面完全一致）
+  _loadUserInfo() {
+    try {
+      const info = wx.getStorageSync('userInfo');
+      if (info && info.nickName) {
+        this.setData({ userInfo: info });
+      }
+    } catch(e) {}
+  },
+
+  // ✅ VIP背景：从 storage 读取用户自定义背景
+  _loadProfileBg() {
+    try {
+      const bg = wx.getStorageSync('profileBgImage') || '';
+      this.setData({ profileBg: bg });
+    } catch(e) {}
+  },
+
+  _loadStats() {
+    try {
+      const s = wx.getStorageSync('profileStats') || {};
+      this.setData({
+        stats: {
+          follow: s.follow || 20,
+          fans:   s.fans   || 15,
+          posts:  (wx.getStorageSync('myPublishedPosts') || []).length || 5,
+          likes:  s.likes  || 48,
+        }
+      });
+    } catch(e) {}
+  },
+
+  _loadPosts() {
+    try {
+      const list = wx.getStorageSync('myPublishedPosts') || [];
+      // 格式化时间显示
+      const formatted = list.map(p => ({
+        ...p,
+        timeLabel: this._formatTime(p.createTime || p.time || Date.now()),
+      }));
+      this.setData({ postList: formatted, isLoading: false });
+    } catch(e) {
+      this.setData({ isLoading: false });
+    }
+  },
+
+  _formatTime(ts) {
+    const now  = Date.now();
+    const diff = now - Number(ts);
+    if (diff < 60 * 1000)           return '刚刚';
+    if (diff < 60 * 60 * 1000)      return `${Math.floor(diff/60000)}分钟前`;
+    if (diff < 24 * 60 * 60 * 1000) return `${Math.floor(diff/3600000)}小时前`;
+    const d = new Date(Number(ts));
+    return `${d.getMonth()+1}月${d.getDate()}日`;
+  },
+
+  // ─── VIP换背景 ─────────────────────────────────────────────
+  onChangeBg() {
+    const info = this.data.userInfo;
+    if (!info.isVip) {
+      wx.showModal({
+        title: 'VIP专属权益',
+        content: '自定义贴吧主页背景图是VIP专属功能，开通VIP后即可使用。',
+        confirmText: '去开通',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            wx.navigateBack();
+            // 返回"我的"页面后可点击"开通VIP"
+          }
+        }
+      });
+      return;
+    }
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const path = res.tempFiles[0].tempFilePath;
+        wx.setStorageSync('profileBgImage', path);
+        this.setData({ profileBg: path });
+        wx.showToast({ title: '背景已更新', icon: 'success' });
+      }
+    });
+  },
+
+  // ─── 帖子互动（点赞/评论跳转） ────────────────────────────
+  onLikePost(e) {
+    const idx = e.currentTarget.dataset.idx;
+    const list = this.data.postList;
+    list[idx].liked   = !list[idx].liked;
+    list[idx].likeCount = (list[idx].likeCount || 0) + (list[idx].liked ? 1 : -1);
+    this.setData({ postList: list });
+  },
+
+  goPostDetail(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    wx.navigateTo({
+      url: `/pages/community/detail/index?id=${id}`,
+      fail: () => wx.showToast({ title: '跳转失败', icon: 'none' })
+    });
+  },
+
+  goBack() {
+    wx.navigateBack();
+  },
+});{
+  "navigationBarTitleText": "个人主页",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {}
+}
+<!-- miniprogram/pages/community/profile/index.wxml -->
+<!-- 问题3修复：参考微信朋友圈风格，大背景图+头像悬浮+简介同步 -->
+<view class="profile-page">
+
+<!-- ══════ 顶部背景区（朋友圈风格，按Claude方案修改） ══════ -->
+<view class="profile-top">
+  <!-- VIP自定义背景 / 默认渐变 -->
+  <image wx:if="{{profileBg}}" class="profile-bg-img" src="{{profileBg}}" mode="aspectFill"/>
+  <view class="profile-bg-gradient" wx:else></view>
+
+  <!-- 返回按钮（保留原有） -->
+  <view class="nav-back" bindtap="goBack">
+    <text class="nav-back-icon">‹</text>
+  </view>
+
+  <!-- 换背景按钮（仅自己主页显示） -->
+  <view class="change-bg-btn" wx:if="{{isSelf}}" bindtap="onChangeBg">
+    <text class="change-bg-icon">🖼</text>
+    <text class="change-bg-text">{{isVip ? '换背景' : '换背景(VIP)'}}</text>
+  </view>
+
+  <!-- 头像悬浮右下角 -->
+  <view class="profile-avatar-wrap">
+    <image class="profile-avatar" src="{{avatarUrl}}" mode="aspectFill"/>
+    <view class="vip-crown" wx:if="{{isVip}}">
+      <text class="vip-crown-text">👑VIP</text>
+    </view>
+  </view>
+</view>
+
+<!-- ══════ 用户信息区（按Claude方案修改字段绑定） ══════ -->
+<view class="profile-info-block">
+  <view class="profile-nick-row">
+    <text class="profile-nick">{{nickName}}</text>
+  </view>
+  <view class="profile-id-row">
+    <text class="profile-id">平江号：{{userId || '99999'}}</text>
+  </view>
+  <!-- 简介同步"我的"页面 -->
+  <text class="profile-bio">{{bio || '这个人很懒，还没有填写简介～'}}</text>
+
+  <!-- 数据统计 -->
+  <view class="profile-stats">
+    <view class="stat-item">
+      <text class="stat-num">{{followCount || 0}}</text>
+      <text class="stat-label">关注</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-num">{{fansCount || 0}}</text>
+      <text class="stat-label">粉丝</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-num">{{postCount || 0}}</text>
+      <text class="stat-label">帖子</text>
+    </view>
+    <view class="stat-divider"></view>
+    <view class="stat-item">
+      <text class="stat-num">{{likeCount || 0}}</text>
+      <text class="stat-label">获赞</text>
+    </view>
+  </view>
+</view>
+
+<!-- ══════ 动态列表（原封不动保留） ══════ -->
+<view class="posts-section">
+  <view class="posts-section__title">
+    <text class="posts-title-text">TA的动态</text>
+    <text class="posts-title-count" wx:if="{{postList.length > 0}}">共{{postList.length}}条</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="posts-empty" wx:if="{{!isLoading && postList.length === 0}}">
+    <text class="posts-empty-icon">📭</text>
+    <text class="posts-empty-text">还没有发布过帖子</text>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="posts-empty" wx:if="{{isLoading}}">
+    <text class="posts-empty-text">加载中...</text>
+  </view>
+
+  <!-- 帖子列表 -->
+  <view class="post-card" wx:for="{{postList}}" wx:key="id"
+    bindtap="goPostDetail" data-id="{{shturl.}}">
+    <!-- 帖子头部：时间 -->
+    <view class="post-card__meta">
+      <text class="post-time">{{item.timeLabel}}</text>
+    </view>
+
+    <!-- 帖子内容 -->
+    <text class="post-content">{{item.content || item.title}}</text>
+
+    <!-- 帖子图片（如有） -->
+    <view class="post-images" wx:if="{{item.images && item.images.length > 0}}">
+      <image wx:for="{{item.images}}" wx:key="*this" wx:for-item="img"
+        class="post-img post-img--{{item.images.length === 1 ? 'single' : 'multi'}}"
+        src="{{img}}" mode="aspectFill"/>
+    </view>
+
+    <!-- 话题标签 -->
+    <view class="post-tags" wx:if="{{item.tags && item.tags.length > 0}}">
+      <text class="post-tag" wx:for="{{item.tags}}" wx:key="*this">#{{item}}</text>
+    </view>
+
+    <!-- 互动栏 -->
+    <view class="post-actions">
+      <view class="post-action">
+        <text class="post-action-icon">💬</text>
+        <text class="post-action-count">{{item.commentCount || 0}}</text>
+      </view>
+      <view class="post-action" catchtap="onLikePost" data-idx="{{index}}">
+        <text class="post-action-icon">{{item.liked ? '❤️' : '🤍'}}</text>
+        <text class="post-action-count">{{item.likeCount || item.likeCount === 0 ? item.likeCount : 0}}</text>
+      </view>
+      <view class="post-action">
+        <text class="post-action-icon">↗</text>
+        <text class="post-action-count">转发</text>
+      </view>
+    </view>
+  </view>
+
+</view>
+
+</view>/* miniprogram/pages/community/profile/index.wxss */
+/* 朋友圈风格 + 暖棕米调，与"我的"页面统一风格 */
+
+page {
+  background: #FFFFFF;
+}
+
+.profile-page {
+  min-height: 100vh;
+  background: #FFFFFF;
+  padding-bottom: 80rpx;
+}
+
+/* ══════ 顶部背景区 ══════════════════════════════════════════ */
+.profile-top {
+  position: relative;
+  width: 100%;
+  height: 380rpx;
+  overflow: visible;
+}
+
+.profile-bg-img {
+  width: 100%;
+  height: 380rpx;
+  display: block;
+  object-fit: cover;
+}
+
+/* 默认渐变背景（无自定义图片时） */
+.profile-bg-gradient {
+  width: 100%;
+  height: 380rpx;
+  background: linear-gradient(160deg, #C8860A 0%, #8B4513 60%, #5C2D0E 100%);
+}
+
+/* 底部柔和渐变遮罩（让头像区域过渡自然） */
+.profile-top::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 120rpx;
+  background: linear-gradient(to bottom, transparent, rgba(255,248,240,0.85));
+  pointer-events: none;
+}
+
+/* 返回按钮 */
+.nav-back {
+  position: absolute;
+  top: 50rpx; left: 24rpx;
+  width: 72rpx; height: 72rpx;
+  background: rgba(0,0,0,0.35);
+  border-radius: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+.nav-back-icon {
+  font-size: 50rpx;
+  color: #FFFFFF;
+  font-weight: 300;
+  line-height: 1;
+  margin-top: -4rpx;
+}
+
+/* 换背景按钮 */
+.change-bg-btn {
+  position: absolute;
+  top: 50rpx; right: 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  background: rgba(0,0,0,0.35);
+  border-radius: 30rpx;
+  padding: 10rpx 20rpx;
+  z-index: 10;
+}
+.change-bg-icon { font-size: 26rpx; }
+.change-bg-text { font-size: 22rpx; color: #FFFFFF; font-weight: 500; }
+
+/* 头像悬浮在背景底部（朋友圈风格） */
+.profile-avatar-wrap {
+  position: absolute;
+  right: 32rpx;
+  bottom: -56rpx;          /* 悬浮到信息区上方 */
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.profile-avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 20rpx;    /* 微信朋友圈头像是圆角方形 */
+  border: 4rpx solid #FFFFFF;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.25);
+  display: block;
+}
+.vip-crown {
+  position: absolute;
+  top: -18rpx;
+  background: linear-gradient(135deg, #C8860A, #F0C040);
+  border-radius: 16rpx;
+  padding: 3rpx 12rpx;
+}
+.vip-crown-text { font-size: 18rpx; color: #FFFFFF; font-weight: 700; }
+
+/* ══════ 用户信息区 ══════════════════════════════════════════ */
+.profile-info-block {
+  background: #FFF8F0;
+  padding: 28rpx 32rpx 24rpx;
+  margin-top: 0;
+  border-bottom: 1rpx solid #E6D0B8;
+  /* 为右侧悬浮头像留出空间 */
+  padding-right: 200rpx;
+}
+
+.profile-nick-row {
+  margin-bottom: 8rpx;
+  margin-top: 8rpx;
+}
+.profile-nick {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+  letter-spacing: 1rpx;
+}
+
+.profile-id-row { margin-bottom: 10rpx; }
+.profile-id {
+  font-size: 24rpx;
+  color: #888888;
+}
+
+/* ✅ 简介文字（同步"我的"页面） */
+.profile-bio {
+  display: block;
+  font-size: 26rpx;
+  color: #555555;
+  line-height: 1.6;
+  margin-bottom: 24rpx;
+}
+
+/* 数据统计行 */
+.profile-stats {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 32rpx 0 0;
+}
+.stat-item:first-child { padding-left: 0; }
+.stat-num {
+  font-size: 36rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+  line-height: 1.2;
+}
+.stat-label {
+  font-size: 22rpx;
+  color: #888888;
+  margin-top: 4rpx;
+}
+.stat-divider {
+  width: 1rpx;
+  height: 40rpx;
+  background: #E6D0B8;
+  margin-right: 32rpx;
+}
+
+/* ══════ 动态列表 ══════════════════════════════════════════ */
+.posts-section {
+  margin: 20rpx 0 0;
+  background: #FFFFFF;
+}
+
+.posts-section__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 32rpx 16rpx;
+  border-bottom: 1rpx solid #E6D0B8;
+  background: #FFF8F0;
+}
+.posts-title-text {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #8B4513;
+}
+.posts-title-count {
+  font-size: 22rpx;
+  color: #AAAAAA;
+}
+
+/* 空状态 */
+.posts-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0 60rpx;
+}
+.posts-empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
+.posts-empty-text { font-size: 28rpx; color: #AAAAAA; }
+
+/* 帖子卡片 */
+.post-card {
+  padding: 28rpx 32rpx 24rpx;
+  border-bottom: 1rpx solid #F0E8D8;
+  background: #FFFFFF;
+}
+.post-card:active { background: #FFF8F0; }
+
+.post-card__meta {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+.post-time {
+  font-size: 22rpx;
+  color: #AAAAAA;
+}
+
+.post-content {
+  display: block;
+  font-size: 30rpx;
+  color: #1A1A1A;
+  line-height: 1.7;
+  margin-bottom: 16rpx;
+  font-weight: 400;
+}
+
+/* 帖子图片 */
+.post-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-bottom: 16rpx;
+}
+.post-img--single {
+  width: 360rpx;
+  height: 270rpx;
+  border-radius: 12rpx;
+  object-fit: cover;
+}
+.post-img--multi {
+  width: 218rpx;
+  height: 218rpx;
+  border-radius: 10rpx;
+  object-fit: cover;
+}
+
+/* 话题标签 */
+.post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-bottom: 16rpx;
+}
+.post-tag {
+  font-size: 24rpx;
+  color: #B06A36;
+  background: #FFF0E6;
+  border-radius: 20rpx;
+  padding: 4rpx 16rpx;
+  border: 1rpx solid #DDB08A;
+}
+
+/* 互动栏 */
+.post-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 40rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid #F5EDE0;
+}
+.post-action {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+.post-action-icon {
+  font-size: 30rpx;
+  color: #888888;
+}
+.post-action-count {
+  font-size: 24rpx;
+  color: #888888;
+}
+/* ══ 朋友圈风格顶部（追加，不影响原有样式） ══ */
+.profile-top {
+  position: relative;
+  width: 100%;
+  height: 380rpx;
+  overflow: visible;
+}
+.profile-bg-img {
+  width: 100%;
+  height: 380rpx;
+  display: block;
+}
+.profile-bg-gradient {
+  width: 100%;
+  height: 380rpx;
+  background: linear-gradient(160deg, #C8860A 0%, #8B4513 60%, #5C2D0E 100%);
+}
+.profile-top::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 120rpx;
+  background: linear-gradient(to bottom, transparent, rgba(255,248,240,0.85));
+  pointer-events: none;
+}
+.change-bg-btn {
+  position: absolute;
+  top: 50rpx; right: 24rpx;
+  display: flex;
+  align-items: center;
+  gap: 6rpx;
+  background: rgba(0,0,0,0.35);
+  border-radius: 30rpx;
+  padding: 10rpx 20rpx;
+  z-index: 10;
+}
+.change-bg-icon { font-size: 26rpx; }
+.change-bg-text { font-size: 22rpx; color: #FFFFFF; font-weight: 500; }
+
+.profile-avatar-wrap {
+  position: absolute;
+  right: 32rpx;
+  bottom: -56rpx;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.profile-avatar {
+  width: 140rpx;
+  height: 140rpx;
+  border-radius: 20rpx;
+  border: 4rpx solid #FFFFFF;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.25);
+  display: block;
+}
+.vip-crown {
+  position: absolute;
+  top: -18rpx;
+  background: linear-gradient(135deg, #C8860A, #F0C040);
+  border-radius: 16rpx;
+  padding: 3rpx 12rpx;
+}
+.vip-crown-text { font-size: 18rpx; color: #FFFFFF; font-weight: 700; }
+
+.profile-info-block {
+  background: #FFF8F0;
+  padding: 28rpx 200rpx 24rpx 32rpx;
+  border-bottom: 1rpx solid #E6D0B8;
+}
+.profile-nick { font-size: 40rpx; font-weight: 700; color: #1A1A1A; }
+.profile-nick-row { margin-bottom: 8rpx; margin-top: 8rpx; }
+.profile-id { font-size: 24rpx; color: #888888; }
+.profile-id-row { margin-bottom: 10rpx; }
+.profile-bio { display: block; font-size: 26rpx; color: #555555; line-height: 1.6; margin-bottom: 24rpx; }
+.profile-stats { display: flex; flex-direction: row; align-items: center; }
+.stat-item { display: flex; flex-direction: column; align-items: center; padding-right: 32rpx; }
+.stat-num { font-size: 36rpx; font-weight: 700; color: #1A1A1A; }
+.stat-label { font-size: 22rpx; color: #888888; margin-top: 4rpx; }
+.stat-divider { width: 1rpx; height: 40rpx; background: #E6D0B8; margin-right: 32rpx; }

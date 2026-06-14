@@ -1,37 +1,45 @@
+/* miniprogram/pages/mine/points/index.wxss */
+
 /* ─── 全局 ─── */
-page { background: #f5f5f5; }
-.container { padding: 24rpx; }
-.text-orange { color: #f90; }
-.text-gray { color: #999; }
+page { background: #FAF5ED; }
+.container { padding: 24rpx 24rpx 60rpx; }
+.text-orange { color: #8B5A2B; }
+.text-gray   { color: #A89080; }
 
 /* ─── 积分卡片 ─── */
 .points-card {
-  background: linear-gradient(135deg, #ff8c00, #ffc107);
-  border-radius: 20rpx;
+  background: linear-gradient(135deg, #8B5A2B, #C8860A);
+  border-radius: 24rpx;
   padding: 40rpx 36rpx 32rpx;
   color: #fff;
   margin-bottom: 24rpx;
+  box-shadow: 0 6rpx 24rpx rgba(139, 90, 43, 0.28);
 }
-.points-card__title { font-size: 26rpx; opacity: .85; }
-.points-card__amount { font-size: 80rpx; font-weight: 700; line-height: 1.2; }
-.points-card__sub { font-size: 24rpx; opacity: .8; margin-top: 8rpx; }
-.points-card__tips { font-size: 22rpx; opacity: .7; margin-top: 12rpx; }
+.points-card__title  { font-size: 26rpx; opacity: .88; }
+.points-card__amount {
+  font-size: 80rpx; font-weight: 700; line-height: 1.2;
+  text-shadow: 0 2rpx 8rpx rgba(0,0,0,0.15);
+}
+.points-card__sub    { font-size: 24rpx; opacity: .80; margin-top: 8rpx; }
+.points-card__tips   { font-size: 22rpx; opacity: .65; margin-top: 10rpx; }
 .points-card__rule-btn {
   display: inline-block;
   margin-top: 20rpx;
   font-size: 24rpx;
-  background: rgba(255,255,255,.25);
+  background: rgba(255,255,255,.22);
   border-radius: 30rpx;
   padding: 6rpx 24rpx;
 }
 
-/* ─── 快速入口 ─── */
+/* ─── 快捷入口 ─── */
 .quick-actions {
-  background: #fff;
-  border-radius: 16rpx;
+  background: #FFF8F0;
+  border-radius: 18rpx;
   padding: 20rpx 24rpx;
   margin-bottom: 24rpx;
   display: flex;
+  border: 1rpx solid #EDE0D0;
+  box-shadow: 0 2rpx 10rpx rgba(139,90,43,0.06);
 }
 .quick-actions__item {
   flex: 1;
@@ -40,13 +48,23 @@ page { background: #f5f5f5; }
   align-items: center;
   gap: 8rpx;
 }
-.quick-actions__icon { font-size: 48rpx; }
-.quick-actions__label { font-size: 24rpx; color: #333; }
-.quick-actions__reward { font-size: 22rpx; color: #f90; }
+.quick-actions__icon   { font-size: 48rpx; }
+.quick-actions__label  { font-size: 24rpx; color: #3A2A1A; font-weight: 500; }
+.quick-actions__reward { font-size: 22rpx; color: #8B5A2B; font-weight: 600; }
 
 /* ─── 通用 section ─── */
-.section { background: #fff; border-radius: 16rpx; padding: 24rpx; margin-bottom: 24rpx; }
-.section__title { font-size: 28rpx; font-weight: 600; color: #222; margin-bottom: 20rpx; }
+.section {
+  background: #FFF8F0;
+  border-radius: 18rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+  border: 1rpx solid #EDE0D0;
+  box-shadow: 0 2rpx 10rpx rgba(139,90,43,0.06);
+}
+.section__title {
+  font-size: 28rpx; font-weight: 600;
+  color: #3A2A1A; margin-bottom: 20rpx;
+}
 
 /* ─── 获取积分列表 ─── */
 .earn-item {
@@ -54,87 +72,86 @@ page { background: #f5f5f5; }
   justify-content: space-between;
   align-items: flex-start;
   padding: 18rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid #EDE0D0;
 }
-.earn-item:last-child { border-bottom: none; }
-.earn-item--consume { opacity: .6; }
-.earn-item__scene { font-size: 26rpx; color: #333; }
-.earn-item__remark { font-size: 22rpx; color: #999; margin-top: 6rpx; }
-.earn-item__reward { font-size: 26rpx; font-weight: 600; text-align: right; }
-.earn-item__limit { font-size: 22rpx; color: #999; text-align: right; margin-top: 4rpx; }
+.earn-item:last-child    { border-bottom: none; }
+.earn-item--consume      { opacity: .6; }
+.earn-item__scene        { font-size: 26rpx; color: #3A2A1A; }
+.earn-item__remark       { font-size: 22rpx; color: #A89080; margin-top: 6rpx; }
+.earn-item__reward       { font-size: 26rpx; font-weight: 600; text-align: right; }
+.earn-item__limit        { font-size: 22rpx; color: #A89080; text-align: right; margin-top: 4rpx; }
 
-/* ─── 明细记录 ─── */
+/* ─── 积分明细记录 ─── */
 .record-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 18rpx 0;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid #EDE0D0;
 }
-.record-item:last-child { border-bottom: none; }
-.record-item__label { font-size: 26rpx; color: #333; }
-.record-item__time { font-size: 22rpx; color: #bbb; margin-top: 4rpx; }
-.record-item__points { font-size: 30rpx; font-weight: 600; }
-.record-empty { text-align: center; color: #bbb; font-size: 26rpx; padding: 40rpx 0; }
+.record-item:last-child  { border-bottom: none; }
+.record-item__label      { font-size: 26rpx; color: #3A2A1A; }
+.record-item__time       { font-size: 22rpx; color: #C4A882; margin-top: 4rpx; }
+.record-item__points     { font-size: 30rpx; font-weight: 600; }
+.record-empty {
+  text-align: center; color: #C4A882;
+  font-size: 26rpx; padding: 40rpx 0;
+}
 
 /* ─── 弹窗 ─── */
 .modal-mask {
   position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,.5);
+  background: rgba(58,42,26,.5);
   z-index: 999;
   display: flex; align-items: flex-end;
 }
 .modal-box {
-  background: #fff;
+  background: #FFF8F0;
   border-radius: 28rpx 28rpx 0 0;
   width: 100%;
   max-height: 80vh;
   display: flex; flex-direction: column;
   padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1rpx solid #EDE0D0;
 }
 .modal-box__title {
   font-size: 32rpx; font-weight: 700;
+  color: #3A2A1A;
   text-align: center; padding: 32rpx 0 16rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+  border-bottom: 1rpx solid #EDE0D0;
 }
 .modal-box__scroll { flex: 1; padding: 24rpx 32rpx; }
 .modal-box__close {
-  background: #f90; color: #fff; font-size: 30rpx;
+  background: #8B5A2B; color: #fff; font-size: 30rpx;
   text-align: center; padding: 28rpx 0;
   margin: 16rpx 32rpx 24rpx;
   border-radius: 50rpx;
+  font-weight: 600;
 }
 
 /* ─── 规则弹窗内容 ─── */
-.rule-section { margin-bottom: 28rpx; }
-.rule-section__title { font-size: 26rpx; font-weight: 600; color: #333; margin-bottom: 12rpx; }
-.rule-section__item { font-size: 24rpx; color: #555; line-height: 1.8; }
+.rule-section          { margin-bottom: 28rpx; }
+.rule-section__title   { font-size: 26rpx; font-weight: 600; color: #8B5A2B; margin-bottom: 12rpx; }
+.rule-section__item    { font-size: 24rpx; color: #5C4033; line-height: 1.8; }
 
-/* 规则表格 */
-.rule-table { border: 1rpx solid #f0f0f0; border-radius: 12rpx; overflow: hidden; }
-.rule-table__head, .rule-table__row {
-  display: flex; padding: 16rpx 12rpx;
-  border-bottom: 1rpx solid #f0f0f0;
-  font-size: 22rpx;
-}
-.rule-table__head { background: #fafafa; font-weight: 600; color: #555; }
+.rule-table            { border: 1rpx solid #EDE0D0; border-radius: 12rpx; overflow: hidden; }
+.rule-table__head,
+.rule-table__row       { display: flex; padding: 16rpx 12rpx; border-bottom: 1rpx solid #EDE0D0; font-size: 22rpx; }
+.rule-table__head      { background: #FAF5ED; font-weight: 600; color: #8B5A2B; }
 .rule-table__row:last-child { border-bottom: none; }
-.col-scene { flex: 3; color: #333; }
+.col-scene  { flex: 3; color: #3A2A1A; }
 .col-reward { flex: 2; text-align: center; }
-.col-limit { flex: 2; text-align: right; color: #888; }
+.col-limit  { flex: 2; text-align: right; color: #A89080; }
 
-/* 套餐列表 */
 .pkg-item {
   display: flex; justify-content: space-between;
-  padding: 12rpx 0;
-  border-bottom: 1rpx solid #f7f7f7;
-  font-size: 24rpx;
+  padding: 12rpx 0; border-bottom: 1rpx solid #F0E8D8; font-size: 24rpx;
 }
 .pkg-item:last-child { border-bottom: none; }
-.pkg-item__name { color: #333; }
-.pkg-item__price { color: #f90; font-weight: 600; }
+.pkg-item__name  { color: #3A2A1A; }
+.pkg-item__price { color: #8B5A2B; font-weight: 600; }
 .coupon-tip {
-  margin-top: 16rpx; font-size: 22rpx;
-  color: #e67e22; background: #fff8f0;
-  border-radius: 8rpx; padding: 12rpx 16rpx;
+  margin-top: 16rpx; font-size: 22rpx; color: #8B5A2B;
+  background: #FFF3E6; border-radius: 8rpx; padding: 12rpx 16rpx;
+  border: 1rpx solid #EDE0D0;
 }

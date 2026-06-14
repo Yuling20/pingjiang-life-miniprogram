@@ -1,167 +1,309 @@
-<!--pages/community/user/index.wxml-->
-<view class="page-wrap">
+<!-- pages/community/user/index.wxml -->
+<!-- 修复Bug1(shturl.) Bug2/3(绑定) + 关注/粉丝弹窗 + 浅色背景 + 实名分享 -->
+<view class="profile-page">
 
-<!-- 顶部用户信息卡片 -->
-<view class="profile-card">
+<!-- ══ 顶部背景区 ═══════════════════════════════════════════ -->
+<view class="profile-top">
 
-  <!-- 背景装饰条 -->
-  <view class="profile-bg"/>
+  <!-- VIP视频背景 -->
+  <video
+    wx:if="{{profileBg && bgIsVideo}}"
+    class="profile-bg-media"
+    src="{{profileBg}}"
+    autoplay loop muted
+    show-play-btn="{{false}}"
+    controls="{{false}}"
+    objectFit="cover"
+  />
+  <!-- VIP图片背景 -->
+  <image
+    wx:elif="{{profileBg && !bgIsVideo}}"
+    class="profile-bg-media"
+    src="{{profileBg}}"
+    mode="aspectFill"
+  />
+  <!-- 默认浅色渐变（问题2修复） -->
+  <view class="profile-bg-gradient" wx:else></view>
 
-  <!-- 头像区域 -->
-  <view class="avatar-section">
-    <view class="avatar-wrap">
-      <image class="avatar" src="{{user.avatar}}" mode="aspectFill"/>
-      <!-- VIP角标占位 -->
-      <view class="vip-badge" wx:if="{{user.isVip}}">
-        <text class="vip-text">V</text>
-      </view>
+  <!-- 遮罩过渡层 -->
+  <view class="profile-top-mask"></view>
+
+  <!-- 状态栏占位 -->
+  <view class="status-bar-holder"></view>
+
+  <!-- 顶部操作栏：返回 + 换背景 -->
+  <view class="top-nav-bar">
+    <view class="nav-back-btn" bindtap="goBack">
+      <text class="nav-back-icon">‹</text>
     </view>
-    <!-- 认证标签 -->
-    <view class="user-tag-row">
-      <text class="user-tag" wx:if="{{user.badge}}">{{user.badge}}</text>
-      <text class="user-tag vip-tag" wx:if="{{user.isVip}}">VIP会员</text>
+    <view class="change-bg-btn" wx:if="{{isSelf}}" bindtap="onChangeBg">
+      <text class="change-bg-icon">🖼</text>
+      <text class="change-bg-text">{{isVip ? '换背景' : '背景(VIP)'}}</text>
     </view>
   </view>
 
-  <!-- 用户基础信息 -->
-  <view class="user-info-section">
-    <text class="user-nickname">{{user.nickname}}</text>
-    <text class="user-id">平江号：{{user.uid}}</text>
-    <text class="user-bio" wx:if="{{user.bio}}">{{user.bio}}</text>
-    <text class="user-bio no-bio" wx:else>这个人很懒，什么都没写~</text>
+  <!-- 头像悬浮右下角（朋友圈风格） -->
+  <view class="avatar-float">
+    <image class="avatar-float-img" src="{{avatarUrl}}" mode="aspectFill"/>
+    <view class="vip-crown-tag" wx:if="{{isVip}}">
+      <text class="vip-crown-text">👑VIP</text>
+    </view>
   </view>
 
-  <!-- 数据统计栏 -->
+</view>
+
+<!-- ══ 用户信息区 ════════════════════════════════════════════ -->
+<view class="info-block">
+
+  <view class="info-nick-row">
+    <text class="info-nick">{{nickName || '平江用户'}}</text>
+  </view>
+  <view class="info-id-row">
+    <text class="info-id">平江号：{{userId || '未设置'}}</text>
+  </view>
+  <text class="info-bio">{{bio || '这个人很懒，还没有填写简介～'}}</text>
+
+  <!-- 统计行（问题3：关注/粉丝可点击） -->
   <view class="stats-row">
-    <view class="stat-item" bindtap="goFollow" data-tab="0" data-id="{{user.userId}}">
-      <text class="stat-num">{{user.followCount}}</text>
+    <view class="stat-item" bindtap="onShowFollow">
+      <text class="stat-num">{{followCount}}</text>
       <text class="stat-label">关注</text>
     </view>
-    <view class="stat-divider"/>
-    <view class="stat-item" bindtap="goFollow" data-tab="1" data-id="{{user.userId}}">
-      <text class="stat-num">{{user.fansCount}}</text>
+    <view class="stat-sep"></view>
+    <view class="stat-item" bindtap="onShowFans">
+      <text class="stat-num">{{fansCount}}</text>
       <text class="stat-label">粉丝</text>
     </view>
-    <view class="stat-divider"/>
+    <view class="stat-sep"></view>
     <view class="stat-item">
-      <text class="stat-num">{{user.postCount}}</text>
+      <text class="stat-num">{{postCount}}</text>
       <text class="stat-label">帖子</text>
     </view>
-    <view class="stat-divider"/>
+    <view class="stat-sep"></view>
     <view class="stat-item">
-      <text class="stat-num">{{user.likedCount}}</text>
+      <text class="stat-num">{{likeCount}}</text>
       <text class="stat-label">获赞</text>
     </view>
   </view>
 
-  <!-- 操作按钮区 -->
-  <view class="action-row" wx:if="{{!isSelf}}">
-    <!-- 关注/取关按钮 -->
-    <view
-      class="action-btn-main {{user.isFollowed ? 'btn-followed' : 'btn-follow'}}"
-      bindtap="toggleFollow"
-    >
-      <text class="action-btn-text">
-        {{user.isFollowed ? '✓ 已关注' : '+ 关注'}}
-      </text>
-    </view>
-    <!-- 私信按钮 -->
-    <view class="action-btn-sub" bindtap="goMessage">
-      <text class="action-btn-sub-icon">💬</text>
-      <text class="action-btn-sub-text">私信</text>
-    </view>
-  </view>
-
-  <!-- 自己的主页显示编辑按钮（预留） -->
-  <view class="action-row" wx:else>
-    <view class="action-btn-edit" bindtap="editProfile">
-      <text class="action-btn-text">编辑资料（预留）</text>
+  <!-- 访客按钮（仅自己主页） -->
+  <view class="func-btn-row" wx:if="{{isSelf}}">
+    <view class="func-btn" bindtap="onShowVisitors">
+      <text class="func-btn-icon">👁</text>
+      <text class="func-btn-label">谁看过我</text>
+      <view class="vip-lock-badge" wx:if="{{!isVip}}">
+        <text class="vip-lock-text">VIP</text>
+      </view>
     </view>
   </view>
 
 </view>
 
-<!-- 动态列表标题 -->
-<view class="posts-bar">
-  <text class="posts-bar-title">TA 的动态</text>
-  <text class="posts-bar-count">共 {{posts.length}} 条</text>
+<!-- ══ 动态列表 ═════════════════════════════════════════════ -->
+<view class="posts-section">
+
+  <view class="posts-title-bar">
+    <view class="posts-title-left">
+      <view class="posts-dot"></view>
+      <text class="posts-title-text">TA的动态</text>
+    </view>
+    <text class="posts-count-text" wx:if="{{postList.length > 0}}">共{{postList.length}}条</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="posts-empty" wx:if="{{!isLoading && postList.length === 0}}">
+    <text class="posts-empty-icon">📭</text>
+    <text class="posts-empty-text">还没有发布过帖子</text>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="posts-empty" wx:if="{{isLoading}}">
+    <text class="posts-empty-text">加载中...</text>
+  </view>
+
+  <!-- 帖子列表 -->
+  <view class="post-card" wx:for="{{postList}}" wx:key="id">
+
+    <!-- 头部：头像 + 昵称 + 时间 -->
+    <view class="post-card-head" bindtap="goPostDetail" data-id="{{item.id}}">
+      <image class="post-card-avatar" src="{{avatarUrl}}" mode="aspectFill"/>
+      <view class="post-card-meta">
+        <text class="post-card-nick">{{nickName}}</text>
+        <text class="post-card-time">{{item.timeLabel}}</text>
+      </view>
+    </view>
+
+    <!-- 正文 -->
+    <view bindtap="goPostDetail" data-id="{{item.id}}">
+      <text class="post-body-text">{{item.content || item.title}}</text>
+
+      <!-- 图片 -->
+      <view class="post-imgs-wrap" wx:if="{{item.images && item.images.length > 0}}">
+        <image
+          wx:for="{{item.images}}"
+          wx:key="*this"
+          wx:for-item="img"
+          class="post-img post-img--{{item.images.length === 1 ? 'single' : 'multi'}}"
+          src="{{img}}"
+          mode="aspectFill"
+        />
+      </view>
+
+      <!-- 标签 -->
+      <view class="post-tags-wrap" wx:if="{{item.tags && item.tags.length > 0}}">
+        <text
+          class="post-tag"
+          wx:for="{{item.tags}}"
+          wx:key="*this"
+          wx:for-item="tag"
+        >#{{tag}}</text>
+      </view>
+    </view>
+
+    <!-- 互动栏 -->
+    <view class="post-action-bar">
+
+      <!-- 点赞（需实名；问题6：自己的帖子不加积分） -->
+      <view class="action-btn" catchtap="onLikePost" data-idx="{{index}}">
+        <text class="action-icon">{{item.liked ? '❤️' : '🤍'}}</text>
+        <text class="action-count">{{item.likeCount || 0}}</text>
+      </view>
+
+      <!-- 评论（跳详情，详情页控制实名） -->
+      <view class="action-btn" catchtap="goPostDetail" data-id="{{item.id}}">
+        <text class="action-icon">💬</text>
+        <text class="action-count">{{item.commentCount || 0}}</text>
+      </view>
+
+      <!-- 分享朋友圈（需实名，+10积分，每日3次） -->
+      <view class="action-btn" catchtap="onShareToMoments" data-idx="{{index}}">
+        <text class="action-icon">🔄</text>
+        <text class="action-count">朋友圈</text>
+      </view>
+
+      <!-- 好友分享：已实名用 open-type，未实名拦截（问题5） -->
+      <button
+        wx:if="{{isAuthed}}"
+        class="action-btn action-share-btn"
+        open-type="share"
+        data-idx="{{index}}"
+      >
+        <text class="action-icon">↗</text>
+        <text class="action-count">好友</text>
+      </button>
+      <view wx:else class="action-btn" catchtap="onNeedAuthShare">
+        <text class="action-icon">↗</text>
+        <text class="action-count">好友</text>
+      </view>
+
+    </view>
+  </view>
+
 </view>
 
-<!-- 动态列表 -->
-<view class="posts-list">
-  <view class="post-card" wx:for="{{posts}}" wx:key="id">
-
-    <!-- 帖子头部 -->
-    <view class="post-header">
-      <text class="post-time">{{item.time}}</text>
-      <!-- 举报入口 -->
-      <view class="post-report" bindtap="reportPost" data-id="{{item.id}}">
-        <text class="post-report-text">🚩</text>
+<!-- ══ 关注列表弹窗（问题3） ══════════════════════════════════ -->
+<view class="modal-mask" wx:if="{{showFollowModal}}"
+  bindtap="onCloseFollow" catchtouchmove="stopProp">
+  <view class="list-modal" catchtap="stopProp">
+    <view class="list-modal-header">
+      <text class="list-modal-title">我的关注</text>
+      <text class="list-modal-close" bindtap="onCloseFollow">✕</text>
+    </view>
+    <!-- 空状态 -->
+    <view class="list-modal-empty" wx:if="{{followList.length === 0}}">
+      <text class="list-empty-icon">🔍</text>
+      <text class="list-empty-text">还没有关注任何人</text>
+      <text class="list-empty-sub">去贴吧逛逛，关注感兴趣的人</text>
+    </view>
+    <!-- 列表 -->
+    <scroll-view scroll-y class="list-modal-scroll" wx:else>
+      <view class="user-row" wx:for="{{followList}}" wx:key="id">
+        <image class="user-row-avatar"
+          src="{{item.avatarUrl || '/images/avatars男/avatar01.png'}}"
+          mode="aspectFill"/>
+        <view class="user-row-info">
+          <text class="user-row-nick">{{item.nickName || '平江用户'}}</text>
+          <text class="user-row-bio">{{item.bio || '暂无简介'}}</text>
+        </view>
       </view>
+    </scroll-view>
+    <view class="list-modal-footer" bindtap="onCloseFollow">关闭</view>
+  </view>
+</view>
+
+<!-- ══ 粉丝列表弹窗（问题3） ══════════════════════════════════ -->
+<view class="modal-mask" wx:if="{{showFansModal}}"
+  bindtap="onCloseFans" catchtouchmove="stopProp">
+  <view class="list-modal" catchtap="stopProp">
+    <view class="list-modal-header">
+      <text class="list-modal-title">我的粉丝</text>
+      <text class="list-modal-close" bindtap="onCloseFans">✕</text>
+    </view>
+    <!-- 空状态 -->
+    <view class="list-modal-empty" wx:if="{{fansList.length === 0}}">
+      <text class="list-empty-icon">💫</text>
+      <text class="list-empty-text">还没有粉丝</text>
+      <text class="list-empty-sub">多发优质帖子，粉丝自然来</text>
+    </view>
+    <!-- 列表 -->
+    <scroll-view scroll-y class="list-modal-scroll" wx:else>
+      <view class="user-row" wx:for="{{fansList}}" wx:key="id">
+        <image class="user-row-avatar"
+          src="{{item.avatarUrl || '/images/avatars男/avatar01.png'}}"
+          mode="aspectFill"/>
+        <view class="user-row-info">
+          <text class="user-row-nick">{{item.nickName || '平江用户'}}</text>
+          <text class="user-row-bio">{{item.bio || '暂无简介'}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="list-modal-footer" bindtap="onCloseFans">关闭</view>
+  </view>
+</view>
+
+<!-- ══ 访客弹窗（VIP专属） ═══════════════════════════════════ -->
+<view class="modal-mask" wx:if="{{showVisitorPanel}}"
+  bindtap="onCloseVisitors" catchtouchmove="stopProp">
+  <view class="list-modal" catchtap="stopProp">
+    <view class="list-modal-header">
+      <text class="list-modal-title">👁 访客记录</text>
+      <text class="list-modal-close" bindtap="onCloseVisitors">✕</text>
     </view>
 
-    <!-- 帖子正文 -->
-    <text class="post-content">{{item.content}}</text>
-
-    <!-- 话题标签 -->
-    <view class="tag-row" wx:if="{{item.tags.length > 0}}">
-      <text
-        class="tag-chip"
-        wx:for="{{item.tags}}"
-        wx:for-item="tag"
-        wx:key="index"
-      >#{{tag}}</text>
+    <text class="visitor-section-label">谁看过我</text>
+    <view class="list-modal-empty" wx:if="{{visitorList.length === 0}}">
+      <text class="list-empty-text">暂无访客记录</text>
     </view>
+    <scroll-view scroll-y style="max-height:220rpx;" wx:else>
+      <view class="user-row" wx:for="{{visitorList}}" wx:key="userId">
+        <image class="user-row-avatar"
+          src="{{item.avatarUrl || '/images/avatars男/avatar01.png'}}"
+          mode="aspectFill"/>
+        <view class="user-row-info">
+          <text class="user-row-nick">{{item.nickName || '平江用户'}}</text>
+          <text class="user-row-bio">{{item.time || ''}}</text>
+        </view>
+      </view>
+    </scroll-view>
 
-    <!-- 图片缩略 -->
-    <view class="img-row" wx:if="{{item.images.length > 0}}">
-      <image
-        class="thumb-img thumb-img-{{item.images.length}}"
-        wx:for="{{item.images}}"
-        wx:for-item="img"
-        wx:key="index"
-        src="{{img}}"
-        mode="aspectFill"
-        bindtap="previewImg"
-        data-src="{{img}}"
-        data-list="{{item.images}}"
-      />
+    <text class="visitor-section-label" style="margin-top:20rpx;">我看过谁</text>
+    <view class="list-modal-empty" wx:if="{{myViewedList.length === 0}}">
+      <text class="list-empty-text">暂无浏览记录</text>
     </view>
-
-    <!-- 帖子互动数据 -->
-    <view class="post-footer">
-      <view class="footer-item" bindtap="goComment" data-id="{{item.id}}">
-        <text class="footer-icon">🗨️</text>
-        <text class="footer-num">{{item.comments}}</text>
+    <scroll-view scroll-y style="max-height:220rpx;" wx:else>
+      <view class="user-row" wx:for="{{myViewedList}}" wx:key="userId">
+        <image class="user-row-avatar"
+          src="{{item.avatarUrl || '/images/avatars男/avatar01.png'}}"
+          mode="aspectFill"/>
+        <view class="user-row-info">
+          <text class="user-row-nick">{{item.nickName || '平江用户'}}</text>
+          <text class="user-row-bio">{{item.time || ''}}</text>
+        </view>
       </view>
-      <view class="footer-item" bindtap="toggleLike" data-id="{{item.id}}" data-index="{{index}}">
-        <text class="footer-icon">{{item.isLiked ? '❤️' : '🤍'}}</text>
-        <text class="footer-num {{item.isLiked ? 'liked' : ''}}">{{item.likes}}</text>
-      </view>
-      <view class="footer-item" bindtap="sharePost" data-item="{{item}}">
-        <text class="footer-icon">↗️</text>
-        <text class="footer-num">转发</text>
-      </view>
-    </view>
+    </scroll-view>
 
+    <view class="list-modal-footer" bindtap="onCloseVisitors">关闭</view>
   </view>
-
-  <!-- 空动态提示 -->
-  <view class="empty-tip" wx:if="{{posts.length === 0 && !isLoading}}">
-    <text class="empty-icon">📭</text>
-    <text class="empty-text">TA 还没有发布任何动态</text>
-  </view>
-
-  <!-- 加载状态 -->
-  <view class="load-tip" wx:if="{{isLoading}}">
-    <text class="load-text">加载中...</text>
-  </view>
-  <view class="load-tip" wx:if="{{!hasMore && posts.length > 0}}">
-    <text class="load-text">— 已经到底了 —</text>
-  </view>
-
-  <!-- 底部安全距离 -->
-  <view style="height: 60rpx;"/>
 </view>
 
 </view>

@@ -1,290 +1,410 @@
 // pages/community/user/index.js
-// 用户个人主页 - 展示头像/昵称/简介/数据/动态列表，含关注、私信、举报功能
-
-// 模拟当前登录用户ID（替换为真实登录体系后删除）
-const MY_USER_ID = 'u_me'
-
-// 模拟用户信息（替换为接口 GET /api/user/:id）
-const MOCK_USERS = {
-  u1: {
-    userId: 'u1', uid: '10001',
-    avatar: '/images/avatar.png',
-    nickname: '平江老表',
-    bio: '土生土长平江人，爱分享本地生活，欢迎老表们交流！',
-    badge: '本地居民', isVip: false,
-    followCount: 128, fansCount: 360, postCount: 47, likedCount: 982,
-    isFollowed: false
-  },
-  u2: {
-    userId: 'u2', uid: '10002',
-    avatar: '/images/avatar.png',
-    nickname: '汉昌居民',
-    bio: '平江县汉昌街道，普通市民一枚。',
-    badge: '', isVip: false,
-    followCount: 56, fansCount: 120, postCount: 18, likedCount: 234,
-    isFollowed: true
-  },
-  u3: {
-    userId: 'u3', uid: '10003',
-    avatar: '/images/avatar.png',
-    nickname: '嘉义街坊',
-    bio: 'VIP用户，热爱美食，经常探店平江各大餐厅🍜',
-    badge: 'VIP', isVip: true,
-    followCount: 307, fansCount: 1024, postCount: 89, likedCount: 3210,
-    isFollowed: false
-  },
-  u_me: {
-    userId: 'u_me', uid: '99999',
-    avatar: '/images/avatar.png',
-    nickname: '我自己',
-    bio: '这是我的个人主页',
-    badge: '', isVip: false,
-    followCount: 20, fansCount: 15, postCount: 5, likedCount: 48,
-    isFollowed: false
-  }
-}
-
-// 模拟用户动态（替换为接口 GET /api/user/:id/posts）
-const MOCK_POSTS = [
-  {
-    id: 1, time: '10分钟前',
-    content: '平江县天岳广场今天好热闹，有活动！大家快去看，带孩子去耍一下，气氛超好的👍',
-    tags: ['天岳广场', '平江活动'],
-    images: [], likes: 38, comments: 12, isLiked: false
-  },
-  {
-    id: 2, time: '昨天 14:30',
-    content: '推荐一下平江的酱干，走亲戚带这个最有面子，哪家最正宗大家来聊聊？',
-    tags: ['平江酱干', '美食推荐'],
-    images: [], likes: 25, comments: 8, isLiked: true
-  },
-  {
-    id: 3, time: '3天前',
-    content: '今天天气不错，带娃去天岳山爬山，空气真好！',
-    tags: ['天岳山', '亲子游'],
-    images: [], likes: 16, comments: 4, isLiked: false
-  }
-]
+// 修复4个报错 + 关注/粉丝列表 + 实名前置 + 积分联动 + 分享去重 + 自赞不加分
 
 Page({
   data: {
-    userId: null,    // 当前查看的用户ID
-    isSelf: false,   // 是否是自己的主页
-    user: {},        // 用户信息
-    posts: [],       // 用户动态列表
-    page: 1,
-    hasMore: true,
-    isLoading: false
+    // ── 修复Bug2/3：根级字段，wxml直接绑定，不与userInfo嵌套并存 ──
+    nickName:  '平江用户',
+    avatarUrl: '/images/avatars男/avatar01.png',
+    bio:       '',
+    isVip:     false,
+    isAuthed:  false,
+    userId:    '',
+
+    isSelf:    false,
+    profileBg: '',
+    bgIsVideo: false,
+
+    // 统计
+    followCount: 0,
+    fansCount:   0,
+    postCount:   0,
+    likeCount:   0,
+
+    // 关注/粉丝弹窗
+    showFollowModal: false,
+    showFansModal:   false,
+    followList:      [],
+    fansList:        [],
+
+    // 访客（VIP）
+    showVisitorPanel: false,
+    visitorList:      [],
+    myViewedList:     [],
+
+    postList:  [],
+    isLoading: true,
   },
 
   onLoad(options) {
-    const userId = options.userId || MY_USER_ID
-    const isSelf = userId === MY_USER_ID
-    this.setData({ userId, isSelf })
-    this.loadUser(userId)
-    this.loadPosts(userId, true)
+    const isSelf = options.self === '1';
+    this.setData({ isSelf });
+    this._syncUserInfo();
+    this._loadProfileBg();
+    this._loadStats();
+    this._loadPosts();
+    if (isSelf) this._loadVisitorData();
   },
 
-  onPullDownRefresh() {
-    this.loadUser(this.data.userId)
-    this.loadPosts(this.data.userId, true)
-    wx.stopPullDownRefresh()
+  onShow() {
+    this._syncUserInfo();
+    this._loadProfileBg();
+    this._loadStats();
+    this._loadPosts();
   },
 
-  onReachBottom() {
-    if (this.data.hasMore && !this.data.isLoading) {
-      this.loadPosts(this.data.userId, false)
-    }
-  },
+  // ══ 数据同步 ═══════════════════════════════════════════════
 
-  // =============================================
-  // 加载用户信息
-  // =============================================
-  loadUser(userId) {
-    // TODO: 替换为接口 GET /api/user/:id
-    const user = MOCK_USERS[userId] || MOCK_USERS['u1']
-    this.setData({ user })
-    // 设置导航栏标题为用户昵称
-    wx.setNavigationBarTitle({ title: user.nickname + ' 的主页' })
-  },
-
-  // =============================================
-  // 加载用户动态列表（分页）
-  // =============================================
-  loadPosts(userId, isRefresh) {
-    if (this.data.isLoading) return
-    this.setData({ isLoading: true })
-    const page = isRefresh ? 1 : this.data.page
-
-    setTimeout(() => {
-      // TODO: 替换为接口 GET /api/user/:id/posts?page=
-      const newPosts = page === 1 ? MOCK_POSTS : []
-      const posts = isRefresh ? newPosts : [...this.data.posts, ...newPosts]
+  /** 修复Bug2/3：统一写根级字段，wxml无需 userInfo.xxx 嵌套访问 */
+  _syncUserInfo() {
+    try {
+      const info     = wx.getStorageSync('userInfo') || {};
+      const isAuthed = wx.getStorageSync('userAuthStatus') === true;
       this.setData({
-        posts,
-        page: page + 1,
-        hasMore: page < 2,
-        isLoading: false
-      })
-    }, 500)
+        nickName:  info.nickName  || '平江用户',
+        avatarUrl: info.avatarUrl || '/images/avatars男/avatar01.png',
+        bio:       info.bio       || '',
+        isVip:     !!info.isVip,
+        userId:    info.userId    || '',
+        isAuthed,
+      });
+    } catch(e) {}
   },
 
-  // =============================================
-  // 关注 / 取关
-  // =============================================
-  toggleFollow() {
-    const { user, isSelf } = this.data
-    if (isSelf) return
+  _loadProfileBg() {
+    try {
+      const bg      = wx.getStorageSync('profileBgImage')   || '';
+      const bgIsVid = wx.getStorageSync('profileBgIsVideo') || false;
+      this.setData({ profileBg: bg, bgIsVideo: bgIsVid });
+    } catch(e) {}
+  },
 
-    // 实名授权检查
-    const authed = wx.getStorageSync('user_authed') || false
-    if (!authed) {
-      wx.showModal({
-        title: '需要授权', content: '关注用户需要实名授权',
-        confirmText: '去授权', showCancel: true,
-        success: (res) => {
-          if (res.confirm) this.doAuth()
-        }
-      })
-      return
+  _loadStats() {
+    try {
+      const posts      = wx.getStorageSync('myPublishedPosts') || [];
+      const s          = wx.getStorageSync('profileStats')     || {};
+      const followList = wx.getStorageSync('myFollowList')     || [];
+      const fansList   = wx.getStorageSync('myFansList')       || [];
+      this.setData({
+        followCount: followList.length || s.follow || 0,
+        fansCount:   fansList.length   || s.fans   || 0,
+        postCount:   posts.length,
+        likeCount:   s.likes || 0,
+        followList,
+        fansList,
+      });
+    } catch(e) {}
+  },
+
+  _loadPosts() {
+    try {
+      const list      = wx.getStorageSync('myPublishedPosts') || [];
+      const formatted = list.map((p, i) => ({
+        ...p,
+        id:           p.id           || `post_${i}`,
+        timeLabel:    this._formatTime(p.createTime || p.time || Date.now()),
+        liked:        p.liked        || false,
+        likeCount:    p.likeCount    || 0,
+        commentCount: p.commentCount || 0,
+      }));
+      this.setData({ postList: formatted, isLoading: false });
+    } catch(e) {
+      this.setData({ isLoading: false });
     }
-
-    const isFollowed = !user.isFollowed
-    const fansCount = isFollowed ? user.fansCount + 1 : user.fansCount - 1
-    this.setData({ user: { ...user, isFollowed, fansCount } })
-    wx.showToast({ title: isFollowed ? '关注成功' : '已取关', icon: 'success' })
-    // TODO: POST /api/follow { targetUserId, action: isFollowed ? 'follow' : 'unfollow' }
   },
 
-  // =============================================
-  // 私信（VIP权限判断）
-  // =============================================
-  goMessage() {
-    const currentUserIsVip = wx.getStorageSync('isVip') || false
-    if (!currentUserIsVip) {
+  _loadVisitorData() {
+    try {
+      const visitorList  = wx.getStorageSync('profileVisitors') || [];
+      const myViewedList = wx.getStorageSync('myViewedUsers')   || [];
+      this.setData({ visitorList, myViewedList });
+    } catch(e) {}
+  },
+
+  _formatTime(ts) {
+    const now  = Date.now();
+    const diff = now - Number(ts);
+    if (diff < 60000)        return '刚刚';
+    if (diff < 3600000)      return `${Math.floor(diff/60000)}分钟前`;
+    if (diff < 86400000)     return `${Math.floor(diff/3600000)}小时前`;
+    if (diff < 86400000 * 2) return '昨天';
+    const d = new Date(Number(ts));
+    return `${d.getMonth()+1}月${d.getDate()}日`;
+  },
+
+  _getTodayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  },
+
+  // ══ 实名校验 ═══════════════════════════════════════════════
+
+  _checkAuth() {
+    const isAuthed = wx.getStorageSync('userAuthStatus') === true;
+    if (!isAuthed) {
       wx.showModal({
-        title: 'VIP专属功能',
-        content: '私信功能仅VIP用户开放，开通VIP即可与TA畅聊',
-        confirmText: '了解VIP', showCancel: true,
+        title:       '需要实名认证',
+        content:     '发帖、点赞、评论、转发等互动操作需要先完成实名认证。',
+        confirmText: '去认证',
+        cancelText:  '取消',
         success: (res) => {
-          if (res.confirm) {
-            // TODO: 跳转VIP购买页
-            wx.showToast({ title: 'VIP功能即将上线', icon: 'none' })
+          if (!res.confirm) return;
+          wx.showModal({
+            title:       '微信一键实名',
+            content:     '即将通过微信授权完成实名认证，信息仅用于平台安全验证。',
+            confirmText: '确认授权',
+            cancelText:  '取消',
+            success: (r) => {
+              if (r.confirm) {
+                wx.setStorageSync('userAuthStatus', true);
+                this.setData({ isAuthed: true });
+                wx.showToast({ title: '实名认证完成', icon: 'success' });
+              }
+            }
+          });
+        }
+      });
+      return false;
+    }
+    return true;
+  },
+
+  // ══ 积分工具（全局200分/天上限） ════════════════════════════
+
+  /**
+   * @param {string} scene   积分场景描述
+   * @param {number} pts     本次奖励分数
+   * @param {string} dailyKey 场景key（用于计次）
+   * @param {number} dailyMax 单场景每日最大次数（0=不限次但受全局上限）
+   * @returns {number} 实际获得积分
+   */
+  _addPoints(scene, pts, dailyKey, dailyMax) {
+    try {
+      const today      = this._getTodayStr();
+      const DAILY_CAP  = 200; // 全局每日上限
+      const countKey   = `${dailyKey}_count_${today}`;
+      const todayCount = wx.getStorageSync(countKey) || 0;
+
+      if (dailyMax > 0 && todayCount >= dailyMax) return 0;
+
+      const stored   = wx.getStorageSync('userPoints') || {};
+      const oldTotal = typeof stored === 'number' ? stored
+                     : (stored.totalPoints || stored.total || stored.points || 0);
+      const oldToday = (stored && stored.todayEarned) ? stored.todayEarned : 0;
+
+      // 全局200/天上限
+      const actual = Math.min(pts, Math.max(0, DAILY_CAP - oldToday));
+      if (actual <= 0) return 0;
+
+      wx.setStorageSync('userPoints', {
+        ...(typeof stored === 'object' ? stored : {}),
+        totalPoints: oldTotal + actual,
+        todayEarned: oldToday + actual,
+      });
+      if (dailyMax > 0) wx.setStorageSync(countKey, todayCount + 1);
+
+      // 写入明细
+      const records = wx.getStorageSync('pointsEarnRecords') || [];
+      records.unshift({
+        id:     `${dailyKey}_${Date.now()}`,
+        scene,
+        points: actual,
+        time:   new Date().toLocaleString(),
+      });
+      wx.setStorageSync('pointsEarnRecords', records.slice(0, 200));
+      return actual;
+    } catch(e) { return 0; }
+  },
+
+  // ══ VIP背景（问题2：支持图片/视频） ════════════════════════
+
+  onChangeBg() {
+    if (!this.data.isVip) {
+      wx.showModal({
+        title:       'VIP专属权益',
+        content:     '自定义主页背景是VIP专属功能，开通后即可使用图片或视频背景。',
+        confirmText: '去开通',
+        cancelText:  '取消',
+        success: (res) => { if (res.confirm) wx.navigateBack(); }
+      });
+      return;
+    }
+    wx.showActionSheet({
+      itemList: ['上传图片背景', '上传视频背景（≤15秒）', '恢复默认背景'],
+      success: (res) => {
+        if (res.tapIndex === 2) {
+          wx.removeStorageSync('profileBgImage');
+          wx.removeStorageSync('profileBgIsVideo');
+          this.setData({ profileBg: '', bgIsVideo: false });
+          wx.showToast({ title: '已恢复默认', icon: 'success' });
+          return;
+        }
+        const isVideo = res.tapIndex === 1;
+        if (isVideo) {
+          wx.chooseMedia({
+            count:      1,
+            mediaType:  ['video'],
+            sourceType: ['album'],
+            success: (r) => {
+              const file = r.tempFiles[0];
+              if (file.duration && file.duration > 15) {
+                wx.showToast({ title: '视频时长不能超过15秒', icon: 'none', duration: 2000 });
+                return;
+              }
+              wx.setStorageSync('profileBgImage',   file.tempFilePath);
+              wx.setStorageSync('profileBgIsVideo', true);
+              this.setData({ profileBg: file.tempFilePath, bgIsVideo: true });
+              wx.showToast({ title: '视频背景已更新', icon: 'success' });
+            }
+          });
+        } else {
+          wx.chooseMedia({
+            count:      1,
+            mediaType:  ['image'],
+            sizeType:   ['compressed'],
+            sourceType: ['album', 'camera'],
+            success: (r) => {
+              const path = r.tempFiles[0].tempFilePath;
+              wx.setStorageSync('profileBgImage',   path);
+              wx.setStorageSync('profileBgIsVideo', false);
+              this.setData({ profileBg: path, bgIsVideo: false });
+              wx.showToast({ title: '图片背景已更新', icon: 'success' });
+            }
+          });
+        }
+      }
+    });
+  },
+
+  // ══ 关注/粉丝列表（问题3：点击有弹窗） ══════════════════════
+
+  onShowFollow() { this.setData({ showFollowModal: true }); },
+  onCloseFollow() { this.setData({ showFollowModal: false }); },
+  onShowFans()  { this.setData({ showFansModal: true }); },
+  onCloseFans() { this.setData({ showFansModal: false }); },
+
+  // ══ 访客面板（VIP专属） ══════════════════════════════════════
+
+  onShowVisitors() {
+    if (!this.data.isVip) {
+      wx.showModal({
+        title:       'VIP专属',
+        content:     '查看访客记录是VIP专属功能，开通后即可查看谁看过你。',
+        confirmText: '去开通',
+        cancelText:  '取消',
+        success: (res) => { if (res.confirm) wx.navigateBack(); }
+      });
+      return;
+    }
+    this.setData({ showVisitorPanel: true });
+  },
+  onCloseVisitors() { this.setData({ showVisitorPanel: false }); },
+
+  // ══ 点赞（问题6：自己的帖子自己点不加积分） ══════════════════
+
+  onLikePost(e) {
+    if (!this._checkAuth()) return;
+    const idx  = e.currentTarget.dataset.idx;
+    const list = [...this.data.postList];
+    const post = list[idx];
+    if (!post) return;
+
+    post.liked     = !post.liked;
+    post.likeCount = Math.max(0, (post.likeCount || 0) + (post.liked ? 1 : -1));
+    list[idx] = post;
+    this.setData({ postList: list });
+
+    try {
+      const stored = wx.getStorageSync('myPublishedPosts') || [];
+      if (stored[idx]) {
+        stored[idx].likeCount = post.likeCount;
+        stored[idx].liked     = post.liked;
+        wx.setStorageSync('myPublishedPosts', stored);
+      }
+    } catch(e) {}
+
+    // 问题6：isSelf=true 表示自己看自己的帖 → 自赞不加积分
+    if (post.liked && !this.data.isSelf) {
+      const got = this._addPoints('帖子被点赞', 2, 'like_recv', 0);
+      if (got > 0) wx.showToast({ title: `+${got}积分`, icon: 'none', duration: 1000 });
+    }
+  },
+
+  // ══ 跳转详情（查看无需实名，评论在详情页控制） ════════════════
+
+  goPostDetail(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    wx.navigateTo({
+      url:  `/pages/community/detail/index?id=${id}`,
+      fail: () => wx.showToast({ title: '页面跳转失败', icon: 'none' })
+    });
+  },
+
+  // ══ 分享到朋友圈（+10积分，每日最多3次） ════════════════════
+
+  onShareToMoments(e) {
+    if (!this._checkAuth()) return;
+    const idx  = e.currentTarget.dataset.idx;
+    const post = this.data.postList[idx];
+    if (!post) return;
+    wx.showModal({
+      title:       '分享到朋友圈',
+      content:     '分享成功可获得10积分，每日最多计3次',
+      confirmText: '去分享',
+      cancelText:  '取消',
+      success: (res) => {
+        if (!res.confirm) return;
+        const got = this._addPoints('转发帖子到朋友圈', 10, 'share_moments', 3);
+        wx.showToast({
+          title:    got > 0 ? `分享成功 +${got}积分` : '分享成功（今日已达上限）',
+          icon:     'success',
+          duration: 1800,
+        });
+      }
+    });
+  },
+
+  /** 未实名时点击好友分享按钮的拦截 */
+  onNeedAuthShare() {
+    this._checkAuth();
+  },
+
+  // ══ 好友分享（问题5：+10积分，同帖同天去重，全局200/天） ════
+
+  onShareAppMessage(res) {
+    if (res.from === 'button') {
+      const idx  = parseInt((res.target && res.target.dataset && res.target.dataset.idx) || 0);
+      const post = this.data.postList[idx] || {};
+
+      // 问题5：同一帖子同一天只计一次积分（替代"同一接收人"去重）
+      const today    = this._getTodayStr();
+      const shareKey = `share_friend_${post.id || idx}_${today}`;
+      try {
+        const alreadyShared = wx.getStorageSync(shareKey) || false;
+        if (!alreadyShared) {
+          const got = this._addPoints('分享帖子给好友', 10, 'share_friend', 0);
+          wx.setStorageSync(shareKey, true); // 标记今天已分享此帖
+          if (got > 0) {
+            setTimeout(() => {
+              wx.showToast({ title: `分享成功 +${got}积分`, icon: 'success', duration: 1500 });
+            }, 400);
           }
         }
-      })
-      return
+      } catch(e) {}
+
+      return {
+        title:    ((post.content || post.title || '来自平江贴吧的帖子')).slice(0, 30),
+        path:     `/pages/community/detail/index?id=${post.id || ''}`,
+        imageUrl: (post.images && post.images[0]) || '',
+      };
     }
-    // TODO: 跳转私信页
-    wx.showToast({ title: '私信功能即将开放', icon: 'none' })
-  },
-
-  // =============================================
-  // 编辑资料（自己主页时预留）
-  // =============================================
-  editProfile() {
-    // TODO: 跳转编辑资料页
-    wx.showToast({ title: '资料编辑功能即将上线', icon: 'none' })
-  },
-
-  // =============================================
-  // 跳转关注粉丝页（带tab参数）
-  // =============================================
-  goFollow(e) {
-    const { tab, id } = e.currentTarget.dataset
-    wx.navigateTo({ url: `../follow/index?userId=${id}&tab=${tab}` })
-  },
-
-  // =============================================
-  // 跳转评论页
-  // =============================================
-  goComment(e) {
-    wx.navigateTo({ url: `../comment/index?postId=${e.currentTarget.dataset.id}` })
-  },
-
-  // =============================================
-  // 帖子点赞
-  // =============================================
-  toggleLike(e) {
-    const { id, index } = e.currentTarget.dataset
-    const posts = this.data.posts.map((p, i) => {
-      if (i === index) {
-        return { ...p, isLiked: !p.isLiked, likes: p.isLiked ? p.likes - 1 : p.likes + 1 }
-      }
-      return p
-    })
-    this.setData({ posts })
-    // TODO: POST /api/post/like { postId: id }
-  },
-
-  // =============================================
-  // 转发帖子
-  // =============================================
-  sharePost(e) {
-    const item = e.currentTarget.dataset.item
-    wx.showActionSheet({
-      itemList: ['发给好友/群', '生成分享海报'],
-      success: (res) => {
-        if (res.tapIndex === 0) {
-          wx.showToast({ title: '请点击右上角菜单转发', icon: 'none' })
-        } else {
-          wx.showToast({ title: '海报生成功能请在首页使用', icon: 'none' })
-        }
-      }
-    })
-  },
-
-  // =============================================
-  // 举报帖子
-  // =============================================
-  reportPost(e) {
-    wx.showModal({
-      title: '举报', content: '确认举报该帖子？', confirmText: '举报',
-      confirmColor: '#E53935',
-      success: (res) => {
-        if (res.confirm) {
-          wx.showToast({ title: '举报已提交，感谢反馈', icon: 'none' })
-          // TODO: POST /api/report { type: 'post', id: e.currentTarget.dataset.id }
-        }
-      }
-    })
-  },
-
-  // =============================================
-  // 图片预览
-  // =============================================
-  previewImg(e) {
-    wx.previewImage({
-      current: e.currentTarget.dataset.src,
-      urls: e.currentTarget.dataset.list
-    })
-  },
-
-  // =============================================
-  // 实名授权辅助方法
-  // =============================================
-  doAuth() {
-    wx.getUserProfile({
-      desc: '操作需实名授权',
-      success: (res) => {
-        wx.setStorageSync('user_authed', true)
-        wx.setStorageSync('user_info', res.userInfo)
-        wx.showToast({ title: '授权成功', icon: 'success' })
-      },
-      fail: () => {
-        wx.showToast({ title: '授权失败', icon: 'none' })
-      }
-    })
-  },
-
-  // =============================================
-  // 微信分享配置
-  // =============================================
-  onShareAppMessage() {
-    const { user } = this.data
     return {
-      title: `${user.nickname} 的平江贴吧主页`,
-      path: `/pages/community/user/index?userId=${user.userId}`
-    }
-  }
-})
+      title: `${this.data.nickName || '平江用户'}的贴吧主页`,
+      path:  `/pages/community/user/index`,
+    };
+  },
+
+  goBack()   { wx.navigateBack(); },
+  stopProp() {},
+});

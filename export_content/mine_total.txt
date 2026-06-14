@@ -1,0 +1,2919 @@
+// miniprogram/pages/mine/mine.js
+const app = getApp();
+
+function getTodayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// 男士基础头像（20个）
+const MALE_AVATARS = Array.from({length: 20}, (_, i) =>
+  `/images/avatars男/avatar${String(i+1).padStart(2,'0')}.png`
+);
+// 女士基础头像（20个）
+const FEMALE_AVATARS = Array.from({length: 20}, (_, i) =>
+  `/images/avatarsnv/avatar${String(i+21).padStart(2,'0')}.png`
+);
+
+const BASE_AVATARS = [...MALE_AVATARS, ...FEMALE_AVATARS];
+
+// VIP权益对比数据（问题4：新增贴吧主页背景更换）
+const VIP_BENEFITS = [
+  {
+    feature: '头像使用权限',
+    normal:  '仅可使用平台内置基础头像，禁止自定义上传',
+    vip:     '解锁全部平台头像；支持自主上传图片制作个性化头像',
+  },
+  {
+    feature: '昵称修改',
+    normal:  '按规则限制修改频次',
+    vip:     '每月可免费修改1次昵称',
+  },
+  {
+    feature: '外观特权',
+    normal:  '默认基础样式，无特殊标识',
+    vip:     '专属头像框、专属昵称配色、全局VIP身份标识',
+  },
+  {
+    feature: '贴吧主页背景',   // ✅ 问题4新增
+    normal:  '默认纯色背景，不可更改',
+    vip:     '可自主上传图片作为贴吧主页背景大图',
+  },
+  {
+    feature: '访客查看',
+    normal:  '无法查看主页/动态访客记录',
+    vip:     '可查看所有访问过自己主页、帖子的用户',
+  },
+  {
+    feature: '福利礼包',
+    normal:  '无专属礼包',
+    vip:     '生日专属福利礼包；各大节日专属祝福+额外福利',
+  },
+];
+
+// VIP套餐定价
+const VIP_PACKAGES = [
+  { id: 'month',  name: '月卡', price: '9.9元',  desc: '连续包月更优惠' },
+  { id: 'season', name: '季卡', price: '24.9元', desc: '3个月畅享VIP' },
+  { id: 'year',   name: '年卡', price: '69.9元', desc: '年度最超值之选' },
+];
+
+Page({
+  data: {
+    userInfo: {
+      nickName:  '平江用户',
+      avatarUrl: '/images/avatars男/avatar01.png',
+      bio:       '',
+    },
+    isAuthed:       false,
+    isVip:          false,
+    totalPoints:    0,
+    hasSigned:      false,
+    myJobCount:     0,
+    myRentalCount:  0,
+    myPostCount:    0,
+
+    showContactModal:  false,
+    contactWechatId:   'pjhsh2025',
+
+    // 头像面板
+    showAvatarPanel:   false,
+    maleAvatars:       MALE_AVATARS,
+    femaleAvatars:     FEMALE_AVATARS,
+    showMaleTab:       true,   // true=男 false=女
+
+    // 昵称编辑
+    showNickModal:  false,
+    nickInput:      '',
+
+    // 简介编辑
+    showBioModal:   false,
+    bioInput:       '',
+
+    // VIP弹窗
+    showVipModal:   false,
+    vipBenefits:    VIP_BENEFITS,
+    vipPackages:    VIP_PACKAGES,
+    selectedPkg:    'year',
+
+    // 建议信箱
+    showSuggestModal:  false,
+    suggestContent:    '',
+    suggestContact:    '',
+  },
+
+  onLoad() { this._initPage(); },
+  onShow()  { this._initPage(); },
+
+  // ─── 初始化 ────────────────────────────────────────────────
+  _initPage() {
+    this._loadUserInfo();
+    this._loadAuthStatus();
+    this._loadPoints();
+    this._loadMyJobCount();
+    this._loadMyRentalCount();
+    this._loadMyPostCount();
+  },
+
+  _loadUserInfo() {
+    try {
+      const info = wx.getStorageSync('userInfo');
+      if (info && info.nickName) {
+        this.setData({ userInfo: info, isVip: !!info.isVip });
+      }
+    } catch(e) {}
+  },
+
+  _loadAuthStatus() {
+    try {
+      const s = wx.getStorageSync('userAuthStatus');
+      this.setData({ isAuthed: s === true });
+    } catch(e) { this.setData({ isAuthed: false }); }
+  },
+
+  _loadPoints() {
+    try {
+      const pts = wx.getStorageSync('userPoints');
+      let total = 0;
+      if (typeof pts === 'number') {
+        total = pts;
+      } else if (pts && typeof pts === 'object') {
+        total = pts.totalPoints || pts.total || pts.points || 0;
+      }
+      const hasSigned = (wx.getStorageSync('signedDate') || '') === getTodayStr();
+      this.setData({ totalPoints: total, hasSigned });
+    } catch(e) { this.setData({ totalPoints: 0, hasSigned: false }); }
+  },
+
+  _loadMyJobCount() {
+    try { this.setData({ myJobCount: (wx.getStorageSync('myPublishedJobs') || []).length }); } catch(e) {}
+  },
+  _loadMyRentalCount() {
+    try { this.setData({ myRentalCount: (wx.getStorageSync('myPublishedRentals') || []).length }); } catch(e) {}
+  },
+  _loadMyPostCount() {
+    try { this.setData({ myPostCount: (wx.getStorageSync('myPublishedPosts') || []).length }); } catch(e) {}
+  },
+
+  // ─── 头像面板 ──────────────────────────────────────────────
+  onOpenAvatarPanel() {
+    const info     = this.data.userInfo;
+    const isVip    = !!info.isVip;
+    const lastDate = info.lastAvatarChangeDate || '';
+    const today    = getTodayStr();
+    if (!isVip && lastDate && lastDate.slice(0,4) === today.slice(0,4)) {
+      wx.showToast({ title: '普通用户每年仅可更换1次头像，开通VIP享每月更换特权', icon: 'none', duration: 3000 });
+      return;
+    }
+    if (isVip && lastDate && lastDate.slice(0,7) === today.slice(0,7)) {
+      wx.showToast({ title: 'VIP每月可更换1次头像，下月再来', icon: 'none', duration: 2500 });
+      return;
+    }
+    this.setData({ showAvatarPanel: true, showMaleTab: true });
+  },
+
+  onCloseAvatarPanel() { this.setData({ showAvatarPanel: false }); },
+
+  onSwitchTab(e) {
+    this.setData({ showMaleTab: e.currentTarget.dataset.tab === 'male' });
+  },
+
+  onSelectAvatar(e) {
+    const url  = e.currentTarget.dataset.url;
+    const info = this.data.userInfo;
+    const newInfo = { ...info, avatarUrl: url, lastAvatarChangeDate: getTodayStr() };
+    wx.setStorageSync('userInfo', newInfo);
+    this.setData({ userInfo: newInfo, showAvatarPanel: false });
+    wx.showToast({ title: '头像已更新', icon: 'success' });
+  },
+
+  // VIP用户上传自定义头像
+  onUploadAvatar() {
+    if (!this.data.isVip) {
+      wx.showToast({ title: '开通VIP后可上传自定义头像', icon: 'none', duration: 2500 });
+      return;
+    }
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['image'],
+      sizeType: ['compressed'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const tempPath = res.tempFiles[0].tempFilePath;
+        const info     = this.data.userInfo;
+        const newInfo  = { ...info, avatarUrl: tempPath, lastAvatarChangeDate: getTodayStr() };
+        wx.setStorageSync('userInfo', newInfo);
+        this.setData({ userInfo: newInfo, showAvatarPanel: false });
+        wx.showToast({ title: '头像已更新', icon: 'success' });
+      }
+    });
+  },
+
+  // ─── 昵称编辑 ──────────────────────────────────────────────
+  onOpenNickModal() {
+    this.setData({ showNickModal: true, nickInput: this.data.userInfo.nickName || '' });
+  },
+  onCloseNickModal() { this.setData({ showNickModal: false }); },
+  onNickInput(e)     { this.setData({ nickInput: e.detail.value }); },
+  onConfirmNick() {
+    const nick = (this.data.nickInput || '').trim();
+    if (!nick)         { wx.showToast({ title: '昵称不能为空', icon: 'none' }); return; }
+    if (nick.length>16){ wx.showToast({ title: '昵称最多16个字', icon: 'none' }); return; }
+    const info     = this.data.userInfo;
+    const isVip    = !!info.isVip;
+    const lastDate = info.lastNickChangeDate || '';
+    const today    = getTodayStr();
+    if (!isVip && lastDate && lastDate.slice(0,4) === today.slice(0,4)) {
+      wx.showToast({ title: '普通用户每年仅可修改1次昵称', icon: 'none', duration: 2500 }); return;
+    }
+    if (isVip && lastDate && lastDate.slice(0,7) === today.slice(0,7)) {
+      wx.showToast({ title: 'VIP每月可修改1次昵称', icon: 'none', duration: 2500 }); return;
+    }
+    const newInfo = { ...info, nickName: nick, lastNickChangeDate: today };
+    wx.setStorageSync('userInfo', newInfo);
+    this.setData({ userInfo: newInfo, showNickModal: false });
+    wx.showToast({ title: '昵称已更新', icon: 'success' });
+  },
+
+  // ─── 简介编辑（同步到 userInfo，profile页读同一字段） ────────
+  onOpenBioModal() {
+    this.setData({ showBioModal: true, bioInput: this.data.userInfo.bio || '' });
+  },
+  onCloseBioModal() { this.setData({ showBioModal: false }); },
+  onBioInput(e) {
+    const val = e.detail.value;
+    if (val.length > 30) return;
+    this.setData({ bioInput: val });
+  },
+  onConfirmBio() {
+    const bio     = (this.data.bioInput || '').trim();
+    const newInfo = { ...this.data.userInfo, bio };
+    wx.setStorageSync('userInfo', newInfo);
+    this.setData({ userInfo: newInfo, showBioModal: false });
+    wx.showToast({ title: '简介已更新', icon: 'success' });
+  },
+
+  // ─── VIP弹窗 ───────────────────────────────────────────────
+  onOpenVip() {
+    this.setData({ showVipModal: true });
+  },
+  onCloseVip() { this.setData({ showVipModal: false }); },
+  onSelectPkg(e) {
+    this.setData({ selectedPkg: e.currentTarget.dataset.id });
+  },
+  onBuyVip() {
+    wx.showModal({
+      title: '开通VIP',
+      content: `确认开通所选套餐？（当前为演示版本，功能后续接入支付）`,
+      confirmText: '确认',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          wx.showToast({ title: '支付功能即将上线', icon: 'none', duration: 2000 });
+        }
+      }
+    });
+  },
+
+  // ─── 建议信箱 ──────────────────────────────────────────────
+  onOpenSuggest() {
+    this.setData({ showSuggestModal: true, suggestContent: '', suggestContact: '' });
+  },
+  onCloseSuggest() { this.setData({ showSuggestModal: false }); },
+  onSuggestInput(e) {
+    const val = e.detail.value;
+    if (val.length > 300) return;
+    this.setData({ suggestContent: val });
+  },
+  onContactInput(e) {
+    this.setData({ suggestContact: e.detail.value });
+  },
+  onSubmitSuggest() {
+    const content = (this.data.suggestContent || '').trim();
+    if (content.length < 5) {
+      wx.showToast({ title: '建议内容至少5个字', icon: 'none', duration: 2000 });
+      return;
+    }
+    // 写入本地（后台对接时替换为云函数调用）
+    try {
+      const list = wx.getStorageSync('suggestList') || [];
+      list.unshift({
+        id:       Date.now(),
+        content,
+        contact:  this.data.suggestContact,
+        time:     new Date().toLocaleString(),
+      });
+      wx.setStorageSync('suggestList', list.slice(0, 200));
+    } catch(e) {}
+
+    this.setData({ showSuggestModal: false });
+    wx.showModal({
+      title: '感谢您的建议',
+      content: '谢谢您对平江汇生活的支持，我们会认真参考您的建议，不断优化，为平江人民提供更好的服务！',
+      showCancel: false,
+      confirmText: '好的',
+    });
+  },
+
+  // ─── 跳转 ──────────────────────────────────────────────────
+  goAuth() {
+    if (this.data.isAuthed) {
+      wx.showToast({ title: '您已完成实名认证', icon: 'success', duration: 1500 }); return;
+    }
+    wx.showModal({
+      title: '微信一键实名',
+      content: '即将调用微信授权+人脸识别完成实名认证，信息仅用于平台安全验证。',
+      confirmText: '确认授权', cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          wx.setStorageSync('userAuthStatus', true);
+          this.setData({ isAuthed: true });
+          wx.showToast({ title: '实名认证完成', icon: 'success', duration: 1500 });
+        }
+      }
+    });
+  },
+
+  goPointsCenter() {
+    wx.navigateTo({ url: '/pages/mine/points/index', fail: () => wx.showToast({ title: '跳转失败', icon: 'none' }) });
+  },
+
+  goMyJobs() {
+    wx.navigateTo({ url: '/pages/mine/my-jobs/index', fail: () => wx.showToast({ title: '跳转失败', icon: 'none' }) });
+  },
+
+  goMyRentals() {
+    wx.navigateTo({ url: '/pages/mine/my-rentals/index', fail: () => wx.showToast({ title: '跳转失败', icon: 'none' }) });
+  },
+
+  // ✅ 按 Claude 要求修正跳转路径：点击"我发布的帖子"跳转到个人主页（self=1）
+  goMyPosts() {
+    wx.navigateTo({
+      url: '/pages/community/user/index?self=1',
+      fail: () => wx.showToast({ title: '跳转失败', icon: 'none' })
+    });
+  },
+
+  // ✅ 问题3修复：去掉"我的帖子动态"跳转逻辑（在wxml中已移除该按钮）
+
+  showContactModal() { this.setData({ showContactModal: true }); },
+  hideContactModal() { this.setData({ showContactModal: false }); },
+  stopProp() {},
+
+  copyWechatId() {
+    wx.setClipboardData({
+      data: this.data.contactWechatId,
+      success: () => wx.showToast({ title: '微信号已复制', icon: 'success', duration: 1500 }),
+      fail:    () => wx.showToast({ title: '复制失败', icon: 'none', duration: 1500 }),
+    });
+  },
+
+  handleLogout() {
+    wx.showModal({
+      title: '提示', content: '确认退出登录吗？',
+      confirmText: '退出', cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          ['userInfo','userAuthStatus','userVipStatus','signedDate','signRecord'].forEach(k => wx.removeStorageSync(k));
+          this.setData({
+            userInfo:      { nickName: '平江用户', avatarUrl: '/images/avatars男/avatar01.png', bio: '' },
+            isAuthed:      false,
+            isVip:         false,
+            totalPoints:   0,
+            hasSigned:     false,
+            myJobCount:    0,
+            myRentalCount: 0,
+            myPostCount:   0,
+          });
+          wx.showToast({ title: '已退出登录', icon: 'success', duration: 1200 });
+          setTimeout(() => wx.switchTab({ url: '/pages/home/home' }), 1300);
+        }
+      }
+    });
+  },
+});{
+  "navigationBarTitleText": "我的",
+  "navigationBarBackgroundColor": "#FFF3E0",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#FFFFFF"
+}
+<!-- miniprogram/pages/mine/mine.wxml -->
+<view class="page-wrap">
+
+<!-- ══════ 顶部用户信息区 ══════ -->
+<view class="profile-header">
+  <view class="profile-deco-tr"></view>
+  <view class="profile-deco-bl"></view>
+  <view class="profile-inner">
+
+    <!-- 头像 -->
+    <view class="avatar-wrap" bindtap="onOpenAvatarPanel">
+      <image class="avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill"/>
+      <view class="avatar-edit-tag">换</view>
+    </view>
+
+    <!-- 用户信息 -->
+    <view class="user-info">
+      <view class="nick-row" bindtap="onOpenNickModal">
+        <text class="user-name">{{userInfo.nickName || '平江用户'}}</text>
+        <view class="vip-badge-inline" wx:if="{{isVip}}">
+          <text class="vip-badge-text">VIP</text>
+        </view>
+        <text class="nick-edit-icon">✏️</text>
+      </view>
+
+      <view class="bio-row" bindtap="onOpenBioModal">
+        <text class="user-bio {{userInfo.bio ? '' : 'bio-placeholder'}}">
+          {{userInfo.bio || '点击填写个人简介（30字以内）'}}
+        </text>
+      </view>
+
+      <view class="badge-row">
+        <view class="auth-badge {{isAuthed ? 'authed' : 'unauthed'}}">
+          <text class="auth-badge-text">{{isAuthed ? '✅ 已实名' : '未实名'}}</text>
+        </view>
+        <view class="open-vip-btn" bindtap="onOpenVip" wx:if="{{!isVip}}">
+          <text class="open-vip-text">开通VIP ›</text>
+        </view>
+      </view>
+    </view>
+
+  </view>
+</view>
+
+<!-- ══════ 头像选择面板 ══════ -->
+<view class="modal-mask bottom-sheet-mask" wx:if="{{showAvatarPanel}}"
+  bindtap="onCloseAvatarPanel" catchtouchmove="stopProp">
+  <view class="avatar-panel" catchtap="stopProp">
+    <view class="avatar-panel__title">选择头像</view>
+
+    <!-- VIP上传入口 -->
+    <view class="upload-avatar-btn" bindtap="onUploadAvatar">
+      <text class="upload-avatar-icon">📷</text>
+      <view class="upload-avatar-right">
+        <text class="upload-avatar-label">上传自定义头像</text>
+        <text class="upload-avatar-tip">{{isVip ? 'VIP专享，立即上传' : '开通VIP后可上传自定义头像'}}</text>
+      </view>
+      <text class="upload-avatar-arrow">›</text>
+    </view>
+
+    <!-- 男/女分类Tab -->
+    <view class="avatar-tab-row">
+      <view class="avatar-tab {{showMaleTab ? 'avatar-tab--active' : ''}}"
+        bindtap="onSwitchTab" data-tab="male">男士头像</view>
+      <view class="avatar-tab {{!showMaleTab ? 'avatar-tab--active' : ''}}"
+        bindtap="onSwitchTab" data-tab="female">女士头像</view>
+    </view>
+
+    <!-- 男士头像 -->
+    <view class="avatar-grid" wx:if="{{showMaleTab}}">
+      <view wx:for="{{maleAvatars}}" wx:key="*this"
+        class="avatar-grid-item {{userInfo.avatarUrl === item ? 'avatar-grid-item--selected' : ''}}"
+        bindtap="onSelectAvatar" data-url="{{item}}">
+        <image src="{{item}}" class="avatar-option" mode="aspectFill"/>
+        <view class="avatar-check" wx:if="{{userInfo.avatarUrl === item}}">✓</view>
+      </view>
+    </view>
+
+    <!-- 女士头像 -->
+    <view class="avatar-grid" wx:if="{{!showMaleTab}}">
+      <view wx:for="{{femaleAvatars}}" wx:key="*this"
+        class="avatar-grid-item {{userInfo.avatarUrl === item ? 'avatar-grid-item--selected' : ''}}"
+        bindtap="onSelectAvatar" data-url="{{item}}">
+        <image src="{{item}}" class="avatar-option" mode="aspectFill"/>
+        <view class="avatar-check" wx:if="{{userInfo.avatarUrl === item}}">✓</view>
+      </view>
+    </view>
+
+    <view class="avatar-panel__tip">普通用户每年可更换1次 · VIP每月可更换1次</view>
+    <view class="avatar-panel__cancel" bindtap="onCloseAvatarPanel">取消</view>
+  </view>
+</view>
+
+<!-- ══════ 昵称编辑弹窗 ══════ -->
+<view class="modal-mask" wx:if="{{showNickModal}}"
+  bindtap="onCloseNickModal" catchtouchmove="stopProp">
+  <view class="modal-box edit-modal" catchtap="stopProp">
+    <view class="modal-header">
+      <text class="modal-title">修改昵称</text>
+      <text class="modal-close" bindtap="onCloseNickModal">✕</text>
+    </view>
+    <input class="edit-input" value="{{nickInput}}" bindinput="onNickInput"
+      placeholder="请输入昵称（最多16字）" maxlength="16" focus="{{showNickModal}}"/>
+    <view class="edit-tip">普通用户每年可修改1次，VIP每月可修改1次</view>
+    <button class="modal-confirm-btn" bindtap="onConfirmNick">确认修改</button>
+  </view>
+</view>
+
+<!-- ══════ 简介编辑弹窗 ══════ -->
+<view class="modal-mask" wx:if="{{showBioModal}}"
+  bindtap="onCloseBioModal" catchtouchmove="stopProp">
+  <view class="modal-box edit-modal" catchtap="stopProp">
+    <view class="modal-header">
+      <text class="modal-title">个人简介</text>
+      <text class="modal-close" bindtap="onCloseBioModal">✕</text>
+    </view>
+    <textarea class="bio-textarea" value="{{bioInput}}" bindinput="onBioInput"
+      placeholder="介绍一下自己吧（30字以内）" maxlength="30" focus="{{showBioModal}}"/>
+    <view class="bio-count">{{bioInput.length}}/30</view>
+    <button class="modal-confirm-btn" bindtap="onConfirmBio">保存简介</button>
+  </view>
+</view>
+
+<!-- ══════ VIP开通弹窗 ══════ -->
+<view class="modal-mask" wx:if="{{showVipModal}}"
+  bindtap="onCloseVip" catchtouchmove="stopProp">
+  <view class="vip-modal" catchtap="stopProp">
+    <view class="vip-modal__header">
+      <text class="vip-modal__title">👑 开通VIP会员</text>
+      <text class="vip-modal__close" bindtap="onCloseVip">✕</text>
+    </view>
+
+    <!-- 权益对比表 -->
+    <scroll-view scroll-y class="vip-table-scroll">
+      <view class="vip-table">
+        <view class="vip-table__head">
+          <text class="vip-col vip-col--feature">功能</text>
+          <text class="vip-col vip-col--normal">普通用户</text>
+          <text class="vip-col vip-col--vip">VIP会员</text>
+        </view>
+        <view class="vip-table__row" wx:for="{{vipBenefits}}" wx:key="feature">
+          <text class="vip-col vip-col--feature">{{item.feature}}</text>
+          <text class="vip-col vip-col--normal vip-text-gray">{{item.normal}}</text>
+          <text class="vip-col vip-col--vip vip-text-gold">{{item.vip}}</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 套餐选择 -->
+    <view class="vip-pkg-title">选择套餐</view>
+    <view class="vip-pkg-row">
+      <view wx:for="{{vipPackages}}" wx:key="id"
+        class="vip-pkg-item {{selectedPkg === item.id ? 'vip-pkg-item--selected' : ''}}"
+        bindtap="onSelectPkg" data-id="{{item.id}}">
+        <text class="vip-pkg-name">{{item.name}}</text>
+        <text class="vip-pkg-price">{{item.price}}</text>
+        <text class="vip-pkg-desc">{{item.desc}}</text>
+      </view>
+    </view>
+
+    <button class="vip-buy-btn" bindtap="onBuyVip">立即开通</button>
+    <text class="vip-notice">开通即同意平台VIP服务协议</text>
+  </view>
+</view>
+
+<!-- ══════ 便民服务 ══════ -->
+<view class="section-block">
+  <view class="section-title">
+    <text class="section-title-icon">🏠</text>
+    <text class="section-title-text">便民服务</text>
+  </view>
+  <view class="menu-item" bindtap="goMyJobs">
+    <view class="menu-left">
+      <view class="menu-icon-wrap"><text class="menu-icon">💼</text></view>
+      <text class="menu-label">我发布的招聘</text>
+    </view>
+    <view class="menu-right">
+      <text class="menu-count" wx:if="{{myJobCount > 0}}">{{myJobCount}}</text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+  <view class="divider"></view>
+  <view class="menu-item" bindtap="goMyRentals">
+    <view class="menu-left">
+      <view class="menu-icon-wrap"><text class="menu-icon">🏡</text></view>
+      <text class="menu-label">我发布的房源</text>
+    </view>
+    <view class="menu-right">
+      <text class="menu-count" wx:if="{{myRentalCount > 0}}">{{myRentalCount}}</text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+</view>
+
+<!-- ══════ 贴吧社区 ══════ -->
+<view class="section-block">
+  <view class="section-title">
+    <text class="section-title-icon">💬</text>
+    <text class="section-title-text">贴吧社区</text>
+  </view>
+  <!-- ✅ 问题2：跳转个人主页（我发布的帖子）-->
+  <view class="menu-item" bindtap="goMyPosts">
+    <view class="menu-left">
+      <view class="menu-icon-wrap"><text class="menu-icon">📝</text></view>
+      <text class="menu-label">我发布的帖子</text>
+    </view>
+    <view class="menu-right">
+      <text class="menu-count" wx:if="{{myPostCount > 0}}">{{myPostCount}}</text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+  <!-- ✅ 问题3：移除"我的帖子动态"按钮（功能待完善前不展示） -->
+</view>
+
+<!-- ══════ 账户功能 ══════ -->
+<view class="section-block">
+  <view class="section-title">
+    <text class="section-title-icon">⚙️</text>
+    <text class="section-title-text">账户功能</text>
+  </view>
+  <view class="menu-item" bindtap="goAuth">
+    <view class="menu-left">
+      <view class="menu-icon-wrap"><text class="menu-icon">🔐</text></view>
+      <text class="menu-label">实名认证</text>
+    </view>
+    <view class="menu-right">
+      <text class="auth-status-tag {{isAuthed ? 'tag-authed' : 'tag-unauthed'}}">
+        {{isAuthed ? '已认证' : '去认证'}}
+      </text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+  <view class="divider"></view>
+  <view class="menu-item" bindtap="goPointsCenter">
+    <view class="menu-left">
+      <view class="menu-icon-wrap"><text class="menu-icon">⭐</text></view>
+      <text class="menu-label">积分中心 / 每日签到</text>
+    </view>
+    <view class="menu-right">
+      <text class="points-value">{{totalPoints}}分</text>
+      <text class="sign-tag {{hasSigned ? 'sign-tag-done' : 'sign-tag-todo'}}">
+        {{hasSigned ? '已签到' : '未签到'}}
+      </text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+  <view class="divider"></view>
+  <view class="menu-item" bindtap="showContactModal">
+    <view class="menu-left">
+      <view class="menu-icon-wrap"><text class="menu-icon">📞</text></view>
+      <text class="menu-label">联系我们</text>
+    </view>
+    <view class="menu-right"><text class="menu-arrow">›</text></view>
+  </view>
+  <view class="divider"></view>
+  <!-- ✅ 问题4：建议信箱入口 -->
+  <view class="menu-item" bindtap="onOpenSuggest">
+    <view class="menu-left">
+      <view class="menu-icon-wrap"><text class="menu-icon">📮</text></view>
+      <view class="menu-label-wrap">
+        <text class="menu-label">建议信箱</text>
+        <text class="menu-sub">您的建议我们都会看</text>
+      </view>
+    </view>
+    <view class="menu-right"><text class="menu-arrow">›</text></view>
+  </view>
+</view>
+
+<!-- ══════ 退出登录 ══════ -->
+<view class="logout-wrap">
+  <button class="logout-btn" bindtap="handleLogout">退出登录</button>
+</view>
+
+<!-- ══════ 联系我们弹窗 ══════ -->
+<view class="modal-mask" wx:if="{{showContactModal}}"
+  bindtap="hideContactModal" catchtouchmove="stopProp">
+  <view class="modal-box" catchtap="stopProp">
+    <view class="modal-header">
+      <text class="modal-title">联系我们</text>
+      <text class="modal-close" bindtap="hideContactModal">✕</text>
+    </view>
+    <view class="qrcode-wrap">
+      <image class="qrcode-img" src="/images/contact_qrcode.png" mode="aspectFit"/>
+      <text class="qrcode-tip">长按图片识别二维码添加微信</text>
+    </view>
+    <view class="wechat-id-wrap">
+      <text class="wechat-id-label">微信号：</text>
+      <text class="wechat-id-value">{{contactWechatId}}</text>
+    </view>
+    <button class="copy-btn" bindtap="copyWechatId">复制微信号</button>
+    <text class="modal-notice">请在微信中搜索以上微信号或扫码添加</text>
+  </view>
+</view>
+
+<!-- ══════ 建议信箱弹窗（✅ 问题1/2修复） ══════ -->
+<view class="modal-mask" wx:if="{{showSuggestModal}}"
+  bindtap="onCloseSuggest" catchtouchmove="stopProp">
+  <view class="modal-box suggest-modal" catchtap="stopProp">
+    <view class="modal-header">
+      <text class="modal-title">📮 建议信箱</text>
+      <text class="modal-close" bindtap="onCloseSuggest">✕</text>
+    </view>
+    <!-- ✅ 问题2修复：副标题独立一行，字体统一 -->
+    <text class="suggest-subtitle">您的每一条建议都会被认真阅读，帮助平台不断进步</text>
+    <!-- ✅ 问题1修复：textarea不限制高度，内容完整显示 -->
+    <textarea
+      class="suggest-textarea"
+      value="{{suggestContent}}"
+      bindinput="onSuggestInput"
+      placeholder="请写下您的建议（功能优化、新功能需求等均可，至少5个字）"
+      maxlength="300"
+      auto-height
+    />
+    <view class="suggest-count">{{suggestContent.length}}/300</view>
+    <input
+      class="suggest-contact-input"
+      value="{{suggestContact}}"
+      bindinput="onContactInput"
+      placeholder="联系方式（选填，方便我们回复您）"
+      maxlength="50"
+    />
+    <button class="modal-confirm-btn suggest-submit-btn" bindtap="onSubmitSuggest">
+      提交建议
+    </button>
+  </view>
+</view>
+
+</view>
+/* miniprogram/pages/mine/mine.wxss */
+/*
+  色彩规范（30-50岁用户，明亮暖棕风，图1基调）：
+  主背景    #FFFFFF
+  卡片      #FFF8F0
+  强调色    #B06A36
+  深强调    #8B4513
+  文字主    #1A1A1A
+  文字辅    #555555
+  分隔/边框  #E6D0B8
+  金色VIP   #C8860A
+*/
+
+/* ═══ 页面容器 ═══════════════════════════════════════════════ */
+.page-wrap {
+  min-height: 100vh;
+  background: #FFFFFF;
+  padding-bottom: 80rpx;
+  box-sizing: border-box;
+}
+
+/* ═══ 顶部用户信息区 ════════════════════════════════════════ */
+.profile-header {
+  position: relative;
+  background: #FFF8F0;
+  padding: 60rpx 36rpx 36rpx;
+  overflow: hidden;
+  border-bottom: 2rpx solid #E6D0B8;
+}
+
+/* 右上角装饰线条 */
+.profile-deco-tr {
+  position: absolute;
+  top: 0; right: 0;
+  width: 200rpx; height: 180rpx;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 90'%3E%3Cg fill='none' stroke='%23B06A36' stroke-width='0.8' opacity='0.2'%3E%3Cpath d='M90 5 Q70 25 60 50 Q50 72 55 88'/%3E%3Cpath d='M100 20 Q80 32 68 48'/%3E%3Cellipse cx='72' cy='18' rx='7' ry='4' transform='rotate(-35 72 18)'/%3E%3Cellipse cx='62' cy='36' rx='8' ry='4' transform='rotate(-20 62 36)'/%3E%3Cellipse cx='56' cy='56' rx='7' ry='4' transform='rotate(-10 56 56)'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: cover;
+  pointer-events: none;
+}
+
+/* 左下角装饰线条 */
+.profile-deco-bl {
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 130rpx; height: 110rpx;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 65 55'%3E%3Cg fill='none' stroke='%23B06A36' stroke-width='0.8' opacity='0.15'%3E%3Cpath d='M8 55 Q18 38 30 25 Q42 12 50 4'/%3E%3Cellipse cx='28' cy='28' rx='7' ry='4' transform='rotate(20 28 28)'/%3E%3Cellipse cx='42' cy='14' rx='6' ry='4' transform='rotate(10 42 14)'/%3E%3C/g%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: cover;
+  pointer-events: none;
+}
+
+.profile-inner {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  position: relative;
+  z-index: 1;
+}
+
+/* 头像 */
+.avatar-wrap {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 60rpx;
+  border: 4rpx solid #B06A36;
+  flex-shrink: 0;
+  position: relative;
+  box-shadow: 0 4rpx 16rpx rgba(176, 106, 54, 0.25);
+}
+.avatar-img {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 60rpx;
+  display: block;
+}
+.avatar-edit-tag {
+  position: absolute;
+  bottom: -2rpx; right: -2rpx;
+  width: 38rpx; height: 38rpx;
+  background: #B06A36;
+  color: #fff;
+  font-size: 18rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  border: 3rpx solid #FFF8F0;
+}
+
+/* 用户信息文字 */
+.user-info {
+  margin-left: 28rpx;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.nick-row {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin-bottom: 10rpx;
+}
+.user-name {
+  font-size: 40rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+  letter-spacing: 1rpx;
+}
+.vip-badge-inline {
+  background: linear-gradient(135deg, #C8860A, #F0C040);
+  border-radius: 20rpx;
+  padding: 4rpx 14rpx;
+}
+.vip-badge-text {
+  font-size: 20rpx;
+  color: #fff;
+  font-weight: bold;
+}
+.nick-edit-icon {
+  font-size: 26rpx;
+  opacity: 0.5;
+}
+
+.bio-row { margin-bottom: 14rpx; }
+.user-bio {
+  font-size: 26rpx;
+  color: #555555;
+  line-height: 1.5;
+}
+.bio-placeholder {
+  color: #B8A080;
+  font-style: italic;
+}
+
+.badge-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14rpx;
+}
+.auth-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5rpx 18rpx;
+  border-radius: 30rpx;
+}
+.auth-badge.authed {
+  background: #EEF7EC;
+  border: 1rpx solid #A8D4A0;
+}
+.auth-badge.unauthed {
+  background: #FFF0E6;
+  border: 1rpx solid #DDB08A;
+}
+.auth-badge-text {
+  font-size: 22rpx;
+  color: #1A1A1A;
+  font-weight: 500;
+}
+.open-vip-btn {
+  background: linear-gradient(135deg, #C8860A, #E8B84B);
+  border-radius: 30rpx;
+  padding: 5rpx 18rpx;
+}
+.open-vip-text {
+  font-size: 22rpx;
+  color: #fff;
+  font-weight: 600;
+}
+
+/* ═══ 功能模块卡片 ══════════════════════════════════════════ */
+.section-block {
+  margin: 20rpx 24rpx 0;
+  background: #FFF8F0;
+  border-radius: 20rpx;
+  overflow: hidden;
+  border: 1.5rpx solid #E6D0B8;
+  box-shadow: 0 2rpx 12rpx rgba(176, 106, 54, 0.08);
+}
+.section-title {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 28rpx 16rpx;
+  border-bottom: 1rpx solid #E6D0B8;
+  background: #FFF3E6;
+}
+.section-title-icon { font-size: 30rpx; margin-right: 10rpx; }
+.section-title-text {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #8B4513;
+  letter-spacing: 1rpx;
+}
+
+/* ═══ 菜单列表项 ════════════════════════════════════════════ */
+.menu-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 26rpx 28rpx;
+  background: #FFF8F0;
+}
+.menu-item:active { background: #F5EDE0; }
+
+.menu-left {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex: 1;
+}
+.menu-icon-wrap {
+  width: 52rpx;
+  height: 52rpx;
+  background: #FFE8D0;
+  border-radius: 14rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+.menu-icon { font-size: 28rpx; }
+.menu-label-wrap {
+  display: flex;
+  flex-direction: column;
+}
+.menu-label {
+  font-size: 30rpx;
+  color: #1A1A1A;
+  font-weight: 500;
+}
+.menu-sub {
+  font-size: 22rpx;
+  color: #888888;
+  margin-top: 4rpx;
+}
+
+.menu-right {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8rpx;
+}
+.menu-count {
+  font-size: 22rpx;
+  color: #B06A36;
+  background: #FFE8D0;
+  border-radius: 24rpx;
+  padding: 4rpx 14rpx;
+  font-weight: 600;
+  border: 1rpx solid #DDB08A;
+}
+.points-value {
+  font-size: 26rpx;
+  color: #B06A36;
+  font-weight: 700;
+}
+.menu-arrow {
+  font-size: 40rpx;
+  color: #B06A36;
+  line-height: 1;
+  font-weight: 300;
+}
+
+/* 认证状态 */
+.auth-status-tag {
+  font-size: 22rpx;
+  padding: 5rpx 16rpx;
+  border-radius: 30rpx;
+  font-weight: 500;
+}
+.tag-authed {
+  background: #EEF7EC;
+  color: #2E7D32;
+  border: 1rpx solid #A8D4A0;
+}
+.tag-unauthed {
+  background: #FFF0E6;
+  color: #B06A36;
+  border: 1rpx solid #DDB08A;
+}
+
+/* 签到状态 */
+.sign-tag {
+  font-size: 22rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 24rpx;
+  font-weight: 500;
+}
+.sign-tag-done {
+  background: #EEF7EC;
+  color: #2E7D32;
+  border: 1rpx solid #A8D4A0;
+}
+.sign-tag-todo {
+  background: #FFF0E6;
+  color: #B06A36;
+  border: 1rpx solid #DDB08A;
+}
+
+/* ═══ 分隔线 ═══════════════════════════════════════════════ */
+.divider {
+  height: 1rpx;
+  background: #E6D0B8;
+  margin-left: 100rpx;
+}
+
+/* ═══ 退出登录 ══════════════════════════════════════════════ */
+.logout-wrap {
+  margin: 28rpx 24rpx 0;
+}
+.logout-btn {
+  width: 100%;
+  height: 96rpx;
+  line-height: 96rpx;
+  background: #FFF8F0;
+  color: #B06A36;
+  font-size: 32rpx;
+  font-weight: 600;
+  border-radius: 20rpx;
+  border: 1.5rpx solid #DDB08A;
+  text-align: center;
+  box-shadow: 0 2rpx 8rpx rgba(176,106,54,0.08);
+  letter-spacing: 2rpx;
+}
+.logout-btn::after { border: none; }
+.logout-btn:active { background: #FFEDE0; }
+
+/* ═══ 通用弹窗遮罩 ══════════════════════════════════════════ */
+.modal-mask {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(30, 18, 8, 0.5);
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.bottom-sheet-mask {
+  align-items: flex-end;
+  justify-content: center;
+}
+
+/* ═══ 头像选择面板 ══════════════════════════════════════════ */
+.avatar-panel {
+  width: 100%;
+  background: #FFF8F0;
+  border-radius: 28rpx 28rpx 0 0;
+  padding: 36rpx 28rpx calc(env(safe-area-inset-bottom) + 32rpx);
+  max-height: 80vh;
+  overflow-y: auto;
+  border-top: 2rpx solid #E6D0B8;
+}
+.avatar-panel__title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+  text-align: center;
+  margin-bottom: 24rpx;
+}
+.upload-avatar-btn {
+  display: flex;
+  align-items: center;
+  background: #FFE8D0;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 24rpx;
+  border: 1rpx solid #DDB08A;
+}
+.upload-avatar-icon { font-size: 40rpx; margin-right: 16rpx; }
+.upload-avatar-right { flex: 1; }
+.upload-avatar-label {
+  font-size: 28rpx;
+  font-weight: 600;
+  color: #1A1A1A;
+}
+.upload-avatar-tip {
+  font-size: 22rpx;
+  color: #B06A36;
+  margin-top: 4rpx;
+  display: block;
+}
+.upload-avatar-arrow {
+  font-size: 38rpx;
+  color: #B06A36;
+}
+/* 男/女Tab */
+.avatar-tab-row {
+  display: flex;
+  margin-bottom: 20rpx;
+  border: 1.5rpx solid #E6D0B8;
+  border-radius: 16rpx;
+  overflow: hidden;
+}
+.avatar-tab {
+  flex: 1;
+  text-align: center;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #888888;
+  padding: 16rpx 0;
+  background: #FFFFFF;
+}
+.avatar-tab--active {
+  background: #B06A36;
+  color: #FFFFFF;
+  font-weight: 700;
+}
+/* 头像网格 */
+.avatar-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18rpx;
+  margin-bottom: 24rpx;
+}
+.avatar-grid-item {
+  width: 128rpx;
+  height: 128rpx;
+  border-radius: 64rpx;
+  overflow: hidden;
+  border: 3rpx solid #E6D0B8;
+  position: relative;
+  flex-shrink: 0;
+}
+.avatar-grid-item--selected { border-color: #B06A36; border-width: 4rpx; }
+.avatar-option { width: 100%; height: 100%; }
+.avatar-check {
+  position: absolute;
+  inset: 0;
+  background: rgba(176, 106, 54, 0.55);
+  color: #fff;
+  font-size: 50rpx;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.avatar-panel__tip {
+  font-size: 22rpx;
+  color: #AAAAAA;
+  text-align: center;
+  margin-bottom: 20rpx;
+}
+.avatar-panel__cancel {
+  text-align: center;
+  font-size: 30rpx;
+  color: #888888;
+  padding: 18rpx 0;
+  border-top: 1rpx solid #E6D0B8;
+}
+
+/* ═══ 通用弹窗盒子 ══════════════════════════════════════════ */
+.modal-box {
+  width: 640rpx;
+  background: #FFF8F0;
+  border-radius: 24rpx;
+  overflow: hidden;
+  border: 1.5rpx solid #E6D0B8;
+  box-shadow: 0 8rpx 40rpx rgba(30, 18, 8, 0.18);
+}
+.edit-modal { width: 640rpx; }
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 32rpx 22rpx;
+  border-bottom: 1rpx solid #E6D0B8;
+  background: #FFF3E6;
+}
+.modal-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #8B4513;
+}
+.modal-close {
+  font-size: 32rpx;
+  color: #AAAAAA;
+  padding: 0 6rpx;
+  line-height: 1;
+}
+
+/* 昵称/简介输入框 */
+.edit-input {
+  border: 1.5rpx solid #E6D0B8;
+  border-radius: 14rpx;
+  padding: 22rpx 20rpx;
+  font-size: 30rpx;
+  color: #1A1A1A;
+  margin: 24rpx 32rpx 12rpx;
+  width: calc(100% - 64rpx);
+  box-sizing: border-box;
+  background: #FFFFFF;
+}
+.edit-tip {
+  font-size: 22rpx;
+  color: #AAAAAA;
+  margin: 0 32rpx 20rpx;
+  line-height: 1.6;
+}
+.bio-textarea {
+  border: 1.5rpx solid #E6D0B8;
+  border-radius: 14rpx;
+  padding: 22rpx 20rpx;
+  font-size: 28rpx;
+  color: #1A1A1A;
+  width: calc(100% - 64rpx);
+  min-height: 140rpx;
+  box-sizing: border-box;
+  margin: 24rpx 32rpx 8rpx;
+  line-height: 1.6;
+  background: #FFFFFF;
+}
+.bio-count {
+  text-align: right;
+  font-size: 22rpx;
+  color: #CCBBAA;
+  margin: 0 32rpx 18rpx;
+}
+
+/* 通用确认按钮 */
+.modal-confirm-btn {
+  margin: 0 32rpx 32rpx;
+  width: calc(100% - 64rpx);
+  background: #B06A36;
+  color: #FFFFFF;
+  font-size: 32rpx;
+  font-weight: 700;
+  border-radius: 16rpx;
+  border: none;
+  height: 96rpx;
+  line-height: 96rpx;
+  text-align: center;
+  letter-spacing: 2rpx;
+}
+.modal-confirm-btn::after { border: none; }
+.modal-confirm-btn:active { background: #8B4513; }
+
+/* ═══ 建议信箱弹窗（问题1/2修复） ══════════════════════════ */
+.suggest-modal {
+  width: 660rpx;
+  /* 不限制 max-height，让内容完整显示 */
+}
+/* ✅ 问题2修复：副标题独立样式，字体统一清晰 */
+.suggest-subtitle {
+  display: block;
+  font-size: 24rpx;
+  color: #555555;
+  font-weight: 400;
+  line-height: 1.6;
+  margin: 20rpx 32rpx 16rpx;
+  font-family: inherit;
+}
+/* ✅ 问题1修复：文字区域自适应高度，不截断 */
+.suggest-textarea {
+  border: 1.5rpx solid #E6D0B8;
+  border-radius: 14rpx;
+  padding: 22rpx 20rpx;
+  font-size: 28rpx;
+  color: #1A1A1A;
+  width: calc(100% - 64rpx);
+  min-height: 160rpx;
+  box-sizing: border-box;
+  margin: 0 32rpx 8rpx;
+  line-height: 1.7;
+  background: #FFFFFF;
+  font-family: inherit;
+}
+.suggest-count {
+  text-align: right;
+  font-size: 22rpx;
+  color: #CCBBAA;
+  margin: 0 32rpx 16rpx;
+}
+.suggest-contact-input {
+  border: 1.5rpx solid #E6D0B8;
+  border-radius: 14rpx;
+  padding: 20rpx 20rpx;
+  font-size: 28rpx;
+  color: #1A1A1A;
+  margin: 0 32rpx 20rpx;
+  width: calc(100% - 64rpx);
+  box-sizing: border-box;
+  background: #FFFFFF;
+  font-family: inherit;
+}
+.suggest-submit-btn {
+  margin-bottom: 32rpx;
+}
+
+/* ═══ VIP弹窗 ═══════════════════════════════════════════════ */
+.vip-modal {
+  width: 700rpx;
+  background: #FFF8F0;
+  border-radius: 24rpx;
+  overflow: hidden;
+  border: 1.5rpx solid #E6D0B8;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+.vip-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28rpx 32rpx 22rpx;
+  border-bottom: 1rpx solid #E6D0B8;
+  background: linear-gradient(135deg, #8B4513, #C8860A);
+  flex-shrink: 0;
+}
+.vip-modal__title {
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #FFFFFF;
+}
+.vip-modal__close {
+  font-size: 32rpx;
+  color: rgba(255,255,255,0.7);
+  padding: 0 6rpx;
+}
+.vip-table-scroll {
+  max-height: 340rpx;
+  flex-shrink: 0;
+}
+.vip-table { padding: 16rpx 24rpx; }
+.vip-table__head,
+.vip-table__row {
+  display: flex;
+  align-items: flex-start;
+  padding: 14rpx 0;
+  border-bottom: 1rpx solid #E6D0B8;
+}
+.vip-table__head {
+  background: #FFF3E6;
+  border-radius: 10rpx;
+  border-bottom: 2rpx solid #E6D0B8;
+}
+.vip-table__row:last-child { border-bottom: none; }
+.vip-col { font-size: 22rpx; line-height: 1.5; }
+.vip-col--feature { flex: 2.2; color: #1A1A1A; font-weight: 600; padding-right: 8rpx; }
+.vip-col--normal  { flex: 3; color: #888888; padding-right: 8rpx; }
+.vip-col--vip     { flex: 3.5; }
+.vip-text-gray    { color: #888888; }
+.vip-text-gold    { color: #8B4513; font-weight: 500; }
+
+/* 套餐选择 */
+.vip-pkg-title {
+  font-size: 28rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+  margin: 16rpx 24rpx 14rpx;
+  flex-shrink: 0;
+}
+.vip-pkg-row {
+  display: flex;
+  gap: 16rpx;
+  margin: 0 24rpx;
+  flex-shrink: 0;
+}
+.vip-pkg-item {
+  flex: 1;
+  border: 1.5rpx solid #E6D0B8;
+  border-radius: 16rpx;
+  padding: 18rpx 10rpx;
+  text-align: center;
+  background: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+.vip-pkg-item--selected {
+  border-color: #B06A36;
+  border-width: 2rpx;
+  background: #FFF3E6;
+}
+.vip-pkg-name  { font-size: 26rpx; font-weight: 700; color: #1A1A1A; }
+.vip-pkg-price { font-size: 30rpx; font-weight: 700; color: #B06A36; }
+.vip-pkg-desc  { font-size: 20rpx; color: #888888; }
+
+.vip-buy-btn {
+  margin: 20rpx 24rpx 10rpx;
+  height: 96rpx;
+  line-height: 96rpx;
+  background: linear-gradient(135deg, #B06A36, #C8860A);
+  color: #FFFFFF;
+  font-size: 32rpx;
+  font-weight: 700;
+  border-radius: 48rpx;
+  border: none;
+  text-align: center;
+  letter-spacing: 2rpx;
+  flex-shrink: 0;
+}
+.vip-buy-btn::after { border: none; }
+.vip-notice {
+  display: block;
+  text-align: center;
+  font-size: 20rpx;
+  color: #AAAAAA;
+  margin-bottom: 20rpx;
+  flex-shrink: 0;
+}
+
+/* ═══ 联系我们弹窗内容 ══════════════════════════════════════ */
+.qrcode-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28rpx 40rpx 16rpx;
+}
+.qrcode-img {
+  width: 280rpx;
+  height: 280rpx;
+  border-radius: 14rpx;
+  border: 1.5rpx solid #E6D0B8;
+  background: #FAFAFA;
+}
+.qrcode-tip {
+  font-size: 22rpx;
+  color: #AAAAAA;
+  margin-top: 14rpx;
+  text-align: center;
+}
+.wechat-id-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 8rpx 32rpx 24rpx;
+  padding: 18rpx 24rpx;
+  background: #FFFFFF;
+  border-radius: 14rpx;
+  border: 1rpx solid #E6D0B8;
+}
+.wechat-id-label { font-size: 28rpx; color: #B06A36; }
+.wechat-id-value { font-size: 30rpx; font-weight: 700; color: #1A1A1A; }
+.copy-btn {
+  margin: 0 32rpx;
+  width: calc(100% - 64rpx);
+  height: 88rpx;
+  line-height: 88rpx;
+  background: #B06A36;
+  color: #FFFFFF;
+  font-size: 30rpx;
+  font-weight: 700;
+  border-radius: 16rpx;
+  border: none;
+  text-align: center;
+}
+.copy-btn::after { border: none; }
+.copy-btn:active { background: #8B4513; }
+.modal-notice {
+  display: block;
+  font-size: 20rpx;
+  color: #CCBBAA;
+  text-align: center;
+  margin: 16rpx 0 20rpx;
+  padding: 0 32rpx;
+  line-height: 1.6;
+}
+// miniprogram/pages/mine/my-jobs/index.js
+
+Page({
+  data: {
+    jobList: [],
+    isEmpty: false
+  },
+
+  onLoad() {
+    this._loadMyJobs();
+  },
+
+  onShow() {
+    this._loadMyJobs();
+  },
+
+  _loadMyJobs() {
+    try {
+      const list = wx.getStorageSync('myPublishedJobs') || [];
+      this.setData({
+        jobList: list,
+        isEmpty: list.length === 0
+      });
+    } catch (e) {
+      console.warn('[my-jobs] 读取失败', e);
+      this.setData({ jobList: [], isEmpty: true });
+    }
+  },
+
+  goPublish() {
+    wx.navigateTo({
+      url: '/pages/services/convenience/job/publish/publish'
+    });
+  },
+
+  deleteJob(e) {
+    const index = e.currentTarget.dataset.index;
+    wx.showModal({
+      title: '确认删除',
+      content: '删除后不可恢复，确认删除这条招聘？',
+      confirmText: '删除',
+      confirmColor: '#e53935',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          const list = [...this.data.jobList];
+          list.splice(index, 1);
+          wx.setStorageSync('myPublishedJobs', list);
+          this.setData({
+            jobList: list,
+            isEmpty: list.length === 0
+          });
+          wx.showToast({ title: '已删除', icon: 'success' });
+        }
+      }
+    });
+  }
+});
+{
+  "navigationBarTitleText": "我发布的招聘",
+  "navigationBarBackgroundColor": "#ff8c00",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#fdf6ec"
+}<!-- miniprogram/pages/mine/my-jobs/index.wxml -->
+<view class="page-wrap">
+
+<!-- 空状态 -->
+<view class="empty-wrap" wx:if="{{isEmpty}}">
+  <text class="empty-icon">📭</text>
+  <text class="empty-text">您还没有发布过招聘</text>
+  <button class="publish-btn" bindtap="goPublish">立即发布招聘</button>
+</view>
+
+<!-- 招聘列表 -->
+<view class="list-wrap" wx:else>
+
+  <view class="job-card" wx:for="{{jobList}}" wx:key="id">
+
+    <view class="card-header">
+      <text class="job-title">{{item.title || '招聘职位'}}</text>
+      <text class="job-status">招聘中</text>
+    </view>
+
+    <view class="card-body">
+      <view class="info-row">
+        <text class="info-label">薪资：</text>
+        <text class="info-value salary">{{item.salary || '面议'}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">地点：</text>
+        <text class="info-value">{{item.location || '平江'}}</text>
+      </view>
+      <view class="info-row" wx:if="{{item.contact}}">
+        <text class="info-label">联系：</text>
+        <text class="info-value">{{item.contact}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">发布：</text>
+        <text class="info-value time">{{item.createTime || ''}}</text>
+      </view>
+    </view>
+
+    <view class="card-footer">
+      <button
+        class="delete-btn"
+        bindtap="deleteJob"
+        data-index="{{index}}"
+      >删除</button>
+    </view>
+
+  </view>
+
+  <view class="bottom-publish">
+    <button class="publish-btn" bindtap="goPublish">+ 继续发布招聘</button>
+  </view>
+
+</view>
+
+</view>
+/* miniprogram/pages/mine/my-jobs/index.wxss */
+
+.page-wrap {
+  min-height: 100vh;
+  background-color: #fdf6ec;
+  padding: 24rpx 28rpx 60rpx;
+  box-sizing: border-box;
+}
+
+/* 空状态 */
+.empty-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 160rpx;
+}
+
+.empty-icon {
+  font-size: 100rpx;
+  margin-bottom: 28rpx;
+}
+
+.empty-text {
+  font-size: 30rpx;
+  color: #aaa;
+  margin-bottom: 48rpx;
+}
+
+/* 卡片 */
+.job-card {
+  background-color: #fff;
+  border-radius: 20rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(255, 140, 0, 0.08);
+}
+
+.card-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.job-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #333;
+  flex: 1;
+}
+
+.job-status {
+  font-size: 22rpx;
+  color: #27ae60;
+  background-color: #e8f5e9;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  margin-left: 16rpx;
+}
+
+.card-body {
+  margin-bottom: 20rpx;
+}
+
+.info-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.info-label {
+  font-size: 26rpx;
+  color: #999;
+  width: 80rpx;
+  flex-shrink: 0;
+}
+
+.info-value {
+  font-size: 28rpx;
+  color: #555;
+}
+
+.info-value.salary {
+  color: #ff8c00;
+  font-weight: bold;
+}
+
+.info-value.time {
+  color: #bbb;
+  font-size: 24rpx;
+}
+
+.card-footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  border-top: 1rpx solid #f5ead8;
+  padding-top: 20rpx;
+}
+
+/* 按钮 */
+.delete-btn {
+  font-size: 26rpx;
+  color: #e53935;
+  background-color: #fff5f5;
+  border-radius: 12rpx;
+  padding: 10rpx 32rpx;
+  border: none;
+  line-height: 1.6;
+}
+
+.delete-btn::after {
+  border: none;
+}
+
+.delete-btn:active {
+  background-color: #ffebee;
+}
+
+.publish-btn {
+  background-color: #ff8c00;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: bold;
+  border-radius: 16rpx;
+  border: none;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  letter-spacing: 2rpx;
+  width: 100%;
+}
+
+.publish-btn::after {
+  border: none;
+}
+
+.publish-btn:active {
+  background-color: #e07b00;
+}
+
+.bottom-publish {
+  margin-top: 16rpx;
+}
+// miniprogram/pages/mine/my-rentals/index.js
+
+Page({
+  data: {
+    rentalList: [],
+    isEmpty: false
+  },
+
+  onLoad() {
+    this._loadMyRentals();
+  },
+
+  onShow() {
+    this._loadMyRentals();
+  },
+
+  _loadMyRentals() {
+    try {
+      const list = wx.getStorageSync('myPublishedRentals') || [];
+      this.setData({
+        rentalList: list,
+        isEmpty: list.length === 0
+      });
+    } catch (e) {
+      console.warn('[my-rentals] 读取失败', e);
+      this.setData({ rentalList: [], isEmpty: true });
+    }
+  },
+
+  goPublish() {
+    wx.navigateTo({
+      url: '/pages/services/convenience/rental/publish/publish'
+    });
+  },
+
+  deleteRental(e) {
+    const index = e.currentTarget.dataset.index;
+    wx.showModal({
+      title: '确认删除',
+      content: '删除后不可恢复，确认删除这条房源？',
+      confirmText: '删除',
+      confirmColor: '#e53935',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          const list = [...this.data.rentalList];
+          list.splice(index, 1);
+          wx.setStorageSync('myPublishedRentals', list);
+          this.setData({
+            rentalList: list,
+            isEmpty: list.length === 0
+          });
+          wx.showToast({ title: '已删除', icon: 'success' });
+        }
+      }
+    });
+  }
+});
+{
+  "navigationBarTitleText": "我发布的房源",
+  "navigationBarBackgroundColor": "#ff8c00",
+  "navigationBarTextStyle": "white",
+  "backgroundColor": "#fdf6ec"
+}
+<!-- miniprogram/pages/mine/my-rentals/index.wxml -->
+<view class="page-wrap">
+
+<!-- 空状态 -->
+<view class="empty-wrap" wx:if="{{isEmpty}}">
+  <text class="empty-icon">🏠</text>
+  <text class="empty-text">您还没有发布过房源</text>
+  <button class="publish-btn" bindtap="goPublish">立即发布房源</button>
+</view>
+
+<!-- 房源列表 -->
+<view class="list-wrap" wx:else>
+
+  <view class="rental-card" wx:for="{{rentalList}}" wx:key="id">
+
+    <view class="card-header">
+      <text class="rental-title">{{item.title || '出租房源'}}</text>
+      <text class="rental-status">出租中</text>
+    </view>
+
+    <view class="card-body">
+      <view class="info-row">
+        <text class="info-label">租金：</text>
+        <text class="info-value price">{{item.price || '面议'}}/月</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">地址：</text>
+        <text class="info-value">{{item.address || '平江'}}</text>
+      </view>
+      <view class="info-row" wx:if="{{item.area}}">
+        <text class="info-label">面积：</text>
+        <text class="info-value">{{item.area}}㎡</text>
+      </view>
+      <view class="info-row" wx:if="{{item.contact}}">
+        <text class="info-label">联系：</text>
+        <text class="info-value">{{item.contact}}</text>
+      </view>
+      <view class="info-row">
+        <text class="info-label">发布：</text>
+        <text class="info-value time">{{item.createTime || ''}}</text>
+      </view>
+    </view>
+
+    <view class="card-footer">
+      <button
+        class="delete-btn"
+        bindtap="deleteRental"
+        data-index="{{index}}"
+      >删除</button>
+    </view>
+
+  </view>
+
+  <view class="bottom-publish">
+    <button class="publish-btn" bindtap="goPublish">+ 继续发布房源</button>
+  </view>
+
+</view>
+
+</view>
+/* miniprogram/pages/mine/my-rentals/index.wxss */
+
+.page-wrap {
+  min-height: 100vh;
+  background-color: #fdf6ec;
+  padding: 24rpx 28rpx 60rpx;
+  box-sizing: border-box;
+}
+
+/* 空状态 */
+.empty-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 160rpx;
+}
+
+.empty-icon {
+  font-size: 100rpx;
+  margin-bottom: 28rpx;
+}
+
+.empty-text {
+  font-size: 30rpx;
+  color: #aaa;
+  margin-bottom: 48rpx;
+}
+
+/* 卡片 */
+.rental-card {
+  background-color: #fff;
+  border-radius: 20rpx;
+  padding: 32rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 2rpx 12rpx rgba(255, 140, 0, 0.08);
+}
+
+.card-header {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20rpx;
+}
+
+.rental-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #333;
+  flex: 1;
+}
+
+.rental-status {
+  font-size: 22rpx;
+  color: #2980b9;
+  background-color: #e3f2fd;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+  margin-left: 16rpx;
+}
+
+.card-body {
+  margin-bottom: 20rpx;
+}
+
+.info-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.info-label {
+  font-size: 26rpx;
+  color: #999;
+  width: 80rpx;
+  flex-shrink: 0;
+}
+
+.info-value {
+  font-size: 28rpx;
+  color: #555;
+}
+
+.info-value.price {
+  color: #ff8c00;
+  font-weight: bold;
+}
+
+.info-value.time {
+  color: #bbb;
+  font-size: 24rpx;
+}
+
+.card-footer {
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  border-top: 1rpx solid #f5ead8;
+  padding-top: 20rpx;
+}
+
+/* 按钮 */
+.delete-btn {
+  font-size: 26rpx;
+  color: #e53935;
+  background-color: #fff5f5;
+  border-radius: 12rpx;
+  padding: 10rpx 32rpx;
+  border: none;
+  line-height: 1.6;
+}
+
+.delete-btn::after {
+  border: none;
+}
+
+.delete-btn:active {
+  background-color: #ffebee;
+}
+
+.publish-btn {
+  background-color: #ff8c00;
+  color: #fff;
+  font-size: 30rpx;
+  font-weight: bold;
+  border-radius: 16rpx;
+  border: none;
+  height: 88rpx;
+  line-height: 88rpx;
+  text-align: center;
+  letter-spacing: 2rpx;
+  width: 100%;
+}
+
+.publish-btn::after {
+  border: none;
+}
+
+.publish-btn:active {
+  background-color: #e07b00;
+}
+
+.bottom-publish {
+  margin-top: 16rpx;
+}
+// pages/mine/myposts/index.js
+Page({
+
+  /**
+   * 页面的初始数据
+   */
+  data: {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面加载
+   */
+  onLoad(options) {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面初次渲染完成
+   */
+  onReady() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面显示
+   */
+  onShow() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面隐藏
+   */
+  onHide() {
+
+  },
+
+  /**
+   * 生命周期函数--监听页面卸载
+   */
+  onUnload() {
+
+  },
+
+  /**
+   * 页面相关事件处理函数--监听用户下拉动作
+   */
+  onPullDownRefresh() {
+
+  },
+
+  /**
+   * 页面上拉触底事件的处理函数
+   */
+  onReachBottom() {
+
+  },
+
+  /**
+   * 用户点击右上角分享
+   */
+  onShareAppMessage() {
+
+  }
+}){
+  "usingComponents": {}
+}<!--pages/mine/myposts/index.wxml-->
+<text>pages/mine/myposts/index.wxml</text>/* pages/mine/myposts/index.wxss */// miniprogram/pages/mine/points/index.js
+// ✅ 修复：积分明细真实读取 earn + consume 双轨记录，合并排序展示
+
+const { POINTS_CONFIG }    = require('../../../config/points');
+const { POINTS_RULE_DESC } = require('../../../config/points-rule-desc');
+
+Page({
+
+  data: {
+    totalPoints: 0,
+    todayEarned: 0,
+    dailyLimit:  POINTS_CONFIG.BASE_RULES.dailyEarnLimit,
+
+    // ✅ 修复：合并后完整明细列表
+    recordList: [],
+
+    ruleDesc:       POINTS_RULE_DESC,
+    showRuleModal:  false,
+
+    publishPackages: [],
+    topPackages:     [],
+  },
+
+  onLoad() {
+    this._initPackages();
+    this._loadUserPoints();
+  },
+
+  // ✅ 修复：返回此页时自动刷新积分和明细
+  onShow() {
+    this._loadUserPoints();
+  },
+
+  _initPackages() {
+    const { getPublishPackages, getTopPackages } = require('../../../config/points');
+    this.setData({
+      publishPackages: getPublishPackages(),
+      topPackages:     getTopPackages(),
+    });
+  },
+
+  // ✅ 修复：整合所有积分记录来源，兼容多种存储格式
+  _loadUserPoints() {
+    try {
+      const stored = wx.getStorageSync('userPoints') || {};
+
+      // 兼容多种积分存储格式
+      let totalPoints = 0;
+      if (typeof stored === 'number') {
+        totalPoints = stored;
+      } else if (stored && typeof stored === 'object') {
+        totalPoints = stored.totalPoints || stored.total || stored.points || 0;
+      }
+
+      const todayEarned = (stored && stored.todayEarned) ? stored.todayEarned : 0;
+
+      // ✅ 读取获得记录（签到/发帖/获赞等）
+      const earnRecords = wx.getStorageSync('pointsEarnRecords') || [];
+
+      // ✅ 读取消耗记录（发布招聘/房源/置顶等）
+      const consumeRecords = wx.getStorageSync('pointsConsumeRecords') || [];
+
+      // ✅ 统一格式合并：{ id, label, time, points }
+      const allRecords = [
+        ...earnRecords.map((r, i) => ({
+          id:     r.id     || `earn_${i}`,
+          label:  r.scene  || r.label || '积分获得',
+          time:   r.time   || r.createTime || '',
+          points: Math.abs(r.points || 0),       // 获得为正数
+        })),
+        ...consumeRecords.map((r, i) => ({
+          id:     r.id     || `consume_${i}`,
+          label:  r.scene  || r.label || '积分消耗',
+          time:   r.time   || r.createTime || '',
+          points: -(Math.abs(r.points || 0)),    // 消耗为负数
+        })),
+      ];
+
+      // 按时间倒序排列
+      allRecords.sort((a, b) => {
+        if (!a.time && !b.time) return 0;
+        if (!a.time) return 1;
+        if (!b.time) return -1;
+        return new Date(b.time) - new Date(a.time);
+      });
+
+      // 最多展示50条，避免渲染卡顿
+      const recordList = allRecords.slice(0, 50);
+
+      this.setData({ totalPoints, todayEarned, recordList });
+
+    } catch (e) {
+      this.setData({ totalPoints: 0, todayEarned: 0, recordList: [] });
+    }
+  },
+
+  // 显示规则弹窗
+  onShowRule() {
+    this.setData({ showRuleModal: true });
+  },
+
+  // 关闭规则弹窗
+  onCloseRule() {
+    this.setData({ showRuleModal: false });
+  },
+
+  // ✅ 修复：弹窗阻止事件穿透方法（原来写的是 stopPropagation 但未定义）
+  stopProp() {},
+
+  // 跳转签到页
+  onGoSign() {
+    wx.navigateTo({ url: '/pages/mine/sign/index' });
+  },
+
+});
+{
+  "navigationBarTitleText": "我的积分",
+  "usingComponents": {}
+}
+<!-- miniprogram/pages/mine/points/index.wxml -->
+<view class="container">
+
+<!-- ① 积分总览卡片 -->
+<view class="points-card">
+  <view class="points-card__title">我的积分</view>
+  <view class="points-card__amount">{{totalPoints}}</view>
+  <view class="points-card__sub">
+    今日已获 {{todayEarned}} / 上限 {{dailyLimit}} 积分
+  </view>
+  <view class="points-card__tips">
+    积分不可提现·不可转让·有效期12个月
+  </view>
+  <view class="points-card__rule-btn" bindtap="onShowRule">积分规则说明 ›</view>
+</view>
+
+<!-- ② 快捷入口 -->
+<view class="quick-actions">
+  <view class="quick-actions__item" bindtap="onGoSign">
+    <text class="quick-actions__icon">📅</text>
+    <text class="quick-actions__label">每日签到</text>
+    <text class="quick-actions__reward">+5积分</text>
+  </view>
+</view>
+
+<!-- ③ 获取积分方式 -->
+<view class="section">
+  <view class="section__title">获取积分方式</view>
+  <view class="earn-list">
+    <block wx:for="{{ruleDesc.earnList}}" wx:key="scene">
+      <view class="earn-item {{item.isConsume ? 'earn-item--consume' : ''}}">
+        <view class="earn-item__left">
+          <view class="earn-item__scene">{{item.scene}}</view>
+          <view class="earn-item__remark" wx:if="{{item.remark}}">{{item.remark}}</view>
+        </view>
+        <view class="earn-item__right">
+          <view class="earn-item__reward {{item.isConsume ? 'text-gray' : 'text-orange'}}">
+            {{item.reward}}
+          </view>
+          <view class="earn-item__limit">{{item.limit}}</view>
+        </view>
+      </view>
+    </block>
+  </view>
+</view>
+
+<!-- ④ 积分明细记录（✅ 修复：真实显示获得+消耗双轨记录） -->
+<view class="section">
+  <view class="section__title">积分明细</view>
+
+  <view wx:if="{{recordList.length === 0}}" class="record-empty">
+    <text>暂无积分记录，快去签到赚积分吧～</text>
+  </view>
+
+  <view class="record-list" wx:else>
+    <view class="record-item" wx:for="{{recordList}}" wx:key="id">
+      <view class="record-item__left">
+        <view class="record-item__label">{{item.label}}</view>
+        <view class="record-item__time">{{item.time}}</view>
+      </view>
+      <view class="record-item__points {{item.points > 0 ? 'text-orange' : 'text-gray'}}">
+        {{item.points > 0 ? '+' : ''}}{{item.points}}
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- ⑤ 积分规则弹窗 -->
+<view class="modal-mask" wx:if="{{showRuleModal}}" bindtap="onCloseRule">
+  <view class="modal-box" catchtap="stopProp">
+    <view class="modal-box__title">积分规则说明</view>
+
+    <scroll-view scroll-y class="modal-box__scroll">
+      <!-- 基础规则 -->
+      <view class="rule-section">
+        <view class="rule-section__title">基础规则</view>
+        <view wx:for="{{ruleDesc.baseRules}}" wx:key="index" class="rule-section__item">
+          · {{item}}
+        </view>
+      </view>
+
+      <!-- 获取明细 -->
+      <view class="rule-section">
+        <view class="rule-section__title">积分获取明细</view>
+        <view class="rule-table">
+          <view class="rule-table__head">
+            <text class="col-scene">场景</text>
+            <text class="col-reward">奖励</text>
+            <text class="col-limit">限制</text>
+          </view>
+          <view
+            class="rule-table__row"
+            wx:for="{{ruleDesc.earnList}}"
+            wx:key="scene"
+            wx:for-item="row">
+            <text class="col-scene">{{row.scene}}</text>
+            <text class="col-reward {{row.isConsume ? 'text-gray' : 'text-orange'}}">
+              {{row.reward}}
+            </text>
+            <text class="col-limit">{{row.limit}}</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 套餐消耗 -->
+      <view class="rule-section">
+        <view class="rule-section__title">招聘/租房发布套餐</view>
+        <view class="pkg-list">
+          <view class="pkg-item" wx:for="{{publishPackages}}" wx:key="id">
+            <text class="pkg-item__name">{{item.name}}</text>
+            <text class="pkg-item__price">{{item.cashPriceStr}} / {{item.pointsPriceStr}}</text>
+          </view>
+        </view>
+        <view class="rule-section__title" style="margin-top:16rpx;">置顶套餐</view>
+        <view class="pkg-list">
+          <view class="pkg-item" wx:for="{{topPackages}}" wx:key="id">
+            <text class="pkg-item__name">{{item.name}}</text>
+            <text class="pkg-item__price">{{item.cashPriceStr}} / {{item.pointsPriceStr}}</text>
+          </view>
+        </view>
+        <view class="coupon-tip">🎫 {{ruleDesc.consumeList.couponTip}}</view>
+      </view>
+    </scroll-view>
+
+    <view class="modal-box__close" bindtap="onCloseRule">我知道了</view>
+  </view>
+</view>
+
+</view>
+/* miniprogram/pages/mine/points/index.wxss */
+
+/* ─── 全局 ─── */
+page { background: #FAF5ED; }
+.container { padding: 24rpx 24rpx 60rpx; }
+.text-orange { color: #8B5A2B; }
+.text-gray   { color: #A89080; }
+
+/* ─── 积分卡片 ─── */
+.points-card {
+  background: linear-gradient(135deg, #8B5A2B, #C8860A);
+  border-radius: 24rpx;
+  padding: 40rpx 36rpx 32rpx;
+  color: #fff;
+  margin-bottom: 24rpx;
+  box-shadow: 0 6rpx 24rpx rgba(139, 90, 43, 0.28);
+}
+.points-card__title  { font-size: 26rpx; opacity: .88; }
+.points-card__amount {
+  font-size: 80rpx; font-weight: 700; line-height: 1.2;
+  text-shadow: 0 2rpx 8rpx rgba(0,0,0,0.15);
+}
+.points-card__sub    { font-size: 24rpx; opacity: .80; margin-top: 8rpx; }
+.points-card__tips   { font-size: 22rpx; opacity: .65; margin-top: 10rpx; }
+.points-card__rule-btn {
+  display: inline-block;
+  margin-top: 20rpx;
+  font-size: 24rpx;
+  background: rgba(255,255,255,.22);
+  border-radius: 30rpx;
+  padding: 6rpx 24rpx;
+}
+
+/* ─── 快捷入口 ─── */
+.quick-actions {
+  background: #FFF8F0;
+  border-radius: 18rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 24rpx;
+  display: flex;
+  border: 1rpx solid #EDE0D0;
+  box-shadow: 0 2rpx 10rpx rgba(139,90,43,0.06);
+}
+.quick-actions__item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+}
+.quick-actions__icon   { font-size: 48rpx; }
+.quick-actions__label  { font-size: 24rpx; color: #3A2A1A; font-weight: 500; }
+.quick-actions__reward { font-size: 22rpx; color: #8B5A2B; font-weight: 600; }
+
+/* ─── 通用 section ─── */
+.section {
+  background: #FFF8F0;
+  border-radius: 18rpx;
+  padding: 24rpx;
+  margin-bottom: 24rpx;
+  border: 1rpx solid #EDE0D0;
+  box-shadow: 0 2rpx 10rpx rgba(139,90,43,0.06);
+}
+.section__title {
+  font-size: 28rpx; font-weight: 600;
+  color: #3A2A1A; margin-bottom: 20rpx;
+}
+
+/* ─── 获取积分列表 ─── */
+.earn-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #EDE0D0;
+}
+.earn-item:last-child    { border-bottom: none; }
+.earn-item--consume      { opacity: .6; }
+.earn-item__scene        { font-size: 26rpx; color: #3A2A1A; }
+.earn-item__remark       { font-size: 22rpx; color: #A89080; margin-top: 6rpx; }
+.earn-item__reward       { font-size: 26rpx; font-weight: 600; text-align: right; }
+.earn-item__limit        { font-size: 22rpx; color: #A89080; text-align: right; margin-top: 4rpx; }
+
+/* ─── 积分明细记录 ─── */
+.record-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18rpx 0;
+  border-bottom: 1rpx solid #EDE0D0;
+}
+.record-item:last-child  { border-bottom: none; }
+.record-item__label      { font-size: 26rpx; color: #3A2A1A; }
+.record-item__time       { font-size: 22rpx; color: #C4A882; margin-top: 4rpx; }
+.record-item__points     { font-size: 30rpx; font-weight: 600; }
+.record-empty {
+  text-align: center; color: #C4A882;
+  font-size: 26rpx; padding: 40rpx 0;
+}
+
+/* ─── 弹窗 ─── */
+.modal-mask {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(58,42,26,.5);
+  z-index: 999;
+  display: flex; align-items: flex-end;
+}
+.modal-box {
+  background: #FFF8F0;
+  border-radius: 28rpx 28rpx 0 0;
+  width: 100%;
+  max-height: 80vh;
+  display: flex; flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1rpx solid #EDE0D0;
+}
+.modal-box__title {
+  font-size: 32rpx; font-weight: 700;
+  color: #3A2A1A;
+  text-align: center; padding: 32rpx 0 16rpx;
+  border-bottom: 1rpx solid #EDE0D0;
+}
+.modal-box__scroll { flex: 1; padding: 24rpx 32rpx; }
+.modal-box__close {
+  background: #8B5A2B; color: #fff; font-size: 30rpx;
+  text-align: center; padding: 28rpx 0;
+  margin: 16rpx 32rpx 24rpx;
+  border-radius: 50rpx;
+  font-weight: 600;
+}
+
+/* ─── 规则弹窗内容 ─── */
+.rule-section          { margin-bottom: 28rpx; }
+.rule-section__title   { font-size: 26rpx; font-weight: 600; color: #8B5A2B; margin-bottom: 12rpx; }
+.rule-section__item    { font-size: 24rpx; color: #5C4033; line-height: 1.8; }
+
+.rule-table            { border: 1rpx solid #EDE0D0; border-radius: 12rpx; overflow: hidden; }
+.rule-table__head,
+.rule-table__row       { display: flex; padding: 16rpx 12rpx; border-bottom: 1rpx solid #EDE0D0; font-size: 22rpx; }
+.rule-table__head      { background: #FAF5ED; font-weight: 600; color: #8B5A2B; }
+.rule-table__row:last-child { border-bottom: none; }
+.col-scene  { flex: 3; color: #3A2A1A; }
+.col-reward { flex: 2; text-align: center; }
+.col-limit  { flex: 2; text-align: right; color: #A89080; }
+
+.pkg-item {
+  display: flex; justify-content: space-between;
+  padding: 12rpx 0; border-bottom: 1rpx solid #F0E8D8; font-size: 24rpx;
+}
+.pkg-item:last-child { border-bottom: none; }
+.pkg-item__name  { color: #3A2A1A; }
+.pkg-item__price { color: #8B5A2B; font-weight: 600; }
+.coupon-tip {
+  margin-top: 16rpx; font-size: 22rpx; color: #8B5A2B;
+  background: #FFF3E6; border-radius: 8rpx; padding: 12rpx 16rpx;
+  border: 1rpx solid #EDE0D0;
+}
+// miniprogram/pages/mine/sign/index.js
+const {
+  POINTS_CONFIG,
+  calcActualPoints,
+  isDailyLimitReached,
+} = require('../../../config/points');
+
+Page({
+  data: {
+    signed: false,
+    consecutiveDays: 0,
+    totalPoints: 0,
+    todayEarned: 0,
+    dailyLimit: POINTS_CONFIG.BASE_RULES.dailyEarnLimit,
+    signRule: POINTS_CONFIG.EARN_RULES.DAILY_SIGN,
+    progressDays: 0,
+    showSuccessModal: false,
+    successPoints: 0,
+    successBonus: 0,
+    successConsecutive: 0,
+  },
+
+  onLoad() {
+    this._loadData();
+  },
+
+  onShow() {
+    this._loadData();
+  },
+
+  // ─── 加载数据 ──────────────────────────────────────────────────
+
+  _loadData() {
+    const stored     = wx.getStorageSync('userPoints')  || {};
+    const signRecord = wx.getStorageSync('signRecord')  || {};
+    const today      = this._getTodayStr();
+    const consecutive = signRecord.consecutiveDays || 0;
+
+    this.setData({
+      totalPoints:     stored.totalPoints  || 0,
+      todayEarned:     stored.todayEarned  || 0,
+      signed:          signRecord.lastSignDate === today,
+      consecutiveDays: consecutive,
+      progressDays:    consecutive % 7,
+    });
+  },
+
+  _getTodayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  },
+
+  // ─── 签到逻辑 ──────────────────────────────────────────────────
+
+  onSign() {
+    if (this.data.signed) return;
+
+    if (isDailyLimitReached(this.data.todayEarned)) {
+      wx.showToast({ title: `今日积分已达上限 ${this.data.dailyLimit} 分`, icon: 'none' });
+      return;
+    }
+
+    const rule           = this.data.signRule;
+    const basePoints     = rule.points;
+    const newConsecutive = this.data.consecutiveDays + 1;
+
+    // 连续签到满7天额外奖励
+    let bonusPoints = 0;
+    if (newConsecutive % rule.bonusRule.consecutiveDays === 0) {
+      bonusPoints = rule.bonusRule.bonusPoints;
+    }
+
+    const actualBase  = calcActualPoints(this.data.todayEarned, basePoints);
+    const actualBonus = calcActualPoints(this.data.todayEarned + actualBase, bonusPoints);
+    const actualTotal = actualBase + actualBonus;
+
+    // 更新积分存储
+    const stored   = wx.getStorageSync('userPoints') || {};
+    const newTotal = (stored.totalPoints || 0) + actualTotal;
+    const newToday = (stored.todayEarned || 0) + actualTotal;
+
+    wx.setStorageSync('userPoints', {
+      ...stored,
+      totalPoints: newTotal,
+      todayEarned: newToday,
+    });
+
+    wx.setStorageSync('signRecord', {
+      lastSignDate:    this._getTodayStr(),
+      consecutiveDays: newConsecutive,
+    });
+
+    // 统一同步 signedDate，供 mine.js 读取
+    wx.setStorageSync('signedDate', this._getTodayStr());
+
+    // ✅ 写入积分明细记录（供 points/index.js 展示）
+    try {
+      const earnRecords = wx.getStorageSync('pointsEarnRecords') || [];
+      earnRecords.unshift({
+        id:     `sign_${Date.now()}`,
+        scene:  `每日签到（连续 ${newConsecutive} 天）`,
+        points: actualTotal,
+        time:   new Date().toLocaleString(),
+      });
+      wx.setStorageSync('pointsEarnRecords', earnRecords.slice(0, 200));
+    } catch (e) {}
+
+    this.setData({
+      signed:           true,
+      totalPoints:      newTotal,
+      todayEarned:      newToday,
+      consecutiveDays:  newConsecutive,
+      progressDays:     newConsecutive % 7,
+      showSuccessModal: true,
+      successPoints:    actualBase,
+      successBonus:     actualBonus,
+      successConsecutive: newConsecutive,
+    });
+  },
+
+  // ─── 关闭成功弹窗 ──────────────────────────────────────────────
+
+  onCloseSuccess() {
+    this.setData({ showSuccessModal: false });
+  },
+
+  // ─── 跳转积分中心 ──────────────────────────────────────────────
+
+  onGoIntegral() {
+    wx.navigateTo({ url: '/pages/mine/points/index' });
+  },
+});
+{
+  "navigationBarTitleText": "每日签到",
+  "usingComponents": {}
+}
+<view class="container">
+
+<!-- ① 顶部积分概览 -->
+<view class="total-card">
+  <view class="total-card__label">我的积分</view>
+  <view class="total-card__amount">{{totalPoints}}</view>
+  <view class="total-card__sub">
+    今日已获 {{todayEarned}} / 上限 {{dailyLimit}} 积分
+  </view>
+  <view class="total-card__link" bindtap="onGoIntegral">
+    前往积分中心 ›
+  </view>
+</view>
+
+<!-- ② 签到状态卡 -->
+<view class="sign-card">
+
+  <!-- 状态标题 -->
+  <view class="sign-card__status-row">
+    <view class="sign-card__status-icon">
+      <text wx:if="{{signed}}">✅</text>
+      <text wx:else>📅</text>
+    </view>
+    <view class="sign-card__status-text">
+      <text wx:if="{{signed}}" class="text-success">今日已签到</text>
+      <text wx:else class="text-warning">今日未签到</text>
+    </view>
+  </view>
+
+  <!-- 连续签到天数 -->
+  <view class="sign-card__consecutive">
+    已连续签到
+    <text class="sign-card__days-num">{{consecutiveDays}}</text>
+    天
+  </view>
+
+  <!-- 连续7天进度条 -->
+  <view class="progress-section">
+    <view class="progress-label">
+      连续签到进度（满7天当日额外+{{signRule.bonusRule.bonusPoints}}积分）
+    </view>
+    <view class="progress-bar-wrap">
+      <view
+        class="progress-bar-fill"
+        style="width: {{(progressDays / 7 * 100)}}%">
+      </view>
+    </view>
+    <view class="progress-dots">
+      <block wx:for="{{[1,2,3,4,5,6,7]}}" wx:key="*this">
+        <view class="progress-dot {{item <= progressDays ? 'progress-dot--done' : ''}} {{item === 7 ? 'progress-dot--bonus' : ''}}">
+          <text class="progress-dot__num">{{item}}</text>
+          <text class="progress-dot__bonus" wx:if="{{item === 7}}">+10</text>
+        </view>
+      </block>
+    </view>
+  </view>
+
+  <!-- 连续7天奖励提示 -->
+  <view class="bonus-tip">
+    🎁 连续签到满7天，当日额外获得 +{{signRule.bonusRule.bonusPoints}} 积分
+  </view>
+
+  <!-- 签到按钮 -->
+  <view
+    class="sign-btn {{signed ? 'sign-btn--disabled' : 'sign-btn--active'}}"
+    bindtap="onSign">
+    <text wx:if="{{!signed}}">立即签到  +{{signRule.points}}积分</text>
+    <text wx:else>今日已签到 ✓</text>
+  </view>
+
+</view>
+
+<!-- ③ 积分获取方式简要说明 -->
+<view class="earn-tips">
+  <view class="earn-tips__title">每日可得积分方式</view>
+  <view class="earn-tips__item">
+    <text class="earn-tips__scene">每日签到</text>
+    <text class="earn-tips__reward">+5积分/天（连续7天额外+10）</text>
+  </view>
+  <view class="earn-tips__item">
+    <text class="earn-tips__scene">帖子被点赞/评论</text>
+    <text class="earn-tips__reward">+1~2积分（每日上限50）</text>
+  </view>
+  <view class="earn-tips__item">
+    <text class="earn-tips__scene">分享帖子</text>
+    <text class="earn-tips__reward">+30积分/次（每日3次）</text>
+  </view>
+  <view class="earn-tips__link" bindtap="onGoIntegral">
+    查看全部积分规则 ›
+  </view>
+</view>
+
+<!-- ④ 签到成功弹窗 -->
+<view class="success-mask" wx:if="{{showSuccessModal}}">
+  <view class="success-modal">
+
+    <view class="success-modal__icon">🎉</view>
+    <view class="success-modal__title">签到成功！</view>
+
+    <!-- 基础积分 -->
+    <view class="success-modal__points">
+      +{{successPoints}} 积分
+    </view>
+
+    <!-- 连续天数 -->
+    <view class="success-modal__consecutive">
+      已连续签到 <text class="highlight">{{successConsecutive}}</text> 天
+    </view>
+
+    <!-- 连续7天奖励（有才显示） -->
+    <view class="success-modal__bonus" wx:if="{{successBonus > 0}}">
+      🎁 连续签到7天，额外获得 +{{successBonus}} 积分！
+    </view>
+
+    <!-- 距下次7天奖励提示 -->
+    <view class="success-modal__next-tip" wx:if="{{successBonus === 0}}">
+      再坚持 {{7 - (successConsecutive % 7)}} 天，获得额外+10积分
+    </view>
+
+    <view class="success-modal__btn" bindtap="onCloseSuccess">
+      知道了
+    </view>
+  </view>
+</view>
+
+</view>
+page { background: #f5f5f5; }
+.container { padding: 24rpx 24rpx 60rpx; }
+
+/* ─── 颜色工具 ─── */
+.text-success { color: #52c41a; }
+.text-warning  { color: #f90; }
+.highlight     { color: #f90; font-weight: 700; }
+
+/* ─── 顶部积分概览卡 ─── */
+.total-card {
+  background: linear-gradient(135deg, #ff8c00, #ffc107);
+  border-radius: 24rpx;
+  padding: 40rpx 36rpx 32rpx;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 24rpx;
+}
+.total-card__label   { font-size: 26rpx; opacity: .85; }
+.total-card__amount  { font-size: 80rpx; font-weight: 700; line-height: 1.2; }
+.total-card__sub     { font-size: 24rpx; opacity: .8; margin-top: 8rpx; }
+.total-card__link    {
+  display: inline-block; margin-top: 20rpx; font-size: 24rpx;
+  background: rgba(255,255,255,.25); border-radius: 30rpx; padding: 6rpx 24rpx;
+}
+
+/* ─── 签到状态卡 ─── */
+.sign-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 36rpx;
+  margin-bottom: 24rpx;
+}
+
+.sign-card__status-row {
+  display: flex; align-items: center; gap: 12rpx; margin-bottom: 16rpx;
+}
+.sign-card__status-icon { font-size: 40rpx; }
+.sign-card__status-text { font-size: 30rpx; font-weight: 600; }
+
+.sign-card__consecutive {
+  font-size: 26rpx; color: #666; margin-bottom: 28rpx;
+}
+.sign-card__days-num {
+  font-size: 48rpx; font-weight: 700; color: #f90; margin: 0 4rpx;
+}
+
+/* ─── 进度条 ─── */
+.progress-section { margin-bottom: 24rpx; }
+.progress-label {
+  font-size: 22rpx; color: #999; margin-bottom: 16rpx;
+}
+.progress-bar-wrap {
+  height: 8rpx; background: #f0f0f0; border-radius: 8rpx; margin-bottom: 16rpx; overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%; background: linear-gradient(90deg, #ff8c00, #ffc107);
+  border-radius: 8rpx; transition: width .4s ease;
+  min-width: 0%;
+}
+.progress-dots {
+  display: flex; justify-content: space-between;
+}
+.progress-dot {
+  display: flex; flex-direction: column; align-items: center; gap: 4rpx;
+  width: 64rpx; height: 64rpx; border-radius: 50%;
+  border: 2rpx solid #e0e0e0;
+  justify-content: center; background: #fafafa;
+  position: relative;
+}
+.progress-dot--done {
+  background: linear-gradient(135deg, #ff8c00, #ffc107);
+  border-color: #ff8c00;
+}
+.progress-dot--done .progress-dot__num { color: #fff; }
+.progress-dot--bonus {
+  border-color: #ff4d4f;
+}
+.progress-dot__num  { font-size: 20rpx; color: #999; font-weight: 600; }
+.progress-dot__bonus {
+  font-size: 16rpx; color: #ff4d4f; font-weight: 700;
+  position: absolute; bottom: -22rpx;
+}
+
+/* ─── 连续7天奖励提示 ─── */
+.bonus-tip {
+  background: #fff8f0; border-radius: 12rpx;
+  padding: 16rpx 20rpx; font-size: 24rpx; color: #e67e22;
+  margin-bottom: 28rpx; margin-top: 12rpx;
+}
+
+/* ─── 签到按钮 ─── */
+.sign-btn {
+  width: 100%; text-align: center;
+  border-radius: 50rpx; font-size: 32rpx; font-weight: 700;
+  padding: 28rpx 0; box-sizing: border-box;
+  transition: opacity .2s;
+}
+.sign-btn--active {
+  background: linear-gradient(90deg, #ff8c00, #ffc107);
+  color: #fff;
+}
+.sign-btn--disabled {
+  background: #f0f0f0; color: #bbb;
+}
+
+/* ─── 每日可得简要说明 ─── */
+.earn-tips {
+  background: #fff; border-radius: 20rpx; padding: 28rpx;
+}
+.earn-tips__title {
+  font-size: 28rpx; font-weight: 600; color: #222; margin-bottom: 20rpx;
+}
+.earn-tips__item {
+  display: flex; justify-content: space-between;
+  padding: 14rpx 0; border-bottom: 1rpx solid #f5f5f5;
+  font-size: 24rpx;
+}
+.earn-tips__scene  { color: #555; }
+.earn-tips__reward { color: #f90; font-weight: 600; }
+.earn-tips__link {
+  font-size: 24rpx; color: #f90; text-align: center;
+  padding-top: 20rpx;
+}
+
+/* ─── 签到成功弹窗 ─── */
+.success-mask {
+  position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,.55); z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+}
+.success-modal {
+  width: 560rpx; background: #fff;
+  border-radius: 28rpx; padding: 48rpx 40rpx 40rpx;
+  text-align: center;
+}
+.success-modal__icon  { font-size: 80rpx; margin-bottom: 16rpx; }
+.success-modal__title { font-size: 32rpx; font-weight: 700; color: #222; }
+.success-modal__points {
+  font-size: 64rpx; font-weight: 800;
+  color: #f90; margin: 20rpx 0;
+}
+.success-modal__consecutive {
+  font-size: 26rpx; color: #555; margin-bottom: 16rpx;
+}
+.success-modal__bonus {
+  background: #fff8f0; border-radius: 12rpx;
+  padding: 16rpx; font-size: 24rpx; color: #e67e22;
+  margin-bottom: 16rpx;
+}
+.success-modal__next-tip {
+  font-size: 22rpx; color: #bbb; margin-bottom: 16rpx;
+}
+.success-modal__btn {
+  background: linear-gradient(90deg, #ff8c00, #ffc107);
+  color: #fff; font-size: 28rpx; font-weight: 600;
+  border-radius: 50rpx; padding: 22rpx 0; margin-top: 8rpx;
+}

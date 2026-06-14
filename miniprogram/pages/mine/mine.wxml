@@ -1,40 +1,156 @@
-<!-- miniprogram/pages/mine/mine.wxml -->
-<!-- 修复：
-  1. 便民服务区：我发布的招聘/房源 跳独立页
-  2. 账户功能区：合并三个积分入口为一个，新增签到状态标签
-  3. 积分数值实时同步显示
--->
-
+<!-- pages/mine/mine.wxml -->
 <view class="page-wrap">
 
-<!-- ===== 顶部头像昵称区 ===== -->
+<!-- ══════ 顶部用户信息区 ══════ -->
 <view class="profile-header">
-  <view class="avatar-wrap">
-    <image
-      class="avatar-img"
-      src="{{userInfo.avatarUrl || '/images/avatar.png'}}"
-      mode="aspectFill"
-    />
-  </view>
-  <view class="user-info">
-    <text class="user-name">{{userInfo.nickName || '微信用户'}}</text>
-    <view class="auth-badge {{isAuthed ? 'authed' : 'unauthed'}}">
-      <text class="auth-badge-text">{{isAuthed ? '✔ 已实名' : '未实名'}}</text>
+  <view class="profile-deco-tr"></view>
+  <view class="profile-deco-bl"></view>
+  <view class="profile-inner">
+    <view class="avatar-wrap" bindtap="onOpenAvatarPanel">
+      <image class="avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill"/>
+      <view class="avatar-edit-tag">换</view>
+    </view>
+    <view class="user-info">
+      <view class="nick-row" bindtap="onOpenNickModal">
+        <text class="user-name">{{userInfo.nickName || '平江用户'}}</text>
+        <view class="vip-badge-inline" wx:if="{{isVip}}">
+          <text class="vip-badge-text">VIP</text>
+        </view>
+        <text class="nick-edit-icon">✏️</text>
+      </view>
+      <view class="bio-row" bindtap="onOpenBioModal">
+        <text class="user-bio {{userInfo.bio ? '' : 'bio-placeholder'}}">
+          {{userInfo.bio || '点击填写个人简介（30字以内）'}}
+        </text>
+      </view>
+      <view class="badge-row">
+        <view class="auth-badge {{isAuthed ? 'authed' : 'unauthed'}}">
+          <text class="auth-badge-text">{{isAuthed ? '✅ 已实名' : '未实名'}}</text>
+        </view>
+        <view class="open-vip-btn" bindtap="onOpenVip" wx:if="{{!isVip}}">
+          <text class="open-vip-text">开通VIP ›</text>
+        </view>
+      </view>
     </view>
   </view>
 </view>
 
-<!-- ===== 便民服务模块 ===== -->
+<!-- ══════ 头像选择面板 ══════ -->
+<view class="modal-mask bottom-sheet-mask" wx:if="{{showAvatarPanel}}"
+  bindtap="onCloseAvatarPanel" catchtouchmove="stopProp">
+  <view class="avatar-panel" catchtap="stopProp">
+    <view class="avatar-panel__title">选择头像</view>
+    <view class="upload-avatar-btn" bindtap="onUploadAvatar">
+      <text class="upload-avatar-icon">📷</text>
+      <view class="upload-avatar-right">
+        <text class="upload-avatar-label">上传自定义头像</text>
+        <text class="upload-avatar-tip">{{isVip ? 'VIP专享，立即上传' : '开通VIP后可上传自定义头像'}}</text>
+      </view>
+      <text class="upload-avatar-arrow">›</text>
+    </view>
+    <view class="avatar-tab-row">
+      <view class="avatar-tab {{showMaleTab ? 'avatar-tab--active' : ''}}"
+        bindtap="onSwitchTab" data-tab="male">男士头像</view>
+      <view class="avatar-tab {{!showMaleTab ? 'avatar-tab--active' : ''}}"
+        bindtap="onSwitchTab" data-tab="female">女士头像</view>
+    </view>
+    <view class="avatar-grid" wx:if="{{showMaleTab}}">
+      <view wx:for="{{maleAvatars}}" wx:key="*this"
+        class="avatar-grid-item {{userInfo.avatarUrl === item ? 'avatar-grid-item--selected' : ''}}"
+        bindtap="onSelectAvatar" data-url="{{item}}">
+        <image src="{{item}}" class="avatar-option" mode="aspectFill"/>
+        <view class="avatar-check" wx:if="{{userInfo.avatarUrl === item}}">✓</view>
+      </view>
+    </view>
+    <view class="avatar-grid" wx:if="{{!showMaleTab}}">
+      <view wx:for="{{femaleAvatars}}" wx:key="*this"
+        class="avatar-grid-item {{userInfo.avatarUrl === item ? 'avatar-grid-item--selected' : ''}}"
+        bindtap="onSelectAvatar" data-url="{{item}}">
+        <image src="{{item}}" class="avatar-option" mode="aspectFill"/>
+        <view class="avatar-check" wx:if="{{userInfo.avatarUrl === item}}">✓</view>
+      </view>
+    </view>
+    <view class="avatar-panel__tip">普通用户每年可更换1次 · VIP每月可更换1次</view>
+    <view class="avatar-panel__cancel" bindtap="onCloseAvatarPanel">取消</view>
+  </view>
+</view>
+
+<!-- ══════ 昵称编辑弹窗 ══════ -->
+<view class="modal-mask" wx:if="{{showNickModal}}"
+  bindtap="onCloseNickModal" catchtouchmove="stopProp">
+  <view class="modal-box edit-modal" catchtap="stopProp">
+    <view class="modal-header">
+      <text class="modal-title">修改昵称</text>
+      <text class="modal-close" bindtap="onCloseNickModal">✕</text>
+    </view>
+    <input class="edit-input" value="{{nickInput}}" bindinput="onNickInput"
+      placeholder="请输入昵称（最多16字）" maxlength="16" focus="{{showNickModal}}"/>
+    <view class="edit-tip">普通用户每年可修改1次，VIP每月可修改1次</view>
+    <button class="modal-confirm-btn" bindtap="onConfirmNick">确认修改</button>
+  </view>
+</view>
+
+<!-- ══════ 简介编辑弹窗 ══════ -->
+<view class="modal-mask" wx:if="{{showBioModal}}"
+  bindtap="onCloseBioModal" catchtouchmove="stopProp">
+  <view class="modal-box edit-modal" catchtap="stopProp">
+    <view class="modal-header">
+      <text class="modal-title">个人简介</text>
+      <text class="modal-close" bindtap="onCloseBioModal">✕</text>
+    </view>
+    <textarea class="bio-textarea" value="{{bioInput}}" bindinput="onBioInput"
+      placeholder="介绍一下自己吧（30字以内）" maxlength="30" focus="{{showBioModal}}"/>
+    <view class="bio-count">{{bioInput.length}}/30</view>
+    <button class="modal-confirm-btn" bindtap="onConfirmBio">保存简介</button>
+  </view>
+</view>
+
+<!-- ══════ VIP开通弹窗 ══════ -->
+<view class="modal-mask" wx:if="{{showVipModal}}"
+  bindtap="onCloseVip" catchtouchmove="stopProp">
+  <view class="vip-modal" catchtap="stopProp">
+    <view class="vip-modal__header">
+      <text class="vip-modal__title">👑 开通VIP会员</text>
+      <text class="vip-modal__close" bindtap="onCloseVip">✕</text>
+    </view>
+    <scroll-view scroll-y class="vip-table-scroll">
+      <view class="vip-table">
+        <view class="vip-table__head">
+          <text class="vip-col vip-col--feature">功能</text>
+          <text class="vip-col vip-col--normal">普通用户</text>
+          <text class="vip-col vip-col--vip">VIP会员</text>
+        </view>
+        <view class="vip-table__row" wx:for="{{vipBenefits}}" wx:key="feature">
+          <text class="vip-col vip-col--feature">{{item.feature}}</text>
+          <text class="vip-col vip-col--normal vip-text-gray">{{item.normal}}</text>
+          <text class="vip-col vip-col--vip vip-text-gold">{{item.vip}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="vip-pkg-title">选择套餐</view>
+    <view class="vip-pkg-row">
+      <view wx:for="{{vipPackages}}" wx:key="id"
+        class="vip-pkg-item {{selectedPkg === item.id ? 'vip-pkg-item--selected' : ''}}"
+        bindtap="onSelectPkg" data-id="{{item.id}}">
+        <text class="vip-pkg-name">{{item.name}}</text>
+        <text class="vip-pkg-price">{{item.price}}</text>
+        <text class="vip-pkg-desc">{{item.desc}}</text>
+      </view>
+    </view>
+    <button class="vip-buy-btn" bindtap="onBuyVip">立即开通</button>
+    <text class="vip-notice">开通即同意平台VIP服务协议</text>
+  </view>
+</view>
+
+<!-- ══════ 便民服务 ══════ -->
 <view class="section-block">
   <view class="section-title">
     <text class="section-title-icon">🏠</text>
     <text class="section-title-text">便民服务</text>
   </view>
-
-  <!-- ✅ 跳转独立"我发布的招聘"页面 -->
   <view class="menu-item" bindtap="goMyJobs">
     <view class="menu-left">
-      <text class="menu-icon">💼</text>
+      <view class="menu-icon-wrap"><text class="menu-icon">💼</text></view>
       <text class="menu-label">我发布的招聘</text>
     </view>
     <view class="menu-right">
@@ -42,13 +158,10 @@
       <text class="menu-arrow">›</text>
     </view>
   </view>
-
   <view class="divider"></view>
-
-  <!-- ✅ 跳转独立"我发布的房源"页面 -->
   <view class="menu-item" bindtap="goMyRentals">
     <view class="menu-left">
-      <text class="menu-icon">🏡</text>
+      <view class="menu-icon-wrap"><text class="menu-icon">🏡</text></view>
       <text class="menu-label">我发布的房源</text>
     </view>
     <view class="menu-right">
@@ -58,16 +171,15 @@
   </view>
 </view>
 
-<!-- ===== 贴吧社区模块 ===== -->
+<!-- ══════ 贴吧社区 ══════ -->
 <view class="section-block">
   <view class="section-title">
     <text class="section-title-icon">💬</text>
     <text class="section-title-text">贴吧社区</text>
   </view>
-
   <view class="menu-item" bindtap="goMyPosts">
     <view class="menu-left">
-      <text class="menu-icon">📝</text>
+      <view class="menu-icon-wrap"><text class="menu-icon">📝</text></view>
       <text class="menu-label">我发布的帖子</text>
     </view>
     <view class="menu-right">
@@ -75,35 +187,17 @@
       <text class="menu-arrow">›</text>
     </view>
   </view>
-
-  <view class="divider"></view>
-
-  <view class="menu-item" bindtap="goMyActivity">
-    <view class="menu-left">
-      <text class="menu-icon">🔔</text>
-      <text class="menu-label">我的帖子动态</text>
-      <text class="menu-sub">评论 / 点赞 / 互动</text>
-    </view>
-    <view class="menu-right">
-      <view class="red-dot" wx:if="{{unreadActivity > 0}}">
-        <text class="red-dot-text">{{unreadActivity > 99 ? '99+' : unreadActivity}}</text>
-      </view>
-      <text class="menu-arrow">›</text>
-    </view>
-  </view>
 </view>
 
-<!-- ===== 账户功能模块 ===== -->
+<!-- ══════ 账户功能 ══════ -->
 <view class="section-block">
   <view class="section-title">
     <text class="section-title-icon">⚙️</text>
     <text class="section-title-text">账户功能</text>
   </view>
-
-  <!-- 实名认证 -->
   <view class="menu-item" bindtap="goAuth">
     <view class="menu-left">
-      <text class="menu-icon">🪪</text>
+      <view class="menu-icon-wrap"><text class="menu-icon">🔐</text></view>
       <text class="menu-label">实名认证</text>
     </view>
     <view class="menu-right">
@@ -113,70 +207,105 @@
       <text class="menu-arrow">›</text>
     </view>
   </view>
-
   <view class="divider"></view>
-
-  <!-- ✅ 问题2修复：三个入口合并为一个"积分中心"，含当前积分数值 + 签到状态标签 -->
   <view class="menu-item" bindtap="goPointsCenter">
     <view class="menu-left">
-      <text class="menu-icon">⭐</text>
+      <view class="menu-icon-wrap"><text class="menu-icon">⭐</text></view>
       <text class="menu-label">积分中心 / 每日签到</text>
     </view>
     <view class="menu-right">
-      <!-- ✅ 问题3修复：实时显示积分数值 -->
-      <text class="points-value">{{totalPoints}} 分</text>
-      <!-- ✅ 签到状态标签 -->
+      <text class="points-value">{{totalPoints}}分</text>
       <text class="sign-tag {{hasSigned ? 'sign-tag-done' : 'sign-tag-todo'}}">
         {{hasSigned ? '已签到' : '未签到'}}
       </text>
       <text class="menu-arrow">›</text>
     </view>
   </view>
-
   <view class="divider"></view>
-
-  <!-- 联系我们 -->
   <view class="menu-item" bindtap="showContactModal">
     <view class="menu-left">
-      <text class="menu-icon">📞</text>
+      <view class="menu-icon-wrap"><text class="menu-icon">📞</text></view>
       <text class="menu-label">联系我们</text>
     </view>
-    <view class="menu-right">
-      <text class="menu-arrow">›</text>
+    <view class="menu-right"><text class="menu-arrow">›</text></view>
+  </view>
+  <view class="divider"></view>
+  <view class="menu-item" bindtap="onOpenSuggest">
+    <view class="menu-left">
+      <view class="menu-icon-wrap"><text class="menu-icon">📮</text></view>
+      <view class="menu-label-wrap">
+        <text class="menu-label">建议信箱</text>
+        <text class="menu-sub">您的建议我们都会看</text>
+      </view>
     </view>
+    <view class="menu-right"><text class="menu-arrow">›</text></view>
   </view>
 </view>
 
-<!-- ===== 退出登录按钮 ===== -->
+<!-- ══════ 退出登录 ══════ -->
 <view class="logout-wrap">
   <button class="logout-btn" bindtap="handleLogout">退出登录</button>
 </view>
 
-<!-- ===== 联系我们弹窗 ===== -->
-<view class="modal-mask" wx:if="{{showContactModal}}" bindtap="hideContactModal">
+<!-- ══════ 联系我们弹窗 ══════ -->
+<view class="modal-mask" wx:if="{{showContactModal}}"
+  bindtap="hideContactModal" catchtouchmove="stopProp">
   <view class="modal-box" catchtap="stopProp">
-
     <view class="modal-header">
       <text class="modal-title">联系我们</text>
       <text class="modal-close" bindtap="hideContactModal">✕</text>
     </view>
-
     <view class="qrcode-wrap">
-      <image
-        class="qrcode-img"
-        src="/images/contact_qrcode.png"
-        mode="aspectFit"
-      />
+      <image class="qrcode-img" src="/images/contact_qrcode.png" mode="aspectFit"/>
       <text class="qrcode-tip">长按图片识别二维码添加微信</text>
     </view>
-
     <view class="wechat-id-wrap">
       <text class="wechat-id-label">微信号：</text>
       <text class="wechat-id-value">{{contactWechatId}}</text>
     </view>
-
     <button class="copy-btn" bindtap="copyWechatId">复制微信号</button>
     <text class="modal-notice">请在微信中搜索以上微信号或扫码添加</text>
+  </view>
+</view>
+
+<!-- ══════ 建议信箱弹窗（问题1修复：scroll-view防截断） ══════ -->
+<view class="modal-mask" wx:if="{{showSuggestModal}}"
+  bindtap="onCloseSuggest" catchtouchmove="stopProp">
+  <view class="modal-box suggest-modal" catchtap="stopProp">
+
+    <!-- 标题栏：固定不滚动 -->
+    <view class="modal-header">
+      <text class="modal-title">📮 建议信箱</text>
+      <text class="modal-close" bindtap="onCloseSuggest">✕</text>
+    </view>
+
+    <!-- 可滚动内容区（修复文字截断的关键） -->
+    <scroll-view scroll-y class="suggest-scroll-body" catchtouchmove="stopProp">
+      <text class="suggest-subtitle">
+        您的每一条建议都会被认真阅读，帮助平台不断进步
+      </text>
+      <textarea
+        class="suggest-textarea"
+        value="{{suggestContent}}"
+        bindinput="onSuggestInput"
+        placeholder="请写下您的建议（功能优化、新功能需求等均可，至少5个字）"
+        maxlength="300"
+        placeholder-class="suggest-placeholder"
+      />
+      <view class="suggest-count">{{suggestContent.length}}/300</view>
+      <input
+        class="suggest-contact-input"
+        value="{{suggestContact}}"
+        bindinput="onContactInput"
+        placeholder="联系方式（选填，方便我们回访您）"
+        maxlength="50"
+      />
+    </scroll-view>
+
+    <!-- 提交按钮：固定在底部 -->
+    <view class="suggest-footer">
+      <button class="modal-confirm-btn" bindtap="onSubmitSuggest">提交建议</button>
+    </view>
 
   </view>
 </view>

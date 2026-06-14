@@ -1,3 +1,4 @@
+<!-- miniprogram/pages/mine/sign/index.wxml -->
 <view class="container">
 
 <!-- ① 顶部积分概览 -->
@@ -35,6 +36,7 @@
   </view>
 
   <!-- 连续7天进度条 -->
+  <!-- 修复：内联style不再写{{计算式}}，改用JS预算好的 progressBarStyle 字符串 -->
   <view class="progress-section">
     <view class="progress-label">
       连续签到进度（满7天当日额外+{{signRule.bonusRule.bonusPoints}}积分）
@@ -42,7 +44,7 @@
     <view class="progress-bar-wrap">
       <view
         class="progress-bar-fill"
-        style="width: {{(progressDays / 7 * 100)}}%">
+        style="{{progressBarStyle}}">
       </view>
     </view>
     <view class="progress-dots">
@@ -91,8 +93,8 @@
 </view>
 
 <!-- ④ 签到成功弹窗 -->
-<view class="success-mask" wx:if="{{showSuccessModal}}">
-  <view class="success-modal">
+<view class="success-mask" wx:if="{{showSuccessModal}}" bindtap="stopProp">
+  <view class="success-modal" catchtap="stopProp">
 
     <view class="success-modal__icon">🎉</view>
     <view class="success-modal__title">签到成功！</view>
