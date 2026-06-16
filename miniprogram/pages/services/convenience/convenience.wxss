@@ -1,14 +1,18 @@
 /* pages/services/convenience/convenience.wxss */
 
 .page-container {
-  background-color: #fdf6e3;
+  background-color: #F5F0E8;
   min-height: 100vh;
   padding-bottom: 60rpx;
 }
 
+/* ★ 顶部 header 去掉大黄色 ★ */
 .page-header {
-  background: linear-gradient(135deg, #8B6914, #c8a951);
-  padding: 40rpx 30rpx;
+  margin: 24rpx 24rpx 0;
+  border-radius: 20rpx;
+  overflow: hidden;
+  background: linear-gradient(135deg, #5C3D1E 0%, #8B5E3C 100%);
+  padding: 36rpx 32rpx;
 }
 
 .header-title {
@@ -34,7 +38,7 @@
   border-bottom: 2rpx solid #f5e6c0;
 }
 
-/* 找工作 */
+/* 找工作（原样保留） */
 .job-list { display: flex; flex-direction: column; gap: 20rpx; }
 .job-item {
   background: #fffdf5;
@@ -48,7 +52,7 @@
 .job-company { font-size: 26rpx; color: #666; margin-bottom: 8rpx; display: block; }
 .job-tags { font-size: 22rpx; color: #999; }
 
-/* 房屋 */
+/* 房屋（原样保留） */
 .house-list { display: flex; flex-direction: column; gap: 20rpx; }
 .house-item {
   background: #fffdf5;
@@ -62,7 +66,7 @@
 .house-desc { font-size: 26rpx; color: #666; display: block; margin-bottom: 8rpx; }
 .house-contact { font-size: 24rpx; color: #8B6914; }
 
-/* 停水停电 */
+/* 停水停电（原样保留） */
 .notice-list { display: flex; flex-direction: column; gap: 20rpx; }
 .notice-item {
   display: flex;
@@ -85,7 +89,7 @@
 .notice-title { font-size: 28rpx; color: #333; font-weight: bold; }
 .notice-time, .notice-area { font-size: 24rpx; color: #666; }
 
-/* 医院 */
+/* 医院（原样保留） */
 .hospital-list { display: flex; flex-direction: column; gap: 20rpx; }
 .hospital-item {
   background: #fffdf5;
@@ -96,19 +100,30 @@
 .hospital-name { font-size: 30rpx; font-weight: bold; color: #333; display: block; margin-bottom: 10rpx; }
 .hospital-address { font-size: 26rpx; color: #666; display: block; margin-bottom: 16rpx; }
 
-/* 办事 */
-.gov-list { display: flex; flex-direction: column; gap: 20rpx; }
-.gov-item {
-  background: #fffdf5;
-  border: 1rpx solid #f0dfa0;
-  border-radius: 16rpx;
-  padding: 20rpx;
-}
-.gov-name { font-size: 30rpx; font-weight: bold; color: #333; display: block; margin-bottom: 8rpx; }
-.gov-desc { font-size: 26rpx; color: #666; display: block; margin-bottom: 8rpx; }
-.gov-addr { font-size: 24rpx; color: #999; }
+/* ★ 办事指南：新增 gov-item 布局样式（原 gov-item 只有文字，现在加拨号按钮）★ */
+.gov-list { display: flex; flex-direction: column; gap: 0; }
 
-/* 家政维修 */
+.gov-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16rpx;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #f5e6c0;
+}
+.gov-item:last-child { border-bottom: none; }
+
+.gov-item-left {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  flex: 1;
+}
+
+.gov-name { font-size: 30rpx; font-weight: bold; color: #333; }
+.gov-desc { font-size: 24rpx; color: #999; }
+
+/* 家政维修（原样保留） */
 .repair-list { display: flex; flex-direction: column; gap: 20rpx; }
 .repair-item {
   background: #fffdf5;
@@ -121,18 +136,19 @@
 .repair-score { font-size: 26rpx; color: #e07000; }
 .repair-skill { font-size: 26rpx; color: #666; display: block; margin-bottom: 16rpx; }
 
-/* 拨号按钮 */
+/* 拨号按钮（原样保留，微调为不换行） */
 .btn-call {
   background: linear-gradient(135deg, #8B6914, #c8a951);
   color: #fff;
-  font-size: 28rpx;
-  padding: 16rpx 0;
+  font-size: 24rpx;
+  padding: 14rpx 20rpx;
   border-radius: 50rpx;
   text-align: center;
-  margin-top: 10rpx;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
-/* 即将上线 */
+/* 即将上线（原样保留） */
 .coming-soon {
   display: flex;
   flex-direction: column;

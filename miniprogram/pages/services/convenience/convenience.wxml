@@ -1,12 +1,12 @@
 <!-- pages/services/convenience/convenience.wxml -->
 <view class="page-container">
 
-<!-- 顶部返回区 -->
+<!-- 顶部返回区（原样保留） -->
 <view class="page-header">
   <text class="header-title">{{pageTitle}}</text>
 </view>
 
-<!-- 找工作 -->
+<!-- 找工作（原样保留） -->
 <block wx:if="{{currentType === 'job'}}">
   <view class="section">
     <view class="section-title">🔥 热招职位</view>
@@ -23,7 +23,7 @@
   </view>
 </block>
 
-<!-- 房屋租售 -->
+<!-- 房屋租售（原样保留） -->
 <block wx:if="{{currentType === 'house'}}">
   <view class="section">
     <view class="section-title">🏠 房源信息</view>
@@ -40,7 +40,7 @@
   </view>
 </block>
 
-<!-- 停水停电 -->
+<!-- 停水停电（原样保留） -->
 <block wx:if="{{currentType === 'water'}}">
   <view class="section">
     <view class="section-title">📋 近期通知</view>
@@ -57,7 +57,7 @@
   </view>
 </block>
 
-<!-- 医院专区 -->
+<!-- 医院专区（原样保留） -->
 <block wx:if="{{currentType === 'hospital'}}">
   <view class="section">
     <view class="section-title">🏥 医院信息</view>
@@ -75,21 +75,25 @@
   </view>
 </block>
 
-<!-- 办事指南 -->
+<!-- ★ 办事指南：换为真实电话列表，去掉底部不可点击的政务大厅 ★ -->
 <block wx:if="{{currentType === 'gov'}}">
   <view class="section">
-    <view class="section-title">🏛️ 常用办事</view>
+    <view class="section-title">🏛️ 常用办事电话</view>
     <view class="gov-list">
       <view class="gov-item" wx:for="{{govList}}" wx:key="id">
-        <text class="gov-name">{{item.name}}</text>
-        <text class="gov-desc">{{item.desc}}</text>
-        <text class="gov-addr">地址：{{item.address}}</text>
+        <view class="gov-item-left">
+          <text class="gov-name">{{item.name}}</text>
+          <text class="gov-desc">{{item.desc}}</text>
+        </view>
+        <view class="btn-call" bindtap="makeCall" data-phone="{{item.phone}}">
+          📞 {{item.phone}}
+        </view>
       </view>
     </view>
   </view>
 </block>
 
-<!-- 家政维修 -->
+<!-- 家政维修（原样保留） -->
 <block wx:if="{{currentType === 'repair'}}">
   <view class="section">
     <view class="section-title">🔧 附近师傅</view>
@@ -108,7 +112,7 @@
   </view>
 </block>
 
-<!-- 其他通用 -->
+<!-- 其他通用（原样保留） -->
 <block wx:if="{{currentType === 'bus' || currentType === 'market'}}">
   <view class="section coming-soon">
     <text class="coming-icon">🚧</text>

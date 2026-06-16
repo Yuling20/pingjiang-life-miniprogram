@@ -1,9 +1,9 @@
 <!-- pages/services/convenience/guide/guide.wxml -->
 <view class="container">
 
-<!-- 头部 -->
+<!-- ★ 头部：去掉橙黄色，改为暖棕卡片风格 ★ -->
 <view class="header">
-  <text class="title">📋 办事指南</text>
+  <text class="title">办事指南</text>
   <text class="subtitle">平江便民政务服务一站查询</text>
   <view class="header-tip-row">
     <text class="header-tip-icon">💡</text>
@@ -11,7 +11,7 @@
   </view>
 </view>
 
-<!-- 服务列表 -->
+<!-- 服务列表（原样保留，不改任何结构和事件） -->
 <view class="list">
   <view
     class="item"
@@ -35,11 +35,9 @@
         </text>
       </view>
       <text class="item-desc">{{item.desc}}</text>
-      <!-- 网络办理提示 -->
       <text wx:if="{{item.type === 'web'}}" class="item-action-tip web-tip">
         点击直接跳转官方网站
       </text>
-      <!-- APP/电话办理提示 -->
       <text wx:if="{{item.type === 'phone'}}" class="item-action-tip phone-tip">
         点击查看APP入口与热线
       </text>
@@ -53,13 +51,6 @@
   </view>
 </view>
 
-<!-- 底部提示 -->
-<view class="footer">
-  <view class="footer-card">
-    <text class="footer-icon">🏛️</text>
-    <text class="footer-text">以上均为官方渠道，如遇问题请携带相关证件到平江县政务服务大厅现场办理</text>
-  </view>
-  <text class="footer-addr">📍 平江县政务服务大厅：0730-6822000</text>
-</view>
+<!-- ★ 底部静态"平江县政务服务大厅"已移除 ★ -->
 
 </view>

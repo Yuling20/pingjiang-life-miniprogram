@@ -1,13 +1,15 @@
 <!-- pages/services/convenience/services.wxml -->
 <view class="page-container">
 
-<!-- 顶部标题栏 -->
+<!-- 顶部标题栏：去掉大黄色，改为暖棕卡片 -->
 <view class="page-header">
-  <text class="page-title">便民服务</text>
-  <text class="page-subtitle">平江本地生活服务平台</text>
+  <view class="header-inner">
+    <text class="page-title">便民服务</text>
+    <text class="page-subtitle">平江本地生活服务平台</text>
+  </view>
 </view>
 
-<!-- 6个功能入口 -->
+<!-- 6个功能入口（原有全部保留） -->
 <view class="service-grid">
 
   <!-- 入口1：找工作 -->

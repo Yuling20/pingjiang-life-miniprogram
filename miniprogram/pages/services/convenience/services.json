@@ -1,6 +1,7 @@
 {
+  "usingComponents": {},
   "navigationBarTitleText": "便民服务",
-  "navigationBarBackgroundColor": "#e8a020",
+  "navigationBarBackgroundColor": "#5C3D1E",
   "navigationBarTextStyle": "white",
-  "backgroundColor": "#fdf6ec"
+  "backgroundColor": "#F5F0E8"
 }

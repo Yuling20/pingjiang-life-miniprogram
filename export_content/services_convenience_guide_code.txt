@@ -1,0 +1,408 @@
+// pages/services/convenience/guide/guide.js
+Page({
+  data: {
+    services: [
+      {
+        id: 1,
+        title: '补办身份证',
+        desc: '身份证丢失/损坏补办，网上申请指引',
+        icon: '🪪',
+        tag: '证件',
+        type: 'web',
+        url: 'https://zwfw.mps.gov.cn',
+        phone: '0730-6822110',
+        webTitle: '公安部网上服务'
+      },
+      {
+        id: 2,
+        title: '驾驶证业务办理',
+        desc: '驾照申请、审验、补换证、违章查询',
+        icon: '🚗',
+        tag: '车驾管',
+        type: 'web',
+        url: 'https://www.122.gov.cn',
+        phone: '0730-6822122',
+        webTitle: '交通管理服务平台'
+      },
+      {
+        id: 3,
+        title: '社会保险查询',
+        desc: '社保参保、缴费记录、个人账户查询',
+        icon: '🛡️',
+        tag: '社保',
+        type: 'phone',
+        url: '',
+        phone: '0730-6822333',
+        appTip: '下载「湘人社」APP或「国家社会保险公共服务平台」小程序查询',
+        phoneTip: '也可拨打社保服务热线查询'
+      },
+      {
+        id: 4,
+        title: '住房公积金查询',
+        desc: '公积金缴存、提取、贷款查询办理',
+        icon: '🏠',
+        tag: '公积金',
+        type: 'web',
+        url: 'https://gjj.yueyang.gov.cn',
+        phone: '0730-6822444',
+        webTitle: '岳阳住房公积金'
+      },
+      {
+        id: 5,
+        title: '税务办税服务',
+        desc: '个人所得税、发票申请、税务登记',
+        icon: '🧾',
+        tag: '税务',
+        type: 'web',
+        url: 'https://etax.chinatax.gov.cn',
+        phone: '12366',
+        webTitle: '电子税务局'
+      },
+      {
+        id: 6,
+        title: '医疗保障查询',
+        desc: '医保参保、报销查询、异地就医备案',
+        icon: '💊',
+        tag: '医保',
+        type: 'phone',
+        url: '',
+        phone: '0730-6822555',
+        appTip: '微信搜索「国家医保服务平台」小程序，或下载同名APP查询',
+        phoneTip: '也可拨打平江医保局热线'
+      },
+      {
+        id: 7,
+        title: '平江县人民政府政务网',
+        desc: '政务公开、审批查询、便民服务入口',
+        icon: '🏛️',
+        tag: '政务',
+        type: 'web',
+        url: 'https://www.pingjiang.gov.cn',
+        phone: '0730-6822000',
+        webTitle: '平江县人民政府'
+      },
+      {
+        id: 8,
+        title: '不动产登记查询',
+        desc: '房产证办理、土地证、产权过户',
+        icon: '🏡',
+        tag: '不动产',
+        type: 'phone',
+        url: '',
+        phone: '0730-6822666',
+        appTip: '微信搜索「不动产登记」小程序，或携带证件到平江县不动产登记中心办理',
+        phoneTip: '可先拨打电话预约，节省排队时间'
+      }
+    ]
+  },
+
+  goToService(e) {
+    const item = e.currentTarget.dataset.item;
+
+    if (item.type === 'web') {
+      // 可以访问的网站 → 直接跳转webview
+      wx.navigateTo({
+        url: `/pages/common/webview/webview?url=${encodeURIComponent(item.url)}&title=${encodeURIComponent(item.webTitle || item.title)}`,
+        fail: () => {
+          // 跳转失败则复制链接
+          this.showCopyModal(item);
+        }
+      });
+    } else {
+      // 无法访问的网站 → 弹出APP指引+拨号
+      this.showPhoneModal(item);
+    }
+  },
+
+  // 网站跳转失败时的弹窗
+  showCopyModal(item) {
+    wx.showModal({
+      title: '📋 ' + item.title,
+      content: '点击"复制网址"后在手机浏览器粘贴访问\n或拨打服务热线：' + item.phone,
+      confirmText: '复制网址',
+      cancelText: '拨打电话',
+      success(res) {
+        if (res.confirm) {
+          wx.setClipboardData({
+            data: item.url,
+            success() {
+              wx.showToast({ title: '网址已复制，请打开浏览器粘贴', icon: 'none', duration: 2500 });
+            }
+          });
+        } else if (res.cancel) {
+          wx.makePhoneCall({ phoneNumber: item.phone });
+        }
+      }
+    });
+  },
+
+  // 需要APP/现场办理的弹窗
+  showPhoneModal(item) {
+    wx.showModal({
+      title: '📋 ' + item.title,
+      content: '💡 ' + item.appTip + '\n\n📞 ' + item.phoneTip + '：' + item.phone,
+      confirmText: '拨打热线',
+      cancelText: '知道了',
+      success(res) {
+        if (res.confirm) {
+          wx.makePhoneCall({ phoneNumber: item.phone });
+        }
+      }
+    });
+  }
+});
+{
+  "navigationBarTitleText": "办事指南",
+  "navigationBarBackgroundColor": "#FF6B35",
+  "navigationBarTextStyle": "white",
+  "usingComponents": {}
+}
+<!-- pages/services/convenience/guide/guide.wxml -->
+<view class="container">
+
+<!-- 头部 -->
+<view class="header">
+  <text class="title">📋 办事指南</text>
+  <text class="subtitle">平江便民政务服务一站查询</text>
+  <view class="header-tip-row">
+    <text class="header-tip-icon">💡</text>
+    <text class="header-tip-text">🌐 蓝色标签可直接跳转官网；📞 橙色标签点击查看办理指引</text>
+  </view>
+</view>
+
+<!-- 服务列表 -->
+<view class="list">
+  <view
+    class="item"
+    wx:for="{{services}}"
+    wx:key="id"
+    bindtap="goToService"
+    data-item="{{item}}"
+    hover-class="item-hover"
+  >
+    <!-- 左侧图标 -->
+    <view class="item-left">
+      <text class="icon">{{item.icon}}</text>
+    </view>
+
+    <!-- 中间内容 -->
+    <view class="item-center">
+      <view class="item-title-row">
+        <text class="item-title">{{item.title}}</text>
+        <text class="tag {{item.type === 'web' ? 'tag-web' : 'tag-phone'}}">
+          {{item.type === 'web' ? '🌐 网上办' : '📞 电话/APP'}}
+        </text>
+      </view>
+      <text class="item-desc">{{item.desc}}</text>
+      <!-- 网络办理提示 -->
+      <text wx:if="{{item.type === 'web'}}" class="item-action-tip web-tip">
+        点击直接跳转官方网站
+      </text>
+      <!-- APP/电话办理提示 -->
+      <text wx:if="{{item.type === 'phone'}}" class="item-action-tip phone-tip">
+        点击查看APP入口与热线
+      </text>
+      <text class="item-phone">📞 {{item.phone}}</text>
+    </view>
+
+    <!-- 右侧箭头 -->
+    <view class="item-right">
+      <text class="arrow">›</text>
+    </view>
+  </view>
+</view>
+
+<!-- 底部提示 -->
+<view class="footer">
+  <view class="footer-card">
+    <text class="footer-icon">🏛️</text>
+    <text class="footer-text">以上均为官方渠道，如遇问题请携带相关证件到平江县政务服务大厅现场办理</text>
+  </view>
+  <text class="footer-addr">📍 平江县政务服务大厅：0730-6822000</text>
+</view>
+
+</view>
+/* pages/services/convenience/guide/guide.wxss */
+.container {
+  padding: 0 0 40rpx 0;
+  background: #F5F5F5;
+  min-height: 100vh;
+}
+
+/* 头部 */
+.header {
+  background: linear-gradient(135deg, #FF6B35, #E8A838);
+  padding: 40rpx 30rpx 36rpx;
+  text-align: center;
+}
+
+.title {
+  display: block;
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 8rpx;
+}
+
+.subtitle {
+  display: block;
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.9);
+  margin-bottom: 20rpx;
+}
+
+.header-tip-row {
+  background: rgba(255,255,255,0.2);
+  border-radius: 16rpx;
+  padding: 14rpx 20rpx;
+  display: flex;
+  align-items: flex-start;
+  gap: 8rpx;
+  text-align: left;
+}
+
+.header-tip-icon { font-size: 26rpx; flex-shrink: 0; }
+
+.header-tip-text {
+  font-size: 23rpx;
+  color: rgba(255,255,255,0.95);
+  line-height: 1.6;
+  flex: 1;
+}
+
+/* 列表 */
+.list {
+  margin: 20rpx 20rpx 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 18rpx;
+  padding: 26rpx 20rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.06);
+  transition: all 0.2s;
+}
+
+.item-hover {
+  opacity: 0.8;
+  transform: scale(0.99);
+}
+
+/* 左侧图标 */
+.item-left {
+  width: 80rpx;
+  height: 80rpx;
+  background: #FFF3EC;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.icon { font-size: 40rpx; }
+
+/* 中间内容 */
+.item-center {
+  flex: 1;
+  padding: 0 16rpx;
+}
+
+.item-title-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-bottom: 6rpx;
+}
+
+.item-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #222;
+}
+
+/* 标签区分 */
+.tag {
+  font-size: 20rpx;
+  padding: 3rpx 12rpx;
+  border-radius: 16rpx;
+  font-weight: bold;
+}
+
+.tag-web {
+  color: #2980B9;
+  background: #E8F4FE;
+  border: 1rpx solid #BDD9F5;
+}
+
+.tag-phone {
+  color: #E67E22;
+  background: #FEF0E6;
+  border: 1rpx solid #F5D0A9;
+}
+
+.item-desc {
+  font-size: 24rpx;
+  color: #999;
+  display: block;
+  margin-bottom: 6rpx;
+  line-height: 1.5;
+}
+
+.item-action-tip {
+  display: block;
+  font-size: 22rpx;
+  margin-bottom: 6rpx;
+  font-weight: 500;
+}
+
+.web-tip { color: #2980B9; }
+.phone-tip { color: #E67E22; }
+
+.item-phone {
+  font-size: 24rpx;
+  color: #555;
+  font-weight: bold;
+}
+
+/* 右箭头 */
+.item-right { width: 36rpx; text-align: center; flex-shrink: 0; }
+.arrow { font-size: 44rpx; color: #DDD; }
+
+/* 底部 */
+.footer {
+  margin: 24rpx 20rpx 0;
+}
+
+.footer-card {
+  background: #FFF8EE;
+  border: 1rpx solid #FFE0B2;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  margin-bottom: 16rpx;
+}
+
+.footer-icon { font-size: 32rpx; flex-shrink: 0; }
+
+.footer-text {
+  font-size: 24rpx;
+  color: #7a5800;
+  line-height: 1.6;
+  flex: 1;
+}
+
+.footer-addr {
+  display: block;
+  text-align: center;
+  font-size: 26rpx;
+  color: #2980B9;
+  font-weight: bold;
+  padding: 10rpx 0;
+}
