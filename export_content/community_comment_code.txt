@@ -1,0 +1,596 @@
+// pages/community/comment/index.js
+// 评论详情页 - 含多级回复、删除、举报、排序、敏感词校验
+
+// 前端敏感词库（与发帖页保持一致）
+const SENSITIVE_WORDS = [
+  '广告', '代开发票', '办证', '贷款', '赌博', '色情', '暴力',
+  '反动', '邪教', '法轮功', '六四', '台独', '藏独', '疆独',
+  '黄赌毒', '诈骗', '传销', '枪支', '炸弹', '私彩'
+]
+
+// 模拟当前登录用户（替换为真实用户体系后删除）
+const MOCK_ME = { userId: 'u_me', nickname: '我自己', avatar: '/images/avatar.png' }
+
+// 模拟帖子数据
+const MOCK_POST = {
+  id: 1, userId: 'u1', avatar: '/images/avatar.png',
+  nickname: '平江老表', time: '10分钟前',
+  content: '平江县天岳广场今天好热闹，有活动！大家快去看，带孩子去耍一下，气氛超好的👍',
+  likes: 38
+}
+
+// 模拟评论数据
+const MOCK_COMMENTS = [
+  {
+    id: 101, userId: 'u2', avatar: '/images/avatar.png',
+    nickname: '汉昌居民', isVip: false, time: '8分钟前',
+    content: '我也在那里！广场舞大妈好厉害哈哈哈',
+    likes: 12, isLiked: false,
+    isMine: false,
+    totalReplies: 3,
+    replies: [
+      { id: 201, userId: 'u3', nickname: '嘉义街坊', replyTo: '汉昌居民', time: '6分钟前', content: '哈哈哈是的，跳得超好！', isMine: false },
+      { id: 202, userId: 'u_me', nickname: '我自己', replyTo: '汉昌居民', time: '5分钟前', content: '明天再去看看', isMine: true }
+    ]
+  },
+  {
+    id: 102, userId: 'u_me', avatar: '/images/avatar.png',
+    nickname: '我自己', isVip: false, time: '5分钟前',
+    content: '太好了，带我妈妈去！',
+    likes: 5, isLiked: false,
+    isMine: true,
+    totalReplies: 0,
+    replies: []
+  },
+  {
+    id: 103, userId: 'u4', avatar: '/images/avatar.png',
+    nickname: '天岳山人', isVip: true, time: '3分钟前',
+    content: '活动几点结束？',
+    likes: 3, isLiked: false,
+    isMine: false,
+    totalReplies: 1,
+    replies: [
+      { id: 203, userId: 'u1', nickname: '平江老表', replyTo: '天岳山人', time: '2分钟前', content: '大概晚上九点！', isMine: false }
+    ]
+  }
+]
+
+Page({
+  data: {
+    postId: null,
+    post: {},
+    comments: [],
+    sortByTime: true,    // true=最新优先 false=热门优先
+    inputVal: '',        // 评论输入内容
+    inputFocus: false,   // 是否聚焦
+    replyTarget: '',     // 回复对象昵称
+    replyCommentId: null // 回复的评论id
+  },
+
+  onLoad(options) {
+    const postId = options.postId || 1
+    this.setData({ postId })
+    this.loadPost()
+    this.loadComments()
+  },
+
+  // =============================================
+  // 加载原帖
+  // =============================================
+  loadPost() {
+    // TODO: 替换为接口 GET /api/post/:id
+    this.setData({ post: MOCK_POST })
+  },
+
+  // =============================================
+  // 加载评论（支持排序）
+  // =============================================
+  loadComments() {
+    // TODO: 替换为接口 GET /api/comment/list?postId=&sort=time|hot
+    let comments = [...MOCK_COMMENTS]
+    if (this.data.sortByTime) {
+      // 最新优先：按id倒序模拟
+      comments = comments.sort((a, b) => b.id - a.id)
+    } else {
+      // 热门优先：按点赞数倒序
+      comments = comments.sort((a, b) => b.likes - a.likes)
+    }
+    this.setData({ comments })
+  },
+
+  // =============================================
+  // 切换排序
+  // =============================================
+  toggleSort() {
+    this.setData({ sortByTime: !this.data.sortByTime }, () => {
+      this.loadComments()
+    })
+  },
+
+  // =============================================
+  // 评论点赞
+  // =============================================
+  likeComment(e) {
+    const { id, index } = e.currentTarget.dataset
+    const comments = this.data.comments.map((c, i) => {
+      if (i === index) {
+        return { ...c, isLiked: !c.isLiked, likes: c.isLiked ? c.likes - 1 : c.likes + 1 }
+      }
+      return c
+    })
+    this.setData({ comments })
+    // TODO: POST /api/comment/like { commentId: id }
+  },
+
+  // =============================================
+  // 打开回复（设置回复对象）
+  // =============================================
+  openReply(e) {
+    const { id, index, name } = e.currentTarget.dataset
+    this.setData({
+      replyTarget: name,
+      replyCommentId: id,
+      inputFocus: true
+    })
+  },
+
+  // =============================================
+  // 输入框变化
+  // =============================================
+  onInputChange(e) {
+    this.setData({ inputVal: e.detail.value })
+  },
+
+  // =============================================
+  // 发送评论/回复（含双重敏感词校验）
+  // =============================================
+  submitComment() {
+    const content = this.data.inputVal.trim()
+    if (!content) {
+      wx.showToast({ title: '请输入评论内容', icon: 'none' })
+      return
+    }
+
+    // 实名授权检查
+    const authed = wx.getStorageSync('user_authed') || false
+    if (!authed) {
+      wx.showModal({
+        title: '需要授权', content: '评论需要实名授权，请先完成授权',
+        confirmText: '去授权', showCancel: true,
+        success: (res) => {
+          if (res.confirm) {
+            wx.getUserProfile({
+              desc: '评论需实名授权',
+              success: (r) => {
+                wx.setStorageSync('user_authed', true)
+                wx.setStorageSync('user_info', r.userInfo)
+                wx.showToast({ title: '授权成功，请重新发送', icon: 'none' })
+              }
+            })
+          }
+        }
+      })
+      return
+    }
+
+    // 第一道：前端敏感词拦截
+    if (SENSITIVE_WORDS.some(w => content.includes(w))) {
+      wx.showModal({
+        title: '内容违规',
+        content: '评论包含违规词汇，请修改后再发送',
+        showCancel: false
+      })
+      return
+    }
+
+    // 第二道：微信内容安全接口（预留，同发帖页）
+    // TODO: 启用云函数安全检测后取消注释
+    this.doSubmitComment(content)
+  },
+
+  doSubmitComment(content) {
+    const { replyCommentId, replyTarget } = this.data
+
+    if (replyCommentId) {
+      // 提交回复
+      const newReply = {
+        id: Date.now(),
+        userId: MOCK_ME.userId,
+        nickname: MOCK_ME.nickname,
+        replyTo: replyTarget,
+        time: '刚刚',
+        content,
+        isMine: true
+      }
+      const comments = this.data.comments.map(c => {
+        if (c.id === replyCommentId) {
+          return {
+            ...c,
+            replies: [...(c.replies || []), newReply],
+            totalReplies: (c.totalReplies || 0) + 1
+          }
+        }
+        return c
+      })
+      this.setData({ comments, inputVal: '', replyTarget: '', replyCommentId: null, inputFocus: false })
+      // TODO: POST /api/comment/reply { commentId, content, replyTo }
+    } else {
+      // 提交一级评论（最新优先时插入顶部）
+      const newComment = {
+        id: Date.now(),
+        userId: MOCK_ME.userId,
+        avatar: MOCK_ME.avatar,
+        nickname: MOCK_ME.nickname,
+        isVip: false,
+        time: '刚刚',
+        content,
+        likes: 0,
+        isLiked: false,
+        isMine: true,
+        totalReplies: 0,
+        replies: []
+      }
+      const comments = this.data.sortByTime
+        ? [newComment, ...this.data.comments]
+        : [...this.data.comments, newComment]
+      this.setData({ comments, inputVal: '', inputFocus: false })
+      // TODO: POST /api/comment/add { postId, content }
+    }
+
+    wx.showToast({ title: '发送成功', icon: 'success' })
+  },
+
+  // =============================================
+  // 删除本人评论
+  // =============================================
+  deleteComment(e) {
+    const { id, index } = e.currentTarget.dataset
+    wx.showModal({
+      title: '删除评论', content: '确认删除这条评论？', confirmText: '删除',
+      confirmColor: '#E53935',
+      success: (res) => {
+        if (res.confirm) {
+          const comments = this.data.comments.filter((_, i) => i !== index)
+          this.setData({ comments })
+          wx.showToast({ title: '已删除', icon: 'success' })
+          // TODO: DELETE /api/comment/:id
+        }
+      }
+    })
+  },
+
+  // =============================================
+  // 删除本人回复
+  // =============================================
+  deleteReply(e) {
+    const { commentIndex, replyId } = e.currentTarget.dataset
+    wx.showModal({
+      title: '删除回复', content: '确认删除这条回复？', confirmText: '删除',
+      confirmColor: '#E53935',
+      success: (res) => {
+        if (res.confirm) {
+          const comments = this.data.comments.map((c, i) => {
+            if (i === commentIndex) {
+              return {
+                ...c,
+                replies: c.replies.filter(r => r.id !== replyId),
+                totalReplies: Math.max(0, c.totalReplies - 1)
+              }
+            }
+            return c
+          })
+          this.setData({ comments })
+          wx.showToast({ title: '已删除', icon: 'success' })
+          // TODO: DELETE /api/reply/:id
+        }
+      }
+    })
+  },
+
+  // =============================================
+  // 展开更多回复
+  // =============================================
+  loadMoreReplies(e) {
+    const { id, index } = e.currentTarget.dataset
+    wx.showToast({ title: '加载更多回复...', icon: 'none' })
+    // TODO: GET /api/reply/list?commentId=&page=
+  },
+
+  // =============================================
+  // 举报评论/回复
+  // =============================================
+  reportComment(e) {
+    wx.showModal({
+      title: '举报', content: '确认举报该内容？', confirmText: '举报',
+      success: (res) => {
+        if (res.confirm) {
+          wx.showToast({ title: '举报已提交，感谢反馈', icon: 'none' })
+          // TODO: POST /api/report { type: 'comment', id }
+        }
+      }
+    })
+  },
+
+  // =============================================
+  // 跳转个人主页
+  // =============================================
+  goUser(e) {
+    wx.navigateTo({ url: `../user/index?userId=${e.currentTarget.dataset.id}` })
+  }
+})
+{
+  "navigationBarTitleText": "评论详情",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "usingComponents": {}
+}
+<!--pages/community/comment/index.wxml-->
+<view class="page-wrap">
+
+<!-- 原帖摘要卡片 -->
+<view class="origin-card">
+  <view class="origin-header">
+    <image class="origin-avatar" src="{{post.avatar}}" mode="aspectFill"/>
+    <view class="origin-meta">
+      <text class="origin-name">{{post.nickname}}</text>
+      <text class="origin-time">{{post.time}}</text>
+    </view>
+  </view>
+  <text class="origin-content">{{post.content}}</text>
+  <!-- 原帖点赞数 -->
+  <view class="origin-footer">
+    <text class="origin-likes">❤️ {{post.likes}} 人觉得有用</text>
+  </view>
+</view>
+
+<!-- 评论列表标题栏 -->
+<view class="comment-bar">
+  <text class="comment-count">共 {{comments.length}} 条评论</text>
+  <view class="sort-btn" bindtap="toggleSort">
+    <text class="sort-text">{{sortByTime ? '最新优先' : '热门优先'}}</text>
+    <text class="sort-icon">⇅</text>
+  </view>
+</view>
+
+<!-- 评论列表 -->
+<view class="comment-list">
+  <view class="comment-item" wx:for="{{comments}}" wx:key="id">
+
+    <!-- 评论头部 -->
+    <view class="comment-header">
+      <view class="user-info" bindtap="goUser" data-id="{{item.userId}}">
+        <image class="c-avatar" src="{{item.avatar}}" mode="aspectFill"/>
+        <view class="c-meta">
+          <view class="c-name-row">
+            <text class="c-name">{{item.nickname}}</text>
+            <text class="c-vip" wx:if="{{item.isVip}}">V</text>
+          </view>
+          <text class="c-time">{{item.time}}</text>
+        </view>
+      </view>
+      <!-- 点赞 -->
+      <view
+        class="c-like-btn {{item.isLiked ? 'c-liked' : ''}}"
+        bindtap="likeComment"
+        data-id="{{item.id}}"
+        data-index="{{index}}"
+      >
+        <text class="c-like-icon">{{item.isLiked ? '❤️' : '🤍'}}</text>
+        <text class="c-like-num">{{item.likes}}</text>
+      </view>
+    </view>
+
+    <!-- 评论正文 -->
+    <view class="comment-body">
+      <text class="c-content">{{item.content}}</text>
+    </view>
+
+    <!-- 操作栏：回复 + 举报 + 删除本人评论 -->
+    <view class="comment-actions">
+      <view class="c-action-btn" bindtap="openReply" data-id="{{item.id}}" data-index="{{index}}" data-name="{{item.nickname}}">
+        <text class="c-action-text">💬 回复</text>
+      </view>
+      <view class="c-action-btn" bindtap="reportComment" data-id="{{item.id}}">
+        <text class="c-action-text">🚩 举报</text>
+      </view>
+      <view
+        class="c-action-btn c-delete-btn"
+        wx:if="{{item.isMine}}"
+        bindtap="deleteComment"
+        data-id="{{item.id}}"
+        data-index="{{index}}"
+      >
+        <text class="c-action-text c-delete-text">🗑️ 删除</text>
+      </view>
+    </view>
+
+    <!-- 二级回复列表 -->
+    <view class="reply-list" wx:if="{{item.replies && item.replies.length > 0}}">
+      <view class="reply-item" wx:for="{{item.replies}}" wx:for-item="reply" wx:key="id">
+        <view class="reply-header">
+          <text class="reply-name">{{reply.nickname}}</text>
+          <text class="reply-to" wx:if="{{reply.replyTo}}"> 回复 <text class="reply-to-name">{{reply.replyTo}}</text></text>
+          <text class="reply-time">{{reply.time}}</text>
+        </view>
+        <text class="reply-content">{{reply.content}}</text>
+        <!-- 回复的举报/删除 -->
+        <view class="reply-actions">
+          <view class="c-action-btn" bindtap="reportComment" data-id="{{reply.id}}">
+            <text class="c-action-text">🚩</text>
+          </view>
+          <view
+            class="c-action-btn"
+            wx:if="{{reply.isMine}}"
+            bindtap="deleteReply"
+            data-comment-index="{{index}}"
+            data-reply-id="{{reply.id}}"
+          >
+            <text class="c-action-text c-delete-text">🗑️</text>
+          </view>
+        </view>
+      </view>
+      <!-- 展开更多回复 -->
+      <view
+        class="expand-reply"
+        wx:if="{{item.totalReplies > item.replies.length}}"
+        bindtap="loadMoreReplies"
+        data-id="{{item.id}}"
+        data-index="{{index}}"
+      >
+        <text class="expand-text">展开剩余 {{item.totalReplies - item.replies.length}} 条回复 ▼</text>
+      </view>
+    </view>
+
+  </view>
+
+  <!-- 空评论提示 -->
+  <view class="empty-tip" wx:if="{{comments.length === 0}}">
+    <text class="empty-icon">🗨️</text>
+    <text class="empty-text">还没有评论，快来抢沙发！</text>
+  </view>
+
+  <!-- 底部占位（防止被输入框遮挡） -->
+  <view style="height: 160rpx;"/>
+</view>
+
+<!-- 底部评论输入框 -->
+<view class="input-bar">
+  <view class="input-wrap">
+    <input
+      class="comment-input"
+      placeholder="{{replyTarget ? '回复 ' + replyTarget + '...' : '说两句吧...'}}"
+      placeholder-class="input-ph"
+      value="{{inputVal}}"
+      bindinput="onInputChange"
+      confirm-type="send"
+      bindconfirm="submitComment"
+      maxlength="200"
+      focus="{{inputFocus}}"
+    />
+  </view>
+  <view
+    class="send-btn {{inputVal.trim().length > 0 ? 'send-active' : 'send-inactive'}}"
+    bindtap="submitComment"
+  >发送</view>
+</view>
+
+</view>
+/* pages/community/comment/index.wxss */
+page { background: #F5F0E8; }
+
+.page-wrap { min-height: 100vh; padding-bottom: 0; }
+
+/* 原帖摘要 */
+.origin-card {
+  background: #FFFFFF; margin: 20rpx;
+  border-radius: 20rpx; padding: 28rpx;
+  box-shadow: 0 4rpx 12rpx rgba(139,115,85,0.10);
+}
+.origin-header { display: flex; align-items: center; margin-bottom: 16rpx; }
+.origin-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; margin-right: 16rpx; }
+.origin-meta { display: flex; flex-direction: column; }
+.origin-name { font-size: 28rpx; color: #333; font-weight: bold; }
+.origin-time { font-size: 24rpx; color: #999; margin-top: 4rpx; }
+.origin-content { font-size: 30rpx; color: #444; line-height: 1.7; display: block; margin-bottom: 16rpx; }
+.origin-footer { border-top: 1rpx solid #F0E5D8; padding-top: 14rpx; }
+.origin-likes { font-size: 26rpx; color: #D4820A; }
+
+/* 评论列表标题栏 */
+.comment-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16rpx 28rpx; background: #F5F0E8;
+}
+.comment-count { font-size: 28rpx; color: #666; font-weight: bold; }
+.sort-btn { display: flex; align-items: center; gap: 6rpx; padding: 8rpx 16rpx; background: #FFF3E0; border-radius: 20rpx; }
+.sort-text { font-size: 26rpx; color: #D4820A; }
+.sort-icon { font-size: 26rpx; color: #D4820A; }
+
+/* 评论列表 */
+.comment-list { padding: 0 20rpx; }
+
+/* 评论条目 */
+.comment-item {
+  background: #FFFFFF; border-radius: 16rpx;
+  padding: 24rpx; margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(139,115,85,0.07);
+}
+
+/* 评论头部 */
+.comment-header {
+  display: flex; align-items: flex-start;
+  justify-content: space-between; margin-bottom: 14rpx;
+}
+.user-info { display: flex; align-items: center; flex: 1; }
+.c-avatar { width: 72rpx; height: 72rpx; border-radius: 50%; margin-right: 14rpx; }
+.c-meta { display: flex; flex-direction: column; }
+.c-name-row { display: flex; align-items: center; gap: 8rpx; margin-bottom: 4rpx; }
+.c-name { font-size: 28rpx; color: #333; font-weight: bold; }
+.c-vip {
+  font-size: 20rpx; color: #FFFFFF;
+  background: #D4820A; width: 28rpx; height: 28rpx;
+  line-height: 28rpx; text-align: center; border-radius: 50%;
+}
+.c-time { font-size: 22rpx; color: #BBB; }
+
+/* 点赞 */
+.c-like-btn { display: flex; align-items: center; gap: 4rpx; padding: 8rpx 12rpx; }
+.c-like-icon { font-size: 30rpx; }
+.c-like-num { font-size: 26rpx; color: #999; }
+.c-liked .c-like-num { color: #E53935; }
+
+/* 评论正文 */
+.comment-body { margin-bottom: 14rpx; }
+.c-content { font-size: 30rpx; color: #333; line-height: 1.7; }
+
+/* 操作栏 */
+.comment-actions { display: flex; align-items: center; gap: 24rpx; }
+.c-action-btn { padding: 6rpx 0; }
+.c-action-text { font-size: 24rpx; color: #999; }
+.c-delete-text { color: #E53935; }
+
+/* 二级回复 */
+.reply-list {
+  margin-top: 16rpx; background: #FFF8EE;
+  border-radius: 12rpx; padding: 16rpx 20rpx;
+  border-left: 6rpx solid #D4820A;
+}
+.reply-item { padding: 10rpx 0; border-bottom: 1rpx solid #F0E5D8; }
+.reply-item:last-child { border-bottom: none; }
+.reply-header { display: flex; align-items: center; flex-wrap: wrap; gap: 4rpx; margin-bottom: 6rpx; }
+.reply-name { font-size: 26rpx; color: #D4820A; font-weight: bold; }
+.reply-to { font-size: 24rpx; color: #999; }
+.reply-to-name { font-size: 24rpx; color: #D4820A; }
+.reply-time { font-size: 22rpx; color: #CCC; margin-left: auto; }
+.reply-content { font-size: 28rpx; color: #444; line-height: 1.6; display: block; }
+.reply-actions { display: flex; gap: 16rpx; margin-top: 6rpx; }
+
+/* 展开更多回复 */
+.expand-reply { padding: 12rpx 0 4rpx; }
+.expand-text { font-size: 26rpx; color: #D4820A; }
+
+/* 空评论提示 */
+.empty-tip { display: flex; flex-direction: column; align-items: center; padding: 80rpx 0; }
+.empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
+.empty-text { font-size: 28rpx; color: #BBB; }
+
+/* 底部输入框 */
+.input-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  display: flex; align-items: center;
+  background: #FFF8EE; padding: 16rpx 24rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+  border-top: 2rpx solid #F0E5D8;
+  box-shadow: 0 -4rpx 16rpx rgba(139,115,85,0.10);
+}
+.input-wrap {
+  flex: 1; background: #F5F0E8; border-radius: 40rpx;
+  padding: 14rpx 24rpx; margin-right: 16rpx;
+}
+.comment-input { width: 100%; font-size: 28rpx; color: #333; }
+.input-ph { font-size: 28rpx; color: #CCC; }
+.send-btn {
+  font-size: 28rpx; font-weight: bold;
+  padding: 14rpx 28rpx; border-radius: 40rpx; flex-shrink: 0;
+}
+.send-active { background: #D4820A; color: #FFFFFF; }
+.send-inactive { background: #EEEEEE; color: #BBBBBB; }

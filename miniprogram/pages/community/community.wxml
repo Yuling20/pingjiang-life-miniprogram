@@ -1,14 +1,11 @@
 <!--pages/community/community.wxml-->
 <view class="page-container">
 
-<!-- 顶部搜索栏（含返回按钮，已按方案修正bindtap） -->
+<!-- ========== 顶部搜索栏 ========== -->
 <view class="search-bar-wrap">
-  <!-- 返回按钮：bindtap必须与JS方法名完全一致 -->
   <view class="nav-back-btn" bindtap="handleNavBack">
     <text class="nav-back-icon">‹</text>
   </view>
-
-  <!-- 原有搜索框代码保持不变 -->
   <view class="search-input-wrap">
     <text class="search-icon-text">🔍</text>
     <input
@@ -19,170 +16,288 @@
       bindinput="onSearchInput"
       confirm-type="search"
     />
-    <view class="search-clear" wx:if="{{searchKeyword}}" bindtap="onSearchClear">×</view>
+    <view
+      class="search-clear"
+      wx:if="{{searchKeyword}}"
+      bindtap="onSearchClear"
+    >×</view>
   </view>
-
   <view class="follow-btn" bindtap="onFollowTap">关注</view>
 </view>
 
-<!-- ===== 分类标签横向滚动栏（已按方案替换） ===== -->
+<!-- ========== 品牌 Banner ========== -->
+<view class="community-banner">
+  <view class="banner-left">
+    <text class="banner-title">平江贴吧</text>
+    <text class="banner-sub">发现身边美好生活 · 平江本地社区</text>
+  </view>
+  <view class="banner-right">
+    <text class="banner-icon">🏡</text>
+  </view>
+</view>
+
+<!-- ========== 热门话题（✅ 动态渲染，仅5个，来自 hotTopics）========== -->
+<view class="hot-section">
+  <text class="hot-section-label">热门话题</text>
+  <scroll-view class="hot-topic-scroll" scroll-x enable-flex>
+    <view class="hot-topic-list">
+      <view
+        wx:for="{{hotTopics}}"
+        wx:key="id"
+        class="hot-tag-item {{item.active ? 'hot-tag-active' : ''}}"
+        bindtap="onPublishTap"
+        data-topic="{{item.label}}"
+      >
+        <text class="hot-tag-hash">#</text>
+        <text class="hot-tag-text">{{item.label}}</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>
+
+<!-- ========== 分类标签栏（✅ 完整保留原有动态配色逻辑）========== -->
 <scroll-view class="category-scroll" scroll-x enable-flex>
   <view class="category-tab-list">
-
     <view
       wx:for="{{categories}}"
       wx:key="index"
       class="category-tab-item {{activeCategory === item ? 'category-tab-active' : ''}}"
       bindtap="onCategoryTap"
       data-category="{{item}}"
-      style="background-color: {{activeCategory === item ? categoryColorMap[item].text : categoryColorMap[item].bg}};color: {{activeCategory === item ? '#fff' : categoryColorMap[item].text}};border-color: {{categoryColorMap[item].text}};"
-    >
-      {{item}}
-    </view>
-
+      style="
+        background-color: {{activeCategory === item ? categoryColorMap[item].text : categoryColorMap[item].bg}};
+        color: {{activeCategory === item ? '#FFFFFF' : categoryColorMap[item].text}};
+      "
+    >{{item}}</view>
   </view>
 </scroll-view>
 
-<!-- 帖子列表 -->
+<!-- ========== 帖子双列瀑布流 ========== -->
 <scroll-view class="post-list" scroll-y>
-  <view wx:if="{{filteredPosts.length === 0}}" class="empty-tip">暂无相关内容</view>
 
-  <view
-    wx:for="{{filteredPosts}}"
-    wx:key="id"
-    class="post-card"
-    data-id="{{item.id}}"
-    bindtap="onPostTap"
-  >
-    <!-- 用户信息行 -->
-    <view class="post-header">
-      <view class="post-avatar-wrap">
-        <image class="post-avatar" src="{{item.avatar}}" mode="aspectFill" />
-      </view>
-      <view class="post-meta">
-        <text class="post-nickname">{{item.nickname}}</text>
-        <text class="post-time">{{item.time}}</text>
-      </view>
-      <!-- 帖子分类标签（动态颜色，已按方案替换） -->
-      <view
-        class="post-category-tag"
-        style="background-color: {{item.tagBg || '#f0f0f0'}};"
-      >
-        <text
-          class="post-category-text"
-          style="color: {{item.tagText || '#888888'}};"
-        >{{item.category}}</text>
-      </view>
-    </view>
-
-    <!-- 正文 -->
-    <text class="post-content">{{item.content}}</text>
-
-    <!-- 图片（有图才渲染） -->
-    <view class="post-images" wx:if="{{item.images && item.images.length > 0}}">
-      <image
-        wx:for="{{item.images}}"
-        wx:key="index"
-        wx:for-item="img"
-        class="post-img {{item.images.length === 1 ? 'single' : ''}}"
-        src="{{img}}"
-        mode="aspectFill"
-      />
-    </view>
-
-    <!-- 话题标签 -->
-    <view class="post-tags" wx:if="{{item.tags && item.tags.length > 0}}">
-      <text
-        wx:for="{{item.tags}}"
-        wx:key="index"
-        wx:for-item="tag"
-        class="tag-item"
-      >{{tag}}</text>
-    </view>
-
-    <!-- 操作栏 -->
-    <view class="post-actions" catchtap="doNothing">
-      <!-- 点赞 -->
-      <view
-        class="action-btn {{item.liked ? 'liked' : ''}}"
-        data-id="{{item.id}}"
-        catchtap="onLikeTap"
-      >
-        <text class="action-icon-text {{item.liked ? 'liked-icon' : ''}}">👍</text>
-        <text>{{item.likeCount}}</text>
-      </view>
-      <!-- 评论 -->
-      <view class="action-btn" data-id="{{item.id}}" catchtap="onCommentTap">
-        <text class="action-icon-text">💬</text>
-        <text>{{item.commentCount}}</text>
-      </view>
-      <!-- 分享 -->
-      <view class="action-btn" data-id="{{item.id}}" catchtap="onShareTap">
-        <text class="action-icon-text">↗</text>
-        <text>分享</text>
-      </view>
-    </view>
+  <!-- 空状态 -->
+  <view wx:if="{{filteredPosts.length === 0}}" class="empty-tip">
+    <text class="empty-icon">🗒️</text>
+    <text class="empty-text">暂无相关内容</text>
+    <text class="empty-sub">成为第一个发帖的人吧～</text>
   </view>
 
-  <!-- 底部留白（避免被 tabBar 遮挡） -->
+  <!-- ✅ 双列瀑布流容器 -->
+  <view class="post-waterfall">
+
+    <view
+      wx:for="{{filteredPosts}}"
+      wx:key="id"
+      class="post-card"
+      data-id="{{item.id}}"
+      bindtap="onPostTap"
+    >
+
+      <!-- 卡片顶部图片/Emoji区 -->
+      <view
+        class="card-cover"
+        style="background: {{item.avatarColor || '#F5F0E8'}};"
+      >
+        <image
+          wx:if="{{item.images && item.images.length > 0}}"
+          class="card-cover-img"
+          src="{{item.images[0]}}"
+          mode="aspectFill"
+        />
+        <view wx:else class="card-cover-emoji-wrap">
+          <text class="card-cover-emoji">{{item.avatarEmoji || '💬'}}</text>
+        </view>
+
+        <!-- 分类角标（左上角迷你标签）-->
+        <view
+          class="card-badge"
+          style="background: {{item.tagBg || '#F5EEDC'}};"
+        >
+          <text
+            class="card-badge-text"
+            style="color: {{item.tagText || '#A09070'}};"
+          >{{item.category}}</text>
+        </view>
+      </view>
+
+      <!-- 卡片正文区 -->
+      <view class="card-body">
+
+        <!-- 帖子标题/正文（最多2行截断）-->
+        <text class="card-content">{{item.content}}</text>
+
+        <!-- 话题标签（仅第1个高亮，第2个弱化灰色）-->
+        <view
+          class="card-tags"
+          wx:if="{{item.tags && item.tags.length > 0}}"
+        >
+          <text class="card-tag-primary">{{item.tags[0]}}</text>
+          <text
+            wx:if="{{item.tags.length > 1}}"
+            class="card-tag-secondary"
+          >{{item.tags[1]}}</text>
+        </view>
+
+        <!-- 底栏：头像+昵称+互动按钮 -->
+        <view class="card-footer" catchtap="stopPropagation">
+
+          <!-- 左侧：小头像 + 昵称 -->
+          <view class="card-user">
+            <view
+              class="card-avatar"
+              style="background: {{item.avatarColor || '#F5EEDC'}};"
+            >
+              <text class="card-avatar-emoji">{{item.avatarEmoji || '👤'}}</text>
+            </view>
+            <text class="card-username">{{item.nickname}}</text>
+          </view>
+
+          <!-- 右侧：点赞、评论、分享 -->
+          <view class="card-actions">
+
+            <!-- 点赞（需实名）-->
+            <view
+              class="card-action-btn {{item.liked ? 'liked' : ''}}"
+              data-id="{{item.id}}"
+              catchtap="onLikeTap"
+            >
+              <text class="card-action-icon">{{item.liked ? '❤️' : '🤍'}}</text>
+              <text class="card-action-num">{{item.likeCount}}</text>
+            </view>
+
+            <!-- 评论（需实名）-->
+            <view
+              class="card-action-btn"
+              data-id="{{item.id}}"
+              catchtap="onCommentTap"
+            >
+              <text class="card-action-icon">💬</text>
+              <text class="card-action-num">{{item.commentCount}}</text>
+            </view>
+
+            <!-- 分享（需实名）-->
+            <view
+              class="card-action-btn"
+              data-id="{{item.id}}"
+              catchtap="onShareTap"
+            >
+              <text class="card-action-icon">↗</text>
+            </view>
+
+          </view>
+        </view>
+
+      </view>
+
+      <!-- 多图展示区（第2张起）-->
+      <view
+        class="card-extra-images"
+        wx:if="{{item.images && item.images.length > 1}}"
+      >
+        <image
+          wx:for="{{item.images}}"
+          wx:key="index"
+          wx:for-item="img"
+          wx:if="{{index > 0}}"
+          class="card-extra-img"
+          src="{{img}}"
+          mode="aspectFill"
+        />
+      </view>
+
+      <!--
+        ✅ 原有 post-header 结构保留（完全隐藏），
+        确保 class、数据绑定、事件绑定完整保留，不产生报错
+      -->
+      <view class="post-header post-header-hidden">
+        <view class="post-avatar-wrap" style="background: {{item.avatarColor}};"></view>
+        <view class="post-meta">
+          <text class="post-nickname">{{item.nickname}}</text>
+          <text class="post-time">{{item.time}}</text>
+        </view>
+        <view class="post-category-tag" style="background-color: {{item.tagBg || '#F5EEDC'}};">
+          <text class="post-category-text" style="color: {{item.tagText || '#C0A050'}};">{{item.category}}</text>
+        </view>
+      </view>
+
+      <!--
+        ✅ 原有 post-actions 结构保留（完全隐藏），事件绑定不丢失
+      -->
+      <view class="post-actions post-actions-hidden" catchtap="stopPropagation">
+        <view class="action-btn {{item.liked ? 'liked' : ''}}" data-id="{{item.id}}" catchtap="onLikeTap">
+          <text class="action-icon-text">{{item.liked ? '❤️' : '🤍'}}</text>
+          <text class="action-count">{{item.likeCount}}</text>
+        </view>
+        <view class="action-btn" data-id="{{item.id}}" catchtap="onCommentTap">
+          <text class="action-icon-text">💬</text>
+          <text class="action-count">{{item.commentCount}}</text>
+        </view>
+        <view class="action-btn" data-id="{{item.id}}" catchtap="onShareTap">
+          <text class="action-icon-text">↗</text>
+        </view>
+      </view>
+
+    </view>
+  </view>
+  <!-- /post-waterfall -->
+
+  <!-- 底部留白 -->
   <view class="list-bottom-placeholder" />
 </scroll-view>
 
-<!-- 发帖按钮 -->
-<view class="publish-btn" bindtap="onPublishTap">
-  <text class="publish-icon-text">＋</text>
+<!-- ========== 悬浮发帖按钮（需实名）========== -->
+<view class="publish-fab" bindtap="onPublishTap">
+  <text class="publish-fab-icon">＋</text>
 </view>
 
-<!-- ==================== 分享菜单弹窗 ==================== -->
+<!-- ========== 分享菜单遮罩 ========== -->
 <view
   class="share-mask"
   wx:if="{{showShareMenu}}"
   catchtap="onShareMaskTap"
 />
+
+<!-- ========== 分享底部弹窗 ========== -->
 <view class="share-sheet {{showShareMenu ? 'show' : ''}}">
+  <view class="sheet-drag-bar"></view>
   <view class="share-sheet-title">分享到</view>
   <view class="share-options">
 
-    <!-- 发给好友/群聊：button open-type="share" 触发原生转发 -->
     <view class="share-option-item">
       <button
         class="share-btn-reset"
         open-type="share"
         bindtap="onShareToFriend"
       >
-        <view class="share-option-icon-wrap friend-bg">
-          <text class="share-option-icon-text">💬</text>
+        <view class="share-icon-wrap friend-bg">
+          <text class="share-icon-emoji">💬</text>
         </view>
         <text class="share-option-label">好友/群聊</text>
       </button>
     </view>
 
-    <!-- 生成海报 -->
     <view class="share-option-item" catchtap="onGeneratePoster">
-      <view class="share-option-icon-wrap poster-bg">
-        <text class="share-option-icon-text">🖼</text>
+      <view class="share-icon-wrap poster-bg">
+        <text class="share-icon-emoji">🖼️</text>
       </view>
       <text class="share-option-label">生成海报</text>
     </view>
 
-    <!-- 分享到朋友圈 -->
-    <!-- Android：button open-type="shareTimeline" 触发原生朋友圈分享 -->
-    <!-- iOS：降级弹窗提示生成海报 -->
     <view class="share-option-item" wx:if="{{isAndroid}}">
       <button
         class="share-btn-reset"
         open-type="shareTimeline"
         bindtap="onShareToTimeline"
       >
-        <view class="share-option-icon-wrap moments-bg">
-          <text class="share-option-icon-text">🌐</text>
+        <view class="share-icon-wrap moments-bg">
+          <text class="share-icon-emoji">🌐</text>
         </view>
         <text class="share-option-label">朋友圈</text>
       </button>
     </view>
     <view class="share-option-item" wx:else catchtap="onShareToTimeline">
-      <view class="share-option-icon-wrap moments-bg">
-        <text class="share-option-icon-text">🌐</text>
+      <view class="share-icon-wrap moments-bg">
+        <text class="share-icon-emoji">🌐</text>
       </view>
       <text class="share-option-label">朋友圈</text>
     </view>
@@ -191,24 +306,26 @@
   <view class="share-cancel" catchtap="onShareMenuClose">取消</view>
 </view>
 
-<!-- ==================== 海报预览弹窗 ==================== -->
+<!-- ========== 海报预览遮罩 ========== -->
 <view class="poster-mask" wx:if="{{showPoster}}" />
+
+<!-- ========== 海报预览弹窗 ========== -->
 <view class="poster-modal {{showPoster ? 'show' : ''}}">
+  <view class="sheet-drag-bar"></view>
   <view class="poster-header">
     <text class="poster-title">分享海报</text>
     <view class="poster-close" catchtap="onClosePoster">×</view>
   </view>
 
-  <!-- Canvas（隐藏，仅用于绘图） -->
+  <!-- Canvas（隐藏绘图专用，位置完全保留）-->
   <canvas
     canvas-id="posterCanvas"
     style="position:fixed;left:-9999px;top:-9999px;width:375px;height:620px;"
   />
 
-  <!-- 预览区 -->
   <view class="poster-preview">
     <view wx:if="{{posterLoading}}" class="poster-loading">
-      <text class="poster-loading-text">海报生成中...</text>
+      <text class="poster-loading-text">🎨 海报生成中...</text>
     </view>
     <image
       wx:if="{{!posterLoading && posterImagePath}}"
@@ -222,12 +339,11 @@
     </view>
   </view>
 
-  <!-- 操作按钮 -->
   <view class="poster-actions">
     <view
       class="poster-save-btn {{posterLoading ? 'disabled' : ''}}"
       catchtap="onSavePoster"
-    >保存到相册</view>
+    >💾 保存到相册</view>
     <view class="poster-cancel-btn" catchtap="onClosePoster">关闭</view>
   </view>
 

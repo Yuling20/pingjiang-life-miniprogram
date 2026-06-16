@@ -1,330 +1,741 @@
-/* pages/community/community.wxss */
+/* ================================================================
+   community.wxss
+   平江贴吧 · 小红书双列奶油暖米杏风格
+   ✅ 全部功能保留  ✅ 解决拥挤  ✅ 统一小程序整体视觉规范
+================================================================ */
 
-/* ==================== 基础容器 ==================== */
+/* ==================== 全局基底 ==================== */
+page {
+  background: #FFF8E8;
+  font-family: -apple-system, 'PingFang SC', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  font-size: 28rpx;
+  color: #2D2D2D;
+}
+
 .page-container {
   display: flex;
   flex-direction: column;
   height: 100vh;
-  background: #F5F0E8;
-  position: relative;
+  background: #FFF8E8;
   overflow: hidden;
 }
 
 /* ==================== 搜索栏 ==================== */
-.search-bar {
+/* 解决：原搜索栏生硬边框、图标偏大、关注按钮抢宽 */
+.search-bar-wrap {
   display: flex;
   align-items: center;
-  padding: 16rpx 24rpx;
-  background: #ffffff;
+  padding: 16rpx 32rpx;
+  background: #FFFFFF;
   gap: 16rpx;
   position: sticky;
   top: 0;
-  z-index: 10;
-  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
-}
-.back-icon {
-  font-size: 36rpx;
-  color: #D4820A;
+  z-index: 20;
+  box-shadow: 0 2rpx 12rpx rgba(255, 120, 40, 0.07);
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
+/* 返回按钮：细线圆形，不抢重心 */
+.nav-back-btn {
+  width: 56rpx;
+  height: 56rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #FFF3E6;
+  border-radius: 50%;
+  flex-shrink: 0;
+  transition: opacity 0.18s;
+}
+.nav-back-btn:active { opacity: 0.62; }
+.nav-back-icon {
+  font-size: 42rpx;
+  color: #FF7828;
+  font-weight: 600;
+  line-height: 1;
+  margin-top: -3rpx;
+}
+
+/* 搜索框：浅米杏底色，超大圆角，取消生硬边框 */
 .search-input-wrap {
   flex: 1;
   display: flex;
   align-items: center;
-  background: #f5f5f5;
+  background: #F5F0E8;
   border-radius: 32rpx;
-  padding: 10rpx 20rpx;
+  padding: 12rpx 22rpx;
   gap: 10rpx;
+  border: 1.5rpx solid transparent;
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-
+.search-input-wrap:focus-within {
+  border-color: rgba(255, 120, 40, 0.28);
+  box-shadow: 0 0 0 4rpx rgba(255, 120, 40, 0.06);
+}
 .search-icon-text {
-  font-size: 28rpx;
+  font-size: 26rpx;
   flex-shrink: 0;
+  opacity: 0.65;
   line-height: 1;
 }
-
 .search-input {
   flex: 1;
-  font-size: 28rpx;
-  color: #333;
+  font-size: 26rpx;
+  color: #2D2D2D;
   background: transparent;
-  height: 48rpx;
-  line-height: 48rpx;
+  height: 44rpx;
+  line-height: 44rpx;
 }
-
 .search-placeholder {
-  color: #bbbbbb;
-  font-size: 28rpx;
+  color: #C8B89A;
+  font-size: 26rpx;
 }
-
 .search-clear {
-  font-size: 36rpx;
-  color: #bbb;
+  font-size: 34rpx;
+  color: #C8B090;
   padding: 0 4rpx;
+  line-height: 1;
+  transition: opacity 0.18s;
+}
+.search-clear:active { opacity: 0.5; }
+
+/* 关注按钮：缩小字号，不占宽 */
+.follow-btn {
+  font-size: 25rpx;
+  color: #FF7828;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 10rpx 2rpx;
+  transition: opacity 0.18s;
+}
+.follow-btn:active { opacity: 0.58; }
+
+/* ==================== 品牌 Banner ==================== */
+/* 解决：降低橙色明度刺眼感，压缩高度，副标题弱化 */
+.community-banner {
+  background: linear-gradient(135deg, #F86A10 0%, #FFA04A 100%);
+  padding: 18rpx 32rpx 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.banner-left {
+  display: flex;
+  flex-direction: column;
+  gap: 5rpx;
+}
+.banner-title {
+  font-size: 34rpx;
+  font-weight: 900;
+  color: #FFFFFF;
+  letter-spacing: 2rpx;
+  text-shadow: 0 1rpx 6rpx rgba(0,0,0,0.12);
+}
+/* 副标题弱化：字号缩小，浅白色，不抢主标题 */
+.banner-sub {
+  font-size: 19rpx;
+  color: rgba(255, 255, 255, 0.78);
+  letter-spacing: 0.3rpx;
+}
+/* 右侧图标：简约线性，尺寸缩小 */
+.banner-right {
+  width: 56rpx;
+  height: 56rpx;
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.banner-icon {
+  font-size: 28rpx;
   line-height: 1;
 }
 
-.follow-btn {
-  font-size: 28rpx;
-  color: #07c160;
-  font-weight: 600;
-  white-space: nowrap;
-  padding: 8rpx 0;
-}
-
-/* ==================== 分类标签 ==================== */
-.category-bar {
-  display: flex;
-  flex-direction: row;
-  white-space: nowrap;
-  background: #ffffff;
-  padding: 12rpx 16rpx 16rpx;
-  border-bottom: 1rpx solid #f0f0f0;
+/* ==================== 热门话题区块 ==================== */
+/* 解决：标签过多堆砌、圆角不够大、间距太小 */
+.hot-section {
+  background: #FFFFFF;
+  padding: 18rpx 0 0;
+  border-bottom: 1rpx solid #F5EEDC;
   flex-shrink: 0;
 }
-
-.category-item {
-  display: inline-block;
-  padding: 10rpx 28rpx;
-  margin-right: 12rpx;
-  border-radius: 32rpx;
-  font-size: 26rpx;
-  color: #666;
-  background: #f5f5f5;
-  flex-shrink: 0;
+.hot-section-label {
+  display: block;
+  font-size: 20rpx;
+  color: #C0A870;
+  font-weight: 700;
+  letter-spacing: 2.5rpx;
+  padding: 0 0 10rpx 32rpx;
+}
+.hot-topic-scroll {
+  width: 100%;
   white-space: nowrap;
+  padding-bottom: 18rpx;
 }
-
-.category-item.active {
-  background: #07c160;
-  color: #ffffff;
-  font-weight: 600;
-}
-
-/* ==================== 帖子列表 ==================== */
-.post-list {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16rpx;
-  box-sizing: border-box;
-}
-
-.list-bottom-placeholder {
-  height: 160rpx;
-}
-
-.empty-tip {
-  text-align: center;
-  color: #bbb;
-  font-size: 28rpx;
-  padding: 100rpx 0;
-}
-
-/* ==================== 帖子卡片 ==================== */
-.post-card {
-  background: #ffffff;
-  border-radius: 16rpx;
-  padding: 24rpx;
-  margin-bottom: 16rpx;
-  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.04);
-}
-
-.post-header {
-  display: flex;
+.hot-topic-list {
+  display: inline-flex;
   align-items: center;
-  margin-bottom: 16rpx;
+  padding: 0 32rpx;
   gap: 16rpx;
 }
 
-.post-avatar-wrap {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 50%;
-  overflow: hidden;
+/* 话题胶囊：低饱和浅卡其底，28rpx圆角，删除粗黑边框 */
+.hot-tag-item {
+  display: inline-flex;
+  align-items: center;
+  background: #F5EEDC;
+  border-radius: 28rpx;
+  padding: 8rpx 18rpx;
+  gap: 2rpx;
+  border: 1.5rpx solid transparent;
+  transition: opacity 0.18s, transform 0.15s;
   flex-shrink: 0;
-  background: #f0f0f0;
+}
+.hot-tag-item:active {
+  opacity: 0.65;
+  transform: scale(0.95);
+}
+/* 选中态：浅暖橙渐变，细橙边框 */
+.hot-tag-active {
+  background: linear-gradient(135deg, #FFF3E0, #FFE8CC) !important;
+  border-color: rgba(255, 120, 40, 0.35) !important;
+}
+.hot-tag-active .hot-tag-hash,
+.hot-tag-active .hot-tag-text {
+  color: #E86010 !important;
+  font-weight: 700 !important;
+}
+.hot-tag-hash {
+  font-size: 20rpx;
+  color: #B0A080;
+  font-weight: 700;
+}
+.hot-tag-text {
+  font-size: 20rpx;
+  color: #806850;
+  font-weight: 500;
 }
 
-.post-avatar {
-  width: 72rpx;
-  height: 72rpx;
-  border-radius: 50%;
-  display: block;
+/* ==================== 分类标签栏 ==================== */
+/* 解决：高饱和彩色边框刺眼，标签高度压缩，均匀分布 */
+.category-scroll {
+  width: 100%;
+  white-space: nowrap;
+  background: #FFFFFF;
+  padding: 12rpx 0 14rpx;
+  border-bottom: 1rpx solid #F5EEDC;
+  flex-shrink: 0;
+}
+.category-tab-list {
+  display: inline-flex;
+  align-items: center;
+  padding: 0 32rpx;
+  gap: 14rpx;
+}
+/* 分类胶囊：24rpx圆角，低饱和浅灰底，压缩高度 */
+.category-tab-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9rpx 24rpx;
+  border-radius: 24rpx;
+  font-size: 24rpx;
+  font-weight: 500;
+  border: none;
+  flex-shrink: 0;
+  letter-spacing: 0.3rpx;
+  transition: opacity 0.18s, transform 0.15s;
+  /* background-color / color 由 JS style 注入 */
+}
+.category-tab-item:active {
+  opacity: 0.68;
+  transform: scale(0.94);
+}
+/* 激活态：轻阴影辅助，加粗 */
+.category-tab-active {
+  font-weight: 700;
+  box-shadow: 0 3rpx 10rpx rgba(255, 120, 40, 0.18);
 }
 
-.post-meta {
+/* ==================== 帖子列表容器 ==================== */
+.post-list {
   flex: 1;
+  overflow-y: auto;
+  padding: 24rpx 32rpx 0;
+  box-sizing: border-box;
+  scrollbar-width: none;
+}
+.post-list::-webkit-scrollbar { display: none; }
+
+.list-bottom-placeholder { height: 200rpx; }
+
+/* ==================== 空状态 ==================== */
+.empty-tip {
   display: flex;
   flex-direction: column;
-  gap: 6rpx;
-  overflow: hidden;
+  align-items: center;
+  justify-content: center;
+  padding: 100rpx 40rpx 60rpx;
+  gap: 14rpx;
+}
+.empty-icon {
+  font-size: 64rpx;
+  line-height: 1;
+  opacity: 0.50;
+}
+.empty-text {
+  font-size: 28rpx;
+  color: #C8B896;
+  font-weight: 700;
+  letter-spacing: 1rpx;
+}
+.empty-sub {
+  font-size: 22rpx;
+  color: #D8CBAA;
+  letter-spacing: 0.3rpx;
 }
 
-.post-nickname {
-  font-size: 28rpx;
-  color: #333;
-  font-weight: 600;
+/* ==================== 双列瀑布流容器 ==================== */
+/* 核心：column-count 实现等宽双列，break-inside 防止卡片被截断 */
+.post-waterfall {
+  column-count: 2;
+  column-gap: 24rpx;
+  width: 100%;
+}
+
+/* ==================== 帖子卡片 ==================== */
+/* 解决：彩色大背景块、内容拥挤、阴影厚重 */
+.post-card {
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  overflow: hidden;
+  /* 极淡阴影：轻薄不厚重 */
+  box-shadow:
+    0 2rpx 12rpx rgba(0, 0, 0, 0.030),
+    0 1rpx 3rpx rgba(0, 0, 0, 0.018);
+  display: inline-block;
+  width: 100%;
+  box-sizing: border-box;
+  margin-bottom: 24rpx;
+  break-inside: avoid;
+  -webkit-column-break-inside: avoid;
+  page-break-inside: avoid;
+  vertical-align: top;
+  transition: opacity 0.18s, transform 0.15s;
+}
+.post-card:active {
+  opacity: 0.90;
+  transform: scale(0.986);
+}
+
+/* ===== 卡片封面图区（占卡片约60%高度）===== */
+/* 解决：高饱和彩色背景块；统一16rpx圆角图片；彻底删除纯色色块 */
+.card-cover {
+  width: 100%;
+  height: 210rpx;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 无图时使用低饱和柔和背景（由 JS avatarColor 注入，已改为低饱和色）*/
+}
+.card-cover-img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  /* 图片16rpx圆角由父元素overflow:hidden实现 */
+}
+/* 无图 emoji 装饰：居中展示，不用大面积亮色 */
+.card-cover-emoji-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.card-cover-emoji {
+  font-size: 60rpx;
+  line-height: 1;
+  opacity: 0.80;
+}
+
+/* 分类角标：左上角迷你圆角小标，缩小尺寸，不遮图片 */
+.card-badge {
+  position: absolute;
+  top: 10rpx;
+  left: 10rpx;
+  padding: 4rpx 12rpx;
+  border-radius: 12rpx;
+  /* 低饱和浅底色由 JS tagBg 注入 */
+}
+.card-badge-text {
+  font-size: 18rpx;
+  font-weight: 700;
+  line-height: 1.4;
+  /* color 由 JS tagText 注入 */
+}
+
+/* ===== 卡片正文区 ===== */
+.card-body {
+  padding: 14rpx 16rpx 0;
+  display: flex;
+  flex-direction: column;
+  gap: 7rpx;
+}
+
+/* 帖子正文：适中字号，行高1.7，最多2行截断 */
+.card-content {
+  font-size: 24rpx;
+  color: #444444;
+  line-height: 1.70;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-all;
+  letter-spacing: 0.2rpx;
+}
+
+/* 话题标签区：仅保留1个高亮 + 1个弱化灰色小字 */
+.card-tags {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+/* 第1个话题：低饱和浅橙底，暖橙文字 */
+.card-tag-primary {
+  font-size: 19rpx;
+  color: #E07020;
+  background: #FFF3E6;
+  padding: 3rpx 10rpx;
+  border-radius: 10rpx;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+/* 第2个话题：弱化灰色小字，不堆砌 */
+.card-tag-secondary {
+  font-size: 18rpx;
+  color: #BBBBBB;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.post-time {
-  font-size: 22rpx;
-  color: #999;
+/* ===== 卡片底栏：头像+昵称+互动按钮 ===== */
+/* 解决：头像过大、昵称字号过大、按钮点击区拥挤 */
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10rpx 0 14rpx;
+  border-top: 1rpx solid #F8F2E6;
+  gap: 4rpx;
 }
 
+/* 用户信息：小头像+精简昵称 */
+.card-user {
+  display: flex;
+  align-items: center;
+  gap: 7rpx;
+  flex: 1;
+  overflow: hidden;
+  min-width: 0;
+}
+
+/* 头像缩小：38rpx，柔和阴影 */
+.card-avatar {
+  width: 38rpx;
+  height: 38rpx;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 1rpx 5rpx rgba(0,0,0,0.09);
+}
+.card-avatar-emoji {
+  font-size: 20rpx;
+  line-height: 1;
+}
+
+/* 昵称：精简字号，溢出省略 */
+.card-username {
+  font-size: 20rpx;
+  color: #999999;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.2rpx;
+}
+
+/* 操作按钮组：三个紧凑排列 */
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+/* 单个操作按钮：缩小图标，压缩间距，浅灰数字 */
+.card-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 3rpx;
+  color: #C0B090;
+  padding: 6rpx 7rpx;
+  border-radius: 10rpx;
+  transition: background 0.18s, opacity 0.18s;
+}
+.card-action-btn:active {
+  background: #FFF3E6;
+  opacity: 0.78;
+}
+/* 点赞激活态 */
+.card-action-btn.liked { color: #FF7828; }
+
+/* 操作图标：缩小一号 */
+.card-action-icon {
+  font-size: 24rpx;
+  line-height: 1;
+}
+/* 数字：浅灰小字，继承颜色 */
+.card-action-num {
+  font-size: 19rpx;
+  color: inherit;
+}
+
+/* ===== 多图展示区（第2张起）===== */
+.card-extra-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6rpx;
+  padding: 0 16rpx 14rpx;
+}
+.card-extra-img {
+  width: calc(50% - 3rpx);
+  height: 90rpx;
+  border-radius: 10rpx;
+  background: #F5EEDC;
+}
+
+/* ===== 隐藏保留节点 ===== */
+/* 原有 post-header / post-actions 完全隐藏，防止 class/事件绑定报错 */
+.post-header-hidden {
+  display: none !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.post-actions-hidden {
+  display: none !important;
+  height: 0 !important;
+  overflow: hidden !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* 原有 class 保留（防遗漏报错）*/
+.post-header {
+  display: flex;
+  align-items: center;
+  gap: 14rpx;
+}
+.post-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5rpx;
+  overflow: hidden;
+}
+.post-nickname {
+  font-size: 26rpx;
+  color: #2D2D2D;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.post-time {
+  font-size: 20rpx;
+  color: #C0B090;
+}
+.post-avatar-wrap {
+  width: 44rpx;
+  height: 44rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
 .post-category-tag {
-  font-size: 22rpx;
-  color: #07c160;
-  background: #e8f7ef;
-  padding: 4rpx 18rpx;
-  border-radius: 20rpx;
+  display: inline-flex;
+  align-items: center;
+  padding: 5rpx 14rpx;
+  border-radius: 16rpx;
   flex-shrink: 0;
   white-space: nowrap;
 }
-
+.post-category-text {
+  font-size: 20rpx;
+  font-weight: 600;
+  line-height: 1.4;
+}
 .post-content {
-  font-size: 28rpx;
-  color: #333;
-  line-height: 1.75;
-  margin-bottom: 16rpx;
+  font-size: 26rpx;
+  color: #555555;
+  line-height: 1.80;
   display: block;
   word-break: break-all;
 }
-
-/* 图片网格 */
 .post-images {
   display: flex;
   flex-wrap: wrap;
   gap: 8rpx;
-  margin-bottom: 16rpx;
 }
-
 .post-img {
-  width: 200rpx;
-  height: 200rpx;
-  border-radius: 8rpx;
-  background: #f0f0f0;
+  width: 196rpx;
+  height: 196rpx;
+  border-radius: 16rpx;
+  background: #F5EEDC;
 }
-
 .post-img.single {
-  width: 320rpx;
-  height: 240rpx;
+  width: 100%;
+  height: 320rpx;
 }
-
-/* 话题标签 */
 .post-tags {
   display: flex;
   flex-wrap: wrap;
-  gap: 10rpx;
-  margin-bottom: 16rpx;
+  gap: 8rpx;
 }
-
 .tag-item {
-  font-size: 24rpx;
-  color: #07c160;
+  font-size: 20rpx;
+  color: #FF7828;
+  background: #FFF3E6;
+  padding: 3rpx 12rpx;
+  border-radius: 10rpx;
 }
-
-/* 操作栏 */
 .post-actions {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 48rpx;
-  padding-top: 16rpx;
-  border-top: 1rpx solid #f5f5f5;
+  gap: 6rpx;
+  padding-top: 12rpx;
+  border-top: 1rpx solid #F8F0DF;
 }
-
 .action-btn {
   display: flex;
   align-items: center;
-  gap: 8rpx;
-  font-size: 26rpx;
-  color: #999;
+  gap: 6rpx;
+  font-size: 24rpx;
+  color: #C0B090;
+  padding: 8rpx 12rpx;
+  border-radius: 12rpx;
 }
+.action-btn.liked { color: #FF7828; }
+.action-icon-text { font-size: 28rpx; line-height: 1; }
+.liked-icon { color: #FF7828; }
+.action-count { font-size: 22rpx; color: inherit; }
 
-.action-btn.liked {
-  color: #07c160;
-}
-
-.action-icon-text {
-  font-size: 30rpx;
-  line-height: 1;
-}
-
-.liked-icon {
-  color: #07c160;
-}
-
-/* ==================== 发帖悬浮按钮 ==================== */
-.publish-btn {
+/* ==================== 悬浮发帖按钮 ==================== */
+/* 解决：尺寸缩小，柔和淡阴影，不遮挡内容 */
+.publish-fab {
   position: fixed;
   right: 40rpx;
-  bottom: 140rpx;
-  width: 96rpx;
-  height: 96rpx;
-  background: #07c160;
+  bottom: 152rpx;
+  width: 92rpx;
+  height: 92rpx;
+  background: linear-gradient(145deg, #F86A10 0%, #FFA050 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 8rpx 24rpx rgba(7,193,96,0.45);
+  /* 柔和淡阴影，不突兀 */
+  box-shadow:
+    0 6rpx 24rpx rgba(248, 106, 16, 0.32),
+    0 2rpx 8rpx rgba(248, 106, 16, 0.16);
   z-index: 50;
+  transition: transform 0.18s, box-shadow 0.18s, opacity 0.18s;
 }
-
-.publish-icon-text {
+.publish-fab:active {
+  transform: scale(0.90);
+  box-shadow: 0 3rpx 12rpx rgba(248, 106, 16, 0.25);
+  opacity: 0.88;
+}
+.publish-fab-icon {
   font-size: 52rpx;
-  color: #ffffff;
+  color: #FFFFFF;
   line-height: 1;
   margin-top: -4rpx;
+  font-weight: 200;
 }
 
-/* ==================== 分享菜单 ==================== */
+/* ==================== 分享弹窗遮罩 ==================== */
 .share-mask {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.5);
+  background: rgba(0, 0, 0, 0.38);
   z-index: 100;
 }
 
+/* ==================== 分享底部弹窗 ==================== */
 .share-sheet {
   position: fixed;
-  bottom: -400rpx;
+  bottom: -460rpx;
   left: 0;
   right: 0;
-  background: #ffffff;
-  border-radius: 24rpx 24rpx 0 0;
-  padding: 32rpx 0 60rpx;
+  background: #FFFFFF;
+  border-radius: 28rpx 28rpx 0 0;
+  padding: 0 0 68rpx;
   z-index: 101;
-  transition: bottom 0.3s ease;
+  transition: bottom 0.30s cubic-bezier(0.34, 1.2, 0.64, 1);
+  box-shadow: 0 -6rpx 36rpx rgba(0, 0, 0, 0.07);
 }
+.share-sheet.show { bottom: 0; }
 
-.share-sheet.show {
-  bottom: 0;
+/* 拖拽指示条 */
+.sheet-drag-bar {
+  width: 60rpx;
+  height: 5rpx;
+  background: #EDE4D0;
+  border-radius: 4rpx;
+  margin: 16rpx auto 20rpx;
+  flex-shrink: 0;
 }
 
 .share-sheet-title {
   text-align: center;
-  font-size: 26rpx;
-  color: #aaa;
-  margin-bottom: 36rpx;
+  font-size: 24rpx;
+  color: #C0AE90;
+  margin-bottom: 28rpx;
+  letter-spacing: 2rpx;
 }
-
 .share-options {
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  gap: 56rpx;
+  gap: 60rpx;
   padding: 0 32rpx 32rpx;
 }
-
 .share-option-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14rpx;
+  gap: 12rpx;
+  transition: opacity 0.18s;
 }
+.share-option-item:active { opacity: 0.65; }
 
 /* 重置 button 默认样式 */
 .share-btn-reset {
@@ -333,241 +744,229 @@
   padding: 0 !important;
   margin: 0 !important;
   line-height: normal !important;
-  font-size: inherit !important;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14rpx;
+  gap: 12rpx;
 }
+.share-btn-reset::after { display: none !important; }
 
-.share-btn-reset::after {
-  display: none !important;
-  border: none !important;
-}
-
-.share-option-icon-wrap {
-  width: 100rpx;
-  height: 100rpx;
-  border-radius: 50%;
+/* 图标容器：圆角方形 */
+.share-icon-wrap {
+  width: 96rpx;
+  height: 96rpx;
+  border-radius: 26rpx;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: 0 3rpx 10rpx rgba(0,0,0,0.05);
 }
+/* 保留原有低饱和底色 */
+.friend-bg  { background: #E8F4FF; }
+.poster-bg  { background: #FFF3E6; }
+.moments-bg { background: #EDFAF2; }
 
-.friend-bg   { background: #e8f4ff; }
-.poster-bg   { background: #fff3e8; }
-.moments-bg  { background: #e8f7ef; }
-
-.share-option-icon-text {
-  font-size: 44rpx;
+.share-icon-emoji {
+  font-size: 40rpx;
   line-height: 1;
 }
-
 .share-option-label {
-  font-size: 24rpx;
-  color: #555;
+  font-size: 22rpx;
+  color: #666666;
   white-space: nowrap;
+  letter-spacing: 0.5rpx;
 }
 
+/* 取消按钮 */
 .share-cancel {
   text-align: center;
-  font-size: 30rpx;
-  color: #333;
+  font-size: 28rpx;
+  color: #2D2D2D;
+  font-weight: 700;
   padding: 24rpx 0 0;
-  border-top: 1rpx solid #f0f0f0;
+  border-top: 1rpx solid #F5EEDC;
   margin: 0 32rpx;
+  letter-spacing: 2rpx;
+  transition: opacity 0.18s;
 }
+.share-cancel:active { opacity: 0.52; }
 
-/* ==================== 海报弹窗 ==================== */
+/* ==================== 海报弹窗遮罩 ==================== */
 .poster-mask {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.50);
   z-index: 200;
 }
 
+/* ==================== 海报弹窗主体 ==================== */
 .poster-modal {
   position: fixed;
   bottom: -100%;
   left: 0;
   right: 0;
-  background: #ffffff;
-  border-radius: 24rpx 24rpx 0 0;
-  padding: 32rpx 32rpx 48rpx;
+  background: #FFFFFF;
+  border-radius: 28rpx 28rpx 0 0;
+  padding: 0 32rpx 50rpx;
   z-index: 201;
-  transition: bottom 0.3s ease;
+  transition: bottom 0.30s cubic-bezier(0.34, 1.2, 0.64, 1);
   max-height: 92vh;
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+  box-shadow: 0 -6rpx 36rpx rgba(0,0,0,0.08);
 }
+.poster-modal.show { bottom: 0; }
 
-.poster-modal.show {
-  bottom: 0;
-}
-
+/* 弹窗标题行 */
 .poster-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 24rpx;
+  margin-bottom: 18rpx;
   flex-shrink: 0;
 }
-
 .poster-title {
   font-size: 32rpx;
-  color: #333;
-  font-weight: 600;
+  color: #2D2D2D;
+  font-weight: 800;
+  letter-spacing: 1.5rpx;
 }
-
 .poster-close {
-  font-size: 52rpx;
-  color: #bbb;
+  font-size: 48rpx;
+  color: #C8B890;
   line-height: 1;
   padding: 0 8rpx;
+  transition: opacity 0.18s;
 }
+.poster-close:active { opacity: 0.52; }
 
+/* 海报预览区 */
 .poster-preview {
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 420rpx;
+  min-height: 400rpx;
   max-height: 55vh;
-  background: #f5f5f5;
-  border-radius: 16rpx;
+  background: #F5F0E8;
+  border-radius: 20rpx;
   margin-bottom: 24rpx;
   overflow: hidden;
 }
-
 .poster-loading {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 16rpx;
+  gap: 14rpx;
 }
-
 .poster-loading-text {
-  font-size: 28rpx;
-  color: #999;
+  font-size: 26rpx;
+  color: #C0A870;
+  letter-spacing: 1.5rpx;
 }
-
 .poster-img {
   width: 100%;
   height: 100%;
-  border-radius: 16rpx;
+  border-radius: 20rpx;
 }
-
 .poster-error {
   display: flex;
   align-items: center;
   justify-content: center;
 }
-
 .poster-error-text {
-  font-size: 26rpx;
-  color: #ff4d4f;
+  font-size: 24rpx;
+  color: #FF7828;
 }
 
+/* 操作按钮区 */
 .poster-actions {
   display: flex;
-  gap: 20rpx;
+  gap: 18rpx;
   flex-shrink: 0;
 }
-
+/* 保存按钮：暖橙渐变 */
 .poster-save-btn {
   flex: 1;
-  background: #07c160;
-  color: #ffffff;
+  background: linear-gradient(135deg, #F86A10 0%, #FFA050 100%);
+  color: #FFFFFF;
   text-align: center;
   padding: 26rpx 0;
-  border-radius: 48rpx;
-  font-size: 30rpx;
-  font-weight: 600;
+  border-radius: 22rpx;
+  font-size: 28rpx;
+  font-weight: 700;
+  letter-spacing: 1.5rpx;
+  box-shadow: 0 5rpx 18rpx rgba(248, 106, 16, 0.30);
+  transition: opacity 0.18s, transform 0.15s;
 }
-
+.poster-save-btn:active { opacity: 0.80; transform: scale(0.97); }
 .poster-save-btn.disabled {
-  background: #aaaaaa;
+  background: linear-gradient(135deg, #D8CCBA, #C8BCA8);
+  box-shadow: none;
+  opacity: 0.72;
 }
-
+/* 关闭按钮 */
 .poster-cancel-btn {
-  width: 160rpx;
-  background: #f5f5f5;
-  color: #666;
+  width: 156rpx;
+  background: #F5EEDC;
+  color: #888888;
   text-align: center;
   padding: 26rpx 0;
-  border-radius: 48rpx;
-  font-size: 30rpx;
+  border-radius: 22rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  transition: opacity 0.18s;
 }
+.poster-cancel-btn:active { opacity: 0.62; }
 
+/* 底部提示文字 */
 .poster-tip {
   text-align: center;
-  font-size: 22rpx;
-  color: #bbb;
+  font-size: 20rpx;
+  color: #C8B890;
   margin-top: 16rpx;
   flex-shrink: 0;
-}
-/* ─── 分类标签横向滚动栏 ─────────────────────────────────── */
-
-.category-scroll {
-  width: 100%;
-  white-space: nowrap;
-  background-color: #fff;
-  padding: 12rpx 0;
-  border-bottom: 1rpx solid #f5ead8;
+  letter-spacing: 1rpx;
 }
 
-.category-tab-list {
-  display: inline-flex;
-  flex-direction: row;
+/* ==================== 兼容旧版 class（保留不删）==================== */
+.search-bar {
+  display: flex;
   align-items: center;
-  padding: 0 20rpx;
+  padding: 16rpx 32rpx;
+  background: #FFFFFF;
   gap: 16rpx;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
 }
-
-/* 标签基础样式 */
-.category-tab-item {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10rpx 28rpx;
-  border-radius: 32rpx;
-  font-size: 26rpx;
-  font-weight: 500;
-  border: 1rpx solid transparent;
+.back-icon { font-size: 36rpx; color: #FF7828; }
+.category-bar {
+  display: flex;
+  flex-direction: row;
+  white-space: nowrap;
+  background: #FFFFFF;
+  padding: 12rpx 16rpx 16rpx;
+  border-bottom: 1rpx solid #F5EEDC;
   flex-shrink: 0;
-  transition: all 0.2s;
-  /* background-color / color / border-color 由 style 动态注入 */
 }
-
-/* 激活状态由 style 内联控制，此处保留点击态 */
-.category-tab-item:active {
-  opacity: 0.82;
-}
-
-/* ─── 帖子分类标签 ──────────────────────────────────────── */
-
-.post-category-tag {
-  display: inline-flex;
-  align-items: center;
-  padding: 4rpx 16rpx;
+.category-item {
+  display: inline-block;
+  padding: 9rpx 24rpx;
+  margin-right: 12rpx;
   border-radius: 24rpx;
+  font-size: 24rpx;
+  color: #888888;
+  background: #F5EEDC;
   flex-shrink: 0;
+  white-space: nowrap;
 }
-
-.post-category-text {
-  font-size: 22rpx;
-  font-weight: 500;
-  line-height: 1.4;
+.category-item.active {
+  background: #FF7828;
+  color: #FFFFFF;
+  font-weight: 700;
 }
-
-/* ─── 平江贴吧首页第二行 grid 间距 ─────────────────────── */
-
-.tieba-grid-second {
-  margin-top: 16rpx;
-}
-
-/* 萌宠图标背景色 */
-.tieba-icon-pet {
-  background-color: #fce8f5;
-}
+.tieba-grid-second { margin-top: 16rpx; }
+.tieba-icon-pet { background-color: #F8EEF5; }

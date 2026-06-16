@@ -1,0 +1,564 @@
+// pages/community/detail/index.js
+// 帖子详情页：展示帖子全文、评论列表、点赞、关注作者、跳转评论页
+
+const MOCK_POSTS = {
+  1: {
+    id: 1, userId: 'u1',
+    avatar: '/images/avatar.png', nickname: '平江老表',
+    badge: '本地居民', time: '10分钟前', topic: '活动', isTop: true,
+    content: '天岳广场今天有大型民俗表演！平江花鼓戏免费看，晚上7点开始，带家人一起来！精彩节目不容错过，老人小孩都喜欢。今年的节目质量比往年更好，还有本地非遗展示，平江擂茶文化体验，现场还有美食摊位，整个广场热闹非凡，强烈推荐！',
+    images: [], likes: 128, comments: 36, views: 1024, isLiked: false, isFollowed: false
+  },
+  2: {
+    id: 2, userId: 'u2',
+    avatar: '/images/avatar.png', nickname: '汉昌居民',
+    badge: '', time: '32分钟前', topic: '美食', isTop: false,
+    content: '推荐一下平江酱干，走亲戚带这个最有面子，大家觉得哪家最正宗？我知道有几家老店味道很好，欢迎大家来聊聊～平江酱干是我们这里的特产，历史悠久，口感独特，外省朋友来了都赞不绝口！',
+    images: [], likes: 56, comments: 18, views: 380, isLiked: true, isFollowed: true
+  }
+}
+
+const MOCK_COMMENTS = [
+  {
+    id: 101, userId: 'u2',
+    avatar: '/images/avatar.png', nickname: '汉昌居民',
+    time: '8分钟前', content: '好的，明晚我带孩子去看！感谢分享，上次的花鼓戏表演真的很精彩！',
+    likes: 12, isLiked: false,
+    replyTotal: 2, replies: [
+      { id: 1011, nickname: '平江老表', content: '欢迎！一定不会让你失望的！' }
+    ]
+  },
+  {
+    id: 102, userId: 'u3',
+    avatar: '/images/avatar.png', nickname: '嘉义街坊',
+    time: '15分钟前', content: '平江的传统文化活动越来越丰富了，为咱们平江点赞！',
+    likes: 8, isLiked: false, replyTotal: 0, replies: []
+  },
+  {
+    id: 103, userId: 'u4',
+    avatar: '/images/avatar.png', nickname: '天岳山人',
+    time: '22分钟前', content: '我每次都去，今年一定不能缺席！广场的氛围特别好，邻居们都会来。',
+    likes: 5, isLiked: true, replyTotal: 0, replies: []
+  }
+]
+
+Page({
+  data: {
+    postId: null,
+    post: {},
+    comments: [],
+    isLoading: false,
+    hasMore: true
+  },
+
+  onLoad(options) {
+    const postId = parseInt(options.id) || 1
+    this.setData({ postId })
+    this.loadPost(postId)
+    this.loadComments(postId)
+  },
+
+  onPullDownRefresh() {
+    this.loadPost(this.data.postId)
+    this.loadComments(this.data.postId)
+    wx.stopPullDownRefresh()
+  },
+
+  onReachBottom() {
+    if (this.data.hasMore && !this.data.isLoading) {
+      this.loadComments(this.data.postId)
+    }
+  },
+
+  // =============================================
+  // 加载帖子详情
+  // =============================================
+  loadPost(postId) {
+    // TODO: 替换为接口 GET /api/post/:id
+    const post = MOCK_POSTS[postId] || MOCK_POSTS[1]
+    this.setData({ post })
+    wx.setNavigationBarTitle({ title: post.nickname + ' 的帖子' })
+  },
+
+  // =============================================
+  // 加载评论列表
+  // =============================================
+  loadComments(postId) {
+    this.setData({ isLoading: true })
+    setTimeout(() => {
+      // TODO: 替换为接口 GET /api/comment/list?postId=&page=
+      this.setData({
+        comments: MOCK_COMMENTS,
+        isLoading: false,
+        hasMore: false
+      })
+    }, 400)
+  },
+
+  // =============================================
+  // 帖子点赞
+  // =============================================
+  toggleLike() {
+    const { post } = this.data
+    const isLiked = !post.isLiked
+    const likes = isLiked ? post.likes + 1 : post.likes - 1
+    this.setData({ post: { ...post, isLiked, likes } })
+    wx.showToast({ title: isLiked ? '已点赞' : '取消点赞', icon: 'none' })
+    // TODO: POST /api/post/like { postId: post.id }
+  },
+
+  // =============================================
+  // 关注作者
+  // =============================================
+  toggleFollow(e) {
+    const { post } = this.data
+    if (!wx.getStorageSync('user_authed')) {
+      wx.showToast({ title: '请先完成授权', icon: 'none' })
+      return
+    }
+    const isFollowed = !post.isFollowed
+    this.setData({ post: { ...post, isFollowed } })
+    wx.showToast({ title: isFollowed ? '关注成功' : '已取关', icon: 'success' })
+    // TODO: POST /api/follow { targetUserId: post.userId }
+  },
+
+  // =============================================
+  // 评论点赞
+  // =============================================
+  likeComment(e) {
+    const { id, index } = e.currentTarget.dataset
+    const comments = this.data.comments.map((c, i) => {
+      if (i === index) {
+        return { ...c, isLiked: !c.isLiked, likes: c.isLiked ? c.likes - 1 : c.likes + 1 }
+      }
+      return c
+    })
+    this.setData({ comments })
+    // TODO: POST /api/comment/like { commentId: id }
+  },
+
+  // =============================================
+  // 展开更多回复
+  // =============================================
+  loadMoreReply(e) {
+    const { id, index } = e.currentTarget.dataset
+    wx.showToast({ title: '更多回复加载中...', icon: 'none' })
+    // TODO: GET /api/comment/reply?commentId=&page=
+  },
+
+  // =============================================
+  // 跳转评论/回复页
+  // =============================================
+  goComment() {
+    wx.navigateTo({ url: `../comment/index?postId=${this.data.postId}` })
+  },
+
+  goReply(e) {
+    const { id, name } = e.currentTarget.dataset
+    wx.navigateTo({ url: `../comment/index?postId=${this.data.postId}&replyId=${id}&replyName=${name}` })
+  },
+
+  // =============================================
+  // 跳转个人主页
+  // =============================================
+  goUser(e) {
+    wx.navigateTo({ url: `../user/index?userId=${e.currentTarget.dataset.id}` })
+  },
+
+  // =============================================
+  // 图片预览
+  // =============================================
+  previewImg(e) {
+    wx.previewImage({
+      current: e.currentTarget.dataset.src,
+      urls: e.currentTarget.dataset.list
+    })
+  },
+
+  // =============================================
+  // 举报评论
+  // =============================================
+  reportComment(e) {
+    wx.showModal({
+      title: '举报评论', content: '确认举报该评论？',
+      confirmText: '举报', confirmColor: '#E53935',
+      success: (res) => {
+        if (res.confirm) {
+          wx.showToast({ title: '举报已提交', icon: 'none' })
+          // TODO: POST /api/report { type: 'comment', id: e.currentTarget.dataset.id }
+        }
+      }
+    })
+  },
+
+  // =============================================
+  // 转发帖子
+  // =============================================
+  sharePost() {
+    wx.showActionSheet({
+      itemList: ['发给好友/群', '生成分享海报'],
+      success: (res) => {
+        if (res.tapIndex === 0) {
+          wx.showToast({ title: '请点击右上角菜单转发', icon: 'none' })
+        } else {
+          wx.showToast({ title: '海报功能即将上线', icon: 'none' })
+        }
+      }
+    })
+  },
+
+  // =============================================
+  // 微信分享配置
+  // =============================================
+  onShareAppMessage() {
+    const { post } = this.data
+    return {
+      title: post.content ? post.content.slice(0, 30) + '...' : '平江贴吧',
+      path: `/pages/community/detail/index?id=${post.id}`
+    }
+  }
+})
+{
+  "navigationBarTitleText": "帖子详情",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {}
+}
+<!--pages/community/detail/index.wxml-->
+<view class="page-wrap">
+
+<!-- 帖子正文卡片 -->
+<view class="post-card" wx:if="{{post.id}}">
+
+  <!-- 作者信息 -->
+  <view class="author-row" bindtap="goUser" data-id="{{post.userId}}">
+    <image class="author-avatar" src="{{post.avatar}}" mode="aspectFill"/>
+    <view class="author-meta">
+      <view class="author-name-row">
+        <text class="author-name">{{post.nickname}}</text>
+        <text class="author-badge" wx:if="{{post.badge}}">{{post.badge}}</text>
+      </view>
+      <text class="post-time">{{post.time}} · 来自平江</text>
+    </view>
+    <!-- 关注按钮 -->
+    <view
+      class="follow-btn {{post.isFollowed ? 'btn-followed' : 'btn-follow'}}"
+      catchtap="toggleFollow"
+      data-id="{{post.userId}}"
+    >
+      <text class="follow-btn-text">{{post.isFollowed ? '已关注' : '+ 关注'}}</text>
+    </view>
+  </view>
+
+  <!-- 话题标签 -->
+  <view class="topic-row" wx:if="{{post.topic}}">
+    <text class="topic-chip"># {{post.topic}}</text>
+  </view>
+
+  <!-- 正文内容 -->
+  <text class="post-content">{{post.content}}</text>
+
+  <!-- 图片展示 -->
+  <view class="img-grid" wx:if="{{post.images.length > 0}}">
+    <image
+      class="detail-img"
+      wx:for="{{post.images}}"
+      wx:for-item="img"
+      wx:key="index"
+      src="{{img}}"
+      mode="aspectFill"
+      bindtap="previewImg"
+      data-src="{{img}}"
+      data-list="{{post.images}}"
+    />
+  </view>
+
+  <!-- 互动数据栏 -->
+  <view class="post-stats">
+    <view class="stat-item">
+      <text class="stat-icon">👁️</text>
+      <text class="stat-val">{{post.views}} 浏览</text>
+    </view>
+    <view class="stat-item">
+      <text class="stat-icon">🗨️</text>
+      <text class="stat-val">{{post.comments}} 评论</text>
+    </view>
+    <view class="stat-item" bindtap="toggleLike">
+      <text class="stat-icon">{{post.isLiked ? '❤️' : '🤍'}}</text>
+      <text class="stat-val {{post.isLiked ? 'liked' : ''}}">{{post.likes}}</text>
+    </view>
+  </view>
+</view>
+
+<!-- 评论区标题 -->
+<view class="comment-bar">
+  <text class="comment-bar-title">评论区</text>
+  <text class="comment-bar-count">{{comments.length}} 条</text>
+</view>
+
+<!-- 评论列表 -->
+<view class="comment-list">
+  <view class="comment-card" wx:for="{{comments}}" wx:key="id">
+
+    <!-- 评论头部 -->
+    <view class="comment-header" bindtap="goUser" data-id="{{item.userId}}">
+      <image class="c-avatar" src="{{item.avatar}}" mode="aspectFill"/>
+      <view class="c-meta">
+        <text class="c-name">{{item.nickname}}</text>
+        <text class="c-time">{{item.time}}</text>
+      </view>
+      <!-- 楼层 -->
+      <text class="c-floor">{{index + 1}}楼</text>
+    </view>
+
+    <!-- 评论内容 -->
+    <text class="c-content">{{item.content}}</text>
+
+    <!-- 评论操作 -->
+    <view class="c-footer">
+      <view
+        class="c-like"
+        bindtap="likeComment"
+        data-id="{{item.id}}"
+        data-index="{{index}}"
+      >
+        <text class="c-like-icon">{{item.isLiked ? '❤️' : '🤍'}}</text>
+        <text class="c-like-num {{item.isLiked ? 'liked' : ''}}">{{item.likes}}</text>
+      </view>
+      <view
+        class="c-reply-btn"
+        bindtap="goReply"
+        data-id="{{item.id}}"
+        data-name="{{item.nickname}}"
+      >
+        <text class="c-reply-text">回复</text>
+      </view>
+      <view
+        class="c-report-btn"
+        bindtap="reportComment"
+        data-id="{{item.id}}"
+      >
+        <text class="c-report-text">举报</text>
+      </view>
+    </view>
+
+    <!-- 二级回复列表 -->
+    <view class="reply-list" wx:if="{{item.replies && item.replies.length > 0}}">
+      <view class="reply-item" wx:for="{{item.replies}}" wx:for-item="reply" wx:key="id">
+        <text class="reply-name">{{reply.nickname}}：</text>
+        <text class="reply-content">{{reply.content}}</text>
+      </view>
+      <view
+        class="reply-more"
+        wx:if="{{item.replyTotal > item.replies.length}}"
+        bindtap="loadMoreReply"
+        data-id="{{item.id}}"
+        data-index="{{index}}"
+      >
+        <text class="reply-more-text">展开更多回复（{{item.replyTotal - item.replies.length}}条）</text>
+      </view>
+    </view>
+
+  </view>
+
+  <!-- 空评论提示 -->
+  <view class="empty-tip" wx:if="{{comments.length === 0 && !isLoading}}">
+    <text class="empty-icon">💬</text>
+    <text class="empty-text">还没有评论，快来抢沙发！</text>
+  </view>
+
+  <!-- 加载状态 -->
+  <view class="load-tip" wx:if="{{isLoading}}">
+    <text class="load-text">加载中...</text>
+  </view>
+
+  <!-- 底部安全距离 -->
+  <view style="height: 140rpx;"/>
+</view>
+
+<!-- 底部评论输入栏 -->
+<view class="bottom-bar">
+  <view class="input-wrap" bindtap="goComment">
+    <text class="input-ph">说点什么...</text>
+  </view>
+  <view class="bottom-actions">
+    <view bindtap="toggleLike" class="bottom-action-item">
+      <text class="bottom-action-icon">{{post.isLiked ? '❤️' : '🤍'}}</text>
+      <text class="bottom-action-num">{{post.likes}}</text>
+    </view>
+    <view bindtap="goComment" class="bottom-action-item">
+      <text class="bottom-action-icon">🗨️</text>
+      <text class="bottom-action-num">{{post.comments}}</text>
+    </view>
+    <view bindtap="sharePost" class="bottom-action-item">
+      <text class="bottom-action-icon">↗️</text>
+    </view>
+  </view>
+</view>
+
+</view>
+/* pages/community/detail/index.wxss */
+page { background: #F5F0E8; }
+.page-wrap { min-height: 100vh; }
+
+/* 帖子卡片 */
+.post-card {
+  background: #FFFFFF;
+  padding: 28rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 10rpx rgba(139,115,85,0.08);
+}
+
+/* 作者信息行 */
+.author-row {
+  display: flex; align-items: center;
+  gap: 16rpx; margin-bottom: 20rpx;
+}
+.author-avatar {
+  width: 80rpx; height: 80rpx; border-radius: 50%;
+  border: 3rpx solid #F0E5D8; flex-shrink: 0;
+}
+.author-meta { flex: 1; display: flex; flex-direction: column; gap: 6rpx; }
+.author-name-row { display: flex; align-items: center; gap: 10rpx; }
+.author-name { font-size: 30rpx; color: #333; font-weight: bold; }
+.author-badge {
+  font-size: 20rpx; color: #D4820A;
+  background: #FFF3E0; padding: 2rpx 10rpx; border-radius: 10rpx;
+}
+.post-time { font-size: 22rpx; color: #BBB; }
+
+/* 关注按钮 */
+.follow-btn {
+  padding: 10rpx 24rpx; border-radius: 30rpx; flex-shrink: 0;
+}
+.btn-follow {
+  background: linear-gradient(90deg, #D4820A, #E8A040);
+}
+.btn-followed { background: #F0E5D8; }
+.follow-btn-text { font-size: 24rpx; font-weight: bold; color: #FFFFFF; }
+.btn-followed .follow-btn-text { color: #999; }
+
+/* 话题标签 */
+.topic-row { margin-bottom: 16rpx; }
+.topic-chip {
+  font-size: 24rpx; color: #D4820A;
+  background: #FFF3E0; padding: 4rpx 16rpx; border-radius: 20rpx;
+  display: inline-block;
+}
+
+/* 正文 */
+.post-content {
+  font-size: 32rpx; color: #333; line-height: 1.8;
+  display: block; margin-bottom: 20rpx;
+}
+
+/* 图片 */
+.img-grid { display: flex; gap: 8rpx; flex-wrap: wrap; margin-bottom: 20rpx; }
+.detail-img {
+  width: 340rpx; height: 260rpx; border-radius: 12rpx;
+  background: #EEE;
+}
+
+/* 帖子统计 */
+.post-stats {
+  display: flex; align-items: center; gap: 32rpx;
+  padding-top: 20rpx; border-top: 1rpx solid #F5F0E8;
+}
+.stat-item { display: flex; align-items: center; gap: 8rpx; }
+.stat-icon { font-size: 28rpx; }
+.stat-val { font-size: 26rpx; color: #999; }
+.liked { color: #E53935; }
+
+/* 评论区标题栏 */
+.comment-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20rpx 28rpx; background: #F5F0E8;
+  border-bottom: 2rpx solid #F0E5D8;
+}
+.comment-bar-title { font-size: 30rpx; color: #333; font-weight: bold; }
+.comment-bar-count { font-size: 26rpx; color: #BBB; }
+
+/* 评论列表 */
+.comment-list { padding: 16rpx; }
+
+/* 评论卡片 */
+.comment-card {
+  background: #FFFFFF; border-radius: 16rpx;
+  padding: 24rpx; margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(139,115,85,0.06);
+}
+
+/* 评论头部 */
+.comment-header {
+  display: flex; align-items: center; gap: 14rpx; margin-bottom: 14rpx;
+}
+.c-avatar {
+  width: 64rpx; height: 64rpx; border-radius: 50%;
+  border: 2rpx solid #F0E5D8; flex-shrink: 0;
+}
+.c-meta { flex: 1; display: flex; flex-direction: column; gap: 4rpx; }
+.c-name { font-size: 28rpx; color: #333; font-weight: bold; }
+.c-time { font-size: 22rpx; color: #BBB; }
+.c-floor { font-size: 22rpx; color: #CCC; flex-shrink: 0; }
+
+/* 评论内容 */
+.c-content {
+  font-size: 30rpx; color: #333; line-height: 1.7;
+  display: block; margin-bottom: 14rpx;
+}
+
+/* 评论操作栏 */
+.c-footer {
+  display: flex; align-items: center; gap: 32rpx;
+  padding-top: 12rpx; border-top: 1rpx solid #F5F0E8;
+}
+.c-like { display: flex; align-items: center; gap: 6rpx; }
+.c-like-icon { font-size: 26rpx; }
+.c-like-num { font-size: 24rpx; color: #999; }
+.c-reply-btn { padding: 4rpx 16rpx; border-radius: 10rpx; background: #F5F0E8; }
+.c-reply-text { font-size: 24rpx; color: #D4820A; }
+.c-report-btn { padding: 4rpx 0; }
+.c-report-text { font-size: 24rpx; color: #CCC; }
+
+/* 二级回复 */
+.reply-list {
+  background: #FFF8EE; border-radius: 10rpx;
+  padding: 16rpx; margin-top: 14rpx;
+}
+.reply-item { margin-bottom: 10rpx; }
+.reply-name { font-size: 26rpx; color: #D4820A; font-weight: bold; }
+.reply-content { font-size: 26rpx; color: #555; line-height: 1.6; }
+.reply-more { padding-top: 10rpx; }
+.reply-more-text { font-size: 24rpx; color: #D4820A; }
+
+/* 空状态 */
+.empty-tip {
+  display: flex; flex-direction: column;
+  align-items: center; padding: 80rpx 0; gap: 20rpx;
+}
+.empty-icon { font-size: 70rpx; }
+.empty-text { font-size: 28rpx; color: #BBB; }
+
+/* 加载提示 */
+.load-tip { text-align: center; padding: 30rpx; }
+.load-text { font-size: 26rpx; color: #BBB; }
+
+/* 底部评论栏 */
+.bottom-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: #FFFFFF; padding: 16rpx 24rpx;
+  display: flex; align-items: center; gap: 16rpx;
+  border-top: 2rpx solid #F0E5D8;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+}
+.input-wrap {
+  flex: 1; background: #F5F0E8; border-radius: 40rpx;
+  padding: 16rpx 24rpx;
+}
+.input-ph { font-size: 28rpx; color: #CCC; }
+.bottom-actions { display: flex; align-items: center; gap: 24rpx; flex-shrink: 0; }
+.bottom-action-item { display: flex; align-items: center; gap: 6rpx; }
+.bottom-action-icon { font-size: 32rpx; }
+.bottom-action-num { font-size: 26rpx; color: #999; }

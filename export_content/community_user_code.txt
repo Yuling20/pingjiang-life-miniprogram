@@ -1,0 +1,1107 @@
+// pages/community/user/index.js
+// 修复4个报错 + 关注/粉丝列表 + 实名前置 + 积分联动 + 分享去重 + 自赞不加分
+
+Page({
+  data: {
+    // ── 修复Bug2/3：根级字段，wxml直接绑定，不与userInfo嵌套并存 ──
+    nickName:  '平江用户',
+    avatarUrl: '/images/avatars男/avatar01.png',
+    bio:       '',
+    isVip:     false,
+    isAuthed:  false,
+    userId:    '',
+
+    isSelf:    false,
+    profileBg: '',
+    bgIsVideo: false,
+
+    // 统计
+    followCount: 0,
+    fansCount:   0,
+    postCount:   0,
+    likeCount:   0,
+
+    // 关注/粉丝弹窗
+    showFollowModal: false,
+    showFansModal:   false,
+    followList:      [],
+    fansList:        [],
+
+    // 访客（VIP）
+    showVisitorPanel: false,
+    visitorList:      [],
+    myViewedList:     [],
+
+    postList:  [],
+    isLoading: true,
+  },
+
+  onLoad(options) {
+    const isSelf = options.self === '1';
+    this.setData({ isSelf });
+    this._syncUserInfo();
+    this._loadProfileBg();
+    this._loadStats();
+    this._loadPosts();
+    if (isSelf) this._loadVisitorData();
+  },
+
+  onShow() {
+    this._syncUserInfo();
+    this._loadProfileBg();
+    this._loadStats();
+    this._loadPosts();
+  },
+
+  // ══ 数据同步 ═══════════════════════════════════════════════
+
+  /** 修复Bug2/3：统一写根级字段，wxml无需 userInfo.xxx 嵌套访问 */
+  _syncUserInfo() {
+    try {
+      const info     = wx.getStorageSync('userInfo') || {};
+      const isAuthed = wx.getStorageSync('userAuthStatus') === true;
+      this.setData({
+        nickName:  info.nickName  || '平江用户',
+        avatarUrl: info.avatarUrl || '/images/avatars男/avatar01.png',
+        bio:       info.bio       || '',
+        isVip:     !!info.isVip,
+        userId:    info.userId    || '',
+        isAuthed,
+      });
+    } catch(e) {}
+  },
+
+  _loadProfileBg() {
+    try {
+      const bg      = wx.getStorageSync('profileBgImage')   || '';
+      const bgIsVid = wx.getStorageSync('profileBgIsVideo') || false;
+      this.setData({ profileBg: bg, bgIsVideo: bgIsVid });
+    } catch(e) {}
+  },
+
+  _loadStats() {
+    try {
+      const posts      = wx.getStorageSync('myPublishedPosts') || [];
+      const s          = wx.getStorageSync('profileStats')     || {};
+      const followList = wx.getStorageSync('myFollowList')     || [];
+      const fansList   = wx.getStorageSync('myFansList')       || [];
+      this.setData({
+        followCount: followList.length || s.follow || 0,
+        fansCount:   fansList.length   || s.fans   || 0,
+        postCount:   posts.length,
+        likeCount:   s.likes || 0,
+        followList,
+        fansList,
+      });
+    } catch(e) {}
+  },
+
+  _loadPosts() {
+    try {
+      const list      = wx.getStorageSync('myPublishedPosts') || [];
+      const formatted = list.map((p, i) => ({
+        ...p,
+        id:           p.id           || `post_${i}`,
+        timeLabel:    this._formatTime(p.createTime || p.time || Date.now()),
+        liked:        p.liked        || false,
+        likeCount:    p.likeCount    || 0,
+        commentCount: p.commentCount || 0,
+      }));
+      this.setData({ postList: formatted, isLoading: false });
+    } catch(e) {
+      this.setData({ isLoading: false });
+    }
+  },
+
+  _loadVisitorData() {
+    try {
+      const visitorList  = wx.getStorageSync('profileVisitors') || [];
+      const myViewedList = wx.getStorageSync('myViewedUsers')   || [];
+      this.setData({ visitorList, myViewedList });
+    } catch(e) {}
+  },
+
+  _formatTime(ts) {
+    const now  = Date.now();
+    const diff = now - Number(ts);
+    if (diff < 60000)        return '刚刚';
+    if (diff < 3600000)      return `${Math.floor(diff/60000)}分钟前`;
+    if (diff < 86400000)     return `${Math.floor(diff/3600000)}小时前`;
+    if (diff < 86400000 * 2) return '昨天';
+    const d = new Date(Number(ts));
+    return `${d.getMonth()+1}月${d.getDate()}日`;
+  },
+
+  _getTodayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  },
+
+  // ══ 实名校验 ═══════════════════════════════════════════════
+
+  _checkAuth() {
+    const isAuthed = wx.getStorageSync('userAuthStatus') === true;
+    if (!isAuthed) {
+      wx.showModal({
+        title:       '需要实名认证',
+        content:     '发帖、点赞、评论、转发等互动操作需要先完成实名认证。',
+        confirmText: '去认证',
+        cancelText:  '取消',
+        success: (res) => {
+          if (!res.confirm) return;
+          wx.showModal({
+            title:       '微信一键实名',
+            content:     '即将通过微信授权完成实名认证，信息仅用于平台安全验证。',
+            confirmText: '确认授权',
+            cancelText:  '取消',
+            success: (r) => {
+              if (r.confirm) {
+                wx.setStorageSync('userAuthStatus', true);
+                this.setData({ isAuthed: true });
+                wx.showToast({ title: '实名认证完成', icon: 'success' });
+              }
+            }
+          });
+        }
+      });
+      return false;
+    }
+    return true;
+  },
+
+  // ══ 积分工具（全局200分/天上限） ════════════════════════════
+
+  /**
+   * @param {string} scene   积分场景描述
+   * @param {number} pts     本次奖励分数
+   * @param {string} dailyKey 场景key（用于计次）
+   * @param {number} dailyMax 单场景每日最大次数（0=不限次但受全局上限）
+   * @returns {number} 实际获得积分
+   */
+  _addPoints(scene, pts, dailyKey, dailyMax) {
+    try {
+      const today      = this._getTodayStr();
+      const DAILY_CAP  = 200; // 全局每日上限
+      const countKey   = `${dailyKey}_count_${today}`;
+      const todayCount = wx.getStorageSync(countKey) || 0;
+
+      if (dailyMax > 0 && todayCount >= dailyMax) return 0;
+
+      const stored   = wx.getStorageSync('userPoints') || {};
+      const oldTotal = typeof stored === 'number' ? stored
+                     : (stored.totalPoints || stored.total || stored.points || 0);
+      const oldToday = (stored && stored.todayEarned) ? stored.todayEarned : 0;
+
+      // 全局200/天上限
+      const actual = Math.min(pts, Math.max(0, DAILY_CAP - oldToday));
+      if (actual <= 0) return 0;
+
+      wx.setStorageSync('userPoints', {
+        ...(typeof stored === 'object' ? stored : {}),
+        totalPoints: oldTotal + actual,
+        todayEarned: oldToday + actual,
+      });
+      if (dailyMax > 0) wx.setStorageSync(countKey, todayCount + 1);
+
+      // 写入明细
+      const records = wx.getStorageSync('pointsEarnRecords') || [];
+      records.unshift({
+        id:     `${dailyKey}_${Date.now()}`,
+        scene,
+        points: actual,
+        time:   new Date().toLocaleString(),
+      });
+      wx.setStorageSync('pointsEarnRecords', records.slice(0, 200));
+      return actual;
+    } catch(e) { return 0; }
+  },
+
+  // ══ VIP背景（问题2：支持图片/视频） ════════════════════════
+
+  onChangeBg() {
+    if (!this.data.isVip) {
+      wx.showModal({
+        title:       'VIP专属权益',
+        content:     '自定义主页背景是VIP专属功能，开通后即可使用图片或视频背景。',
+        confirmText: '去开通',
+        cancelText:  '取消',
+        success: (res) => { if (res.confirm) wx.navigateBack(); }
+      });
+      return;
+    }
+    wx.showActionSheet({
+      itemList: ['上传图片背景', '上传视频背景（≤15秒）', '恢复默认背景'],
+      success: (res) => {
+        if (res.tapIndex === 2) {
+          wx.removeStorageSync('profileBgImage');
+          wx.removeStorageSync('profileBgIsVideo');
+          this.setData({ profileBg: '', bgIsVideo: false });
+          wx.showToast({ title: '已恢复默认', icon: 'success' });
+          return;
+        }
+        const isVideo = res.tapIndex === 1;
+        if (isVideo) {
+          wx.chooseMedia({
+            count:      1,
+            mediaType:  ['video'],
+            sourceType: ['album'],
+            success: (r) => {
+              const file = r.tempFiles[0];
+              if (file.duration && file.duration > 15) {
+                wx.showToast({ title: '视频时长不能超过15秒', icon: 'none', duration: 2000 });
+                return;
+              }
+              wx.setStorageSync('profileBgImage',   file.tempFilePath);
+              wx.setStorageSync('profileBgIsVideo', true);
+              this.setData({ profileBg: file.tempFilePath, bgIsVideo: true });
+              wx.showToast({ title: '视频背景已更新', icon: 'success' });
+            }
+          });
+        } else {
+          wx.chooseMedia({
+            count:      1,
+            mediaType:  ['image'],
+            sizeType:   ['compressed'],
+            sourceType: ['album', 'camera'],
+            success: (r) => {
+              const path = r.tempFiles[0].tempFilePath;
+              wx.setStorageSync('profileBgImage',   path);
+              wx.setStorageSync('profileBgIsVideo', false);
+              this.setData({ profileBg: path, bgIsVideo: false });
+              wx.showToast({ title: '图片背景已更新', icon: 'success' });
+            }
+          });
+        }
+      }
+    });
+  },
+
+  // ══ 关注/粉丝列表（问题3：点击有弹窗） ══════════════════════
+
+  onShowFollow() { this.setData({ showFollowModal: true }); },
+  onCloseFollow() { this.setData({ showFollowModal: false }); },
+  onShowFans()  { this.setData({ showFansModal: true }); },
+  onCloseFans() { this.setData({ showFansModal: false }); },
+
+  // ══ 访客面板（VIP专属） ══════════════════════════════════════
+
+  onShowVisitors() {
+    if (!this.data.isVip) {
+      wx.showModal({
+        title:       'VIP专属',
+        content:     '查看访客记录是VIP专属功能，开通后即可查看谁看过你。',
+        confirmText: '去开通',
+        cancelText:  '取消',
+        success: (res) => { if (res.confirm) wx.navigateBack(); }
+      });
+      return;
+    }
+    this.setData({ showVisitorPanel: true });
+  },
+  onCloseVisitors() { this.setData({ showVisitorPanel: false }); },
+
+  // ══ 点赞（问题6：自己的帖子自己点不加积分） ══════════════════
+
+  onLikePost(e) {
+    if (!this._checkAuth()) return;
+    const idx  = e.currentTarget.dataset.idx;
+    const list = [...this.data.postList];
+    const post = list[idx];
+    if (!post) return;
+
+    post.liked     = !post.liked;
+    post.likeCount = Math.max(0, (post.likeCount || 0) + (post.liked ? 1 : -1));
+    list[idx] = post;
+    this.setData({ postList: list });
+
+    try {
+      const stored = wx.getStorageSync('myPublishedPosts') || [];
+      if (stored[idx]) {
+        stored[idx].likeCount = post.likeCount;
+        stored[idx].liked     = post.liked;
+        wx.setStorageSync('myPublishedPosts', stored);
+      }
+    } catch(e) {}
+
+    // 问题6：isSelf=true 表示自己看自己的帖 → 自赞不加积分
+    if (post.liked && !this.data.isSelf) {
+      const got = this._addPoints('帖子被点赞', 2, 'like_recv', 0);
+      if (got > 0) wx.showToast({ title: `+${got}积分`, icon: 'none', duration: 1000 });
+    }
+  },
+
+  // ══ 跳转详情（查看无需实名，评论在详情页控制） ════════════════
+
+  goPostDetail(e) {
+    const id = e.currentTarget.dataset.id;
+    if (!id) return;
+    wx.navigateTo({
+      url:  `/pages/community/detail/index?id=${id}`,
+      fail: () => wx.showToast({ title: '页面跳转失败', icon: 'none' })
+    });
+  },
+
+  // ══ 分享到朋友圈（+10积分，每日最多3次） ════════════════════
+
+  onShareToMoments(e) {
+    if (!this._checkAuth()) return;
+    const idx  = e.currentTarget.dataset.idx;
+    const post = this.data.postList[idx];
+    if (!post) return;
+    wx.showModal({
+      title:       '分享到朋友圈',
+      content:     '分享成功可获得10积分，每日最多计3次',
+      confirmText: '去分享',
+      cancelText:  '取消',
+      success: (res) => {
+        if (!res.confirm) return;
+        const got = this._addPoints('转发帖子到朋友圈', 10, 'share_moments', 3);
+        wx.showToast({
+          title:    got > 0 ? `分享成功 +${got}积分` : '分享成功（今日已达上限）',
+          icon:     'success',
+          duration: 1800,
+        });
+      }
+    });
+  },
+
+  /** 未实名时点击好友分享按钮的拦截 */
+  onNeedAuthShare() {
+    this._checkAuth();
+  },
+
+  // ══ 好友分享（问题5：+10积分，同帖同天去重，全局200/天） ════
+
+  onShareAppMessage(res) {
+    if (res.from === 'button') {
+      const idx  = parseInt((res.target && res.target.dataset && res.target.dataset.idx) || 0);
+      const post = this.data.postList[idx] || {};
+
+      // 问题5：同一帖子同一天只计一次积分（替代"同一接收人"去重）
+      const today    = this._getTodayStr();
+      const shareKey = `share_friend_${post.id || idx}_${today}`;
+      try {
+        const alreadyShared = wx.getStorageSync(shareKey) || false;
+        if (!alreadyShared) {
+          const got = this._addPoints('分享帖子给好友', 10, 'share_friend', 0);
+          wx.setStorageSync(shareKey, true); // 标记今天已分享此帖
+          if (got > 0) {
+            setTimeout(() => {
+              wx.showToast({ title: `分享成功 +${got}积分`, icon: 'success', duration: 1500 });
+            }, 400);
+          }
+        }
+      } catch(e) {}
+
+      return {
+        title:    ((post.content || post.title || '来自平江贴吧的帖子')).slice(0, 30),
+        path:     `/pages/community/detail/index?id=${post.id || ''}`,
+        imageUrl: (post.images && post.images[0]) || '',
+      };
+    }
+    return {
+      title: `${this.data.nickName || '平江用户'}的贴吧主页`,
+      path:  `/pages/community/user/index`,
+    };
+  },
+
+  goBack()   { wx.navigateBack(); },
+  stopProp() {},
+});
+{
+  "navigationBarTitleText": "",
+  "navigationStyle": "custom",
+  "enablePullDownRefresh": false,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {}
+}
+<!-- pages/community/user/index.wxml -->
+<!-- 修复Bug1(shturl.) Bug2/3(绑定) + 关注/粉丝弹窗 + 浅色背景 + 实名分享 -->
+<view class="profile-page">
+
+<!-- ══ 顶部背景区 ═══════════════════════════════════════════ -->
+<view class="profile-top">
+
+  <!-- VIP视频背景 -->
+  <video
+    wx:if="{{profileBg && bgIsVideo}}"
+    class="profile-bg-media"
+    src="{{profileBg}}"
+    autoplay loop muted
+    show-play-btn="{{false}}"
+    controls="{{false}}"
+    objectFit="cover"
+  />
+  <!-- VIP图片背景 -->
+  <image
+    wx:elif="{{profileBg && !bgIsVideo}}"
+    class="profile-bg-media"
+    src="{{profileBg}}"
+    mode="aspectFill"
+  />
+  <!-- 默认浅色渐变（问题2修复） -->
+  <view class="profile-bg-gradient" wx:else></view>
+
+  <!-- 遮罩过渡层 -->
+  <view class="profile-top-mask"></view>
+
+  <!-- 状态栏占位 -->
+  <view class="status-bar-holder"></view>
+
+  <!-- 顶部操作栏：返回 + 换背景 -->
+  <view class="top-nav-bar">
+    <view class="nav-back-btn" bindtap="goBack">
+      <text class="nav-back-icon">‹</text>
+    </view>
+    <view class="change-bg-btn" wx:if="{{isSelf}}" bindtap="onChangeBg">
+      <text class="change-bg-icon">🖼</text>
+      <text class="change-bg-text">{{isVip ? '换背景' : '背景(VIP)'}}</text>
+    </view>
+  </view>
+
+  <!-- 头像悬浮右下角（朋友圈风格） -->
+  <view class="avatar-float">
+    <image class="avatar-float-img" src="{{avatarUrl}}" mode="aspectFill"/>
+    <view class="vip-crown-tag" wx:if="{{isVip}}">
+      <text class="vip-crown-text">👑VIP</text>
+    </view>
+  </view>
+
+</view>
+
+<!-- ══ 用户信息区 ════════════════════════════════════════════ -->
+<view class="info-block">
+
+  <view class="info-nick-row">
+    <text class="info-nick">{{nickName || '平江用户'}}</text>
+  </view>
+  <view class="info-id-row">
+    <text class="info-id">平江号：{{userId || '未设置'}}</text>
+  </view>
+  <text class="info-bio">{{bio || '这个人很懒，还没有填写简介～'}}</text>
+
+  <!-- 统计行（问题3：关注/粉丝可点击） -->
+  <view class="stats-row">
+    <view class="stat-item" bindtap="onShowFollow">
+      <text class="stat-num">{{followCount}}</text>
+      <text class="stat-label">关注</text>
+    </view>
+    <view class="stat-sep"></view>
+    <view class="stat-item" bindtap="onShowFans">
+      <text class="stat-num">{{fansCount}}</text>
+      <text class="stat-label">粉丝</text>
+    </view>
+    <view class="stat-sep"></view>
+    <view class="stat-item">
+      <text class="stat-num">{{postCount}}</text>
+      <text class="stat-label">帖子</text>
+    </view>
+    <view class="stat-sep"></view>
+    <view class="stat-item">
+      <text class="stat-num">{{likeCount}}</text>
+      <text class="stat-label">获赞</text>
+    </view>
+  </view>
+
+  <!-- 访客按钮（仅自己主页） -->
+  <view class="func-btn-row" wx:if="{{isSelf}}">
+    <view class="func-btn" bindtap="onShowVisitors">
+      <text class="func-btn-icon">👁</text>
+      <text class="func-btn-label">谁看过我</text>
+      <view class="vip-lock-badge" wx:if="{{!isVip}}">
+        <text class="vip-lock-text">VIP</text>
+      </view>
+    </view>
+  </view>
+
+</view>
+
+<!-- ══ 动态列表 ═════════════════════════════════════════════ -->
+<view class="posts-section">
+
+  <view class="posts-title-bar">
+    <view class="posts-title-left">
+      <view class="posts-dot"></view>
+      <text class="posts-title-text">TA的动态</text>
+    </view>
+    <text class="posts-count-text" wx:if="{{postList.length > 0}}">共{{postList.length}}条</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view class="posts-empty" wx:if="{{!isLoading && postList.length === 0}}">
+    <text class="posts-empty-icon">📭</text>
+    <text class="posts-empty-text">还没有发布过帖子</text>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="posts-empty" wx:if="{{isLoading}}">
+    <text class="posts-empty-text">加载中...</text>
+  </view>
+
+  <!-- 帖子列表 -->
+  <view class="post-card" wx:for="{{postList}}" wx:key="id">
+
+    <!-- 头部：头像 + 昵称 + 时间 -->
+    <view class="post-card-head" bindtap="goPostDetail" data-id="{{item.id}}">
+      <image class="post-card-avatar" src="{{avatarUrl}}" mode="aspectFill"/>
+      <view class="post-card-meta">
+        <text class="post-card-nick">{{nickName}}</text>
+        <text class="post-card-time">{{item.timeLabel}}</text>
+      </view>
+    </view>
+
+    <!-- 正文 -->
+    <view bindtap="goPostDetail" data-id="{{item.id}}">
+      <text class="post-body-text">{{item.content || item.title}}</text>
+
+      <!-- 图片 -->
+      <view class="post-imgs-wrap" wx:if="{{item.images && item.images.length > 0}}">
+        <image
+          wx:for="{{item.images}}"
+          wx:key="*this"
+          wx:for-item="img"
+          class="post-img post-img--{{item.images.length === 1 ? 'single' : 'multi'}}"
+          src="{{img}}"
+          mode="aspectFill"
+        />
+      </view>
+
+      <!-- 标签 -->
+      <view class="post-tags-wrap" wx:if="{{item.tags && item.tags.length > 0}}">
+        <text
+          class="post-tag"
+          wx:for="{{item.tags}}"
+          wx:key="*this"
+          wx:for-item="tag"
+        >#{{tag}}</text>
+      </view>
+    </view>
+
+    <!-- 互动栏 -->
+    <view class="post-action-bar">
+
+      <!-- 点赞（需实名；问题6：自己的帖子不加积分） -->
+      <view class="action-btn" catchtap="onLikePost" data-idx="{{index}}">
+        <text class="action-icon">{{item.liked ? '❤️' : '🤍'}}</text>
+        <text class="action-count">{{item.likeCount || 0}}</text>
+      </view>
+
+      <!-- 评论（跳详情，详情页控制实名） -->
+      <view class="action-btn" catchtap="goPostDetail" data-id="{{item.id}}">
+        <text class="action-icon">💬</text>
+        <text class="action-count">{{item.commentCount || 0}}</text>
+      </view>
+
+      <!-- 分享朋友圈（需实名，+10积分，每日3次） -->
+      <view class="action-btn" catchtap="onShareToMoments" data-idx="{{index}}">
+        <text class="action-icon">🔄</text>
+        <text class="action-count">朋友圈</text>
+      </view>
+
+      <!-- 好友分享：已实名用 open-type，未实名拦截（问题5） -->
+      <button
+        wx:if="{{isAuthed}}"
+        class="action-btn action-share-btn"
+        open-type="share"
+        data-idx="{{index}}"
+      >
+        <text class="action-icon">↗</text>
+        <text class="action-count">好友</text>
+      </button>
+      <view wx:else class="action-btn" catchtap="onNeedAuthShare">
+        <text class="action-icon">↗</text>
+        <text class="action-count">好友</text>
+      </view>
+
+    </view>
+  </view>
+
+</view>
+
+<!-- ══ 关注列表弹窗（问题3） ══════════════════════════════════ -->
+<view class="modal-mask" wx:if="{{showFollowModal}}"
+  bindtap="onCloseFollow" catchtouchmove="stopProp">
+  <view class="list-modal" catchtap="stopProp">
+    <view class="list-modal-header">
+      <text class="list-modal-title">我的关注</text>
+      <text class="list-modal-close" bindtap="onCloseFollow">✕</text>
+    </view>
+    <!-- 空状态 -->
+    <view class="list-modal-empty" wx:if="{{followList.length === 0}}">
+      <text class="list-empty-icon">🔍</text>
+      <text class="list-empty-text">还没有关注任何人</text>
+      <text class="list-empty-sub">去贴吧逛逛，关注感兴趣的人</text>
+    </view>
+    <!-- 列表 -->
+    <scroll-view scroll-y class="list-modal-scroll" wx:else>
+      <view class="user-row" wx:for="{{followList}}" wx:key="id">
+        <image class="user-row-avatar"
+          src="{{item.avatarUrl || '/images/avatars男/avatar01.png'}}"
+          mode="aspectFill"/>
+        <view class="user-row-info">
+          <text class="user-row-nick">{{item.nickName || '平江用户'}}</text>
+          <text class="user-row-bio">{{item.bio || '暂无简介'}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="list-modal-footer" bindtap="onCloseFollow">关闭</view>
+  </view>
+</view>
+
+<!-- ══ 粉丝列表弹窗（问题3） ══════════════════════════════════ -->
+<view class="modal-mask" wx:if="{{showFansModal}}"
+  bindtap="onCloseFans" catchtouchmove="stopProp">
+  <view class="list-modal" catchtap="stopProp">
+    <view class="list-modal-header">
+      <text class="list-modal-title">我的粉丝</text>
+      <text class="list-modal-close" bindtap="onCloseFans">✕</text>
+    </view>
+    <!-- 空状态 -->
+    <view class="list-modal-empty" wx:if="{{fansList.length === 0}}">
+      <text class="list-empty-icon">💫</text>
+      <text class="list-empty-text">还没有粉丝</text>
+      <text class="list-empty-sub">多发优质帖子，粉丝自然来</text>
+    </view>
+    <!-- 列表 -->
+    <scroll-view scroll-y class="list-modal-scroll" wx:else>
+      <view class="user-row" wx:for="{{fansList}}" wx:key="id">
+        <image class="user-row-avatar"
+          src="{{item.avatarUrl || '/images/avatars男/avatar01.png'}}"
+          mode="aspectFill"/>
+        <view class="user-row-info">
+          <text class="user-row-nick">{{item.nickName || '平江用户'}}</text>
+          <text class="user-row-bio">{{item.bio || '暂无简介'}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="list-modal-footer" bindtap="onCloseFans">关闭</view>
+  </view>
+</view>
+
+<!-- ══ 访客弹窗（VIP专属） ═══════════════════════════════════ -->
+<view class="modal-mask" wx:if="{{showVisitorPanel}}"
+  bindtap="onCloseVisitors" catchtouchmove="stopProp">
+  <view class="list-modal" catchtap="stopProp">
+    <view class="list-modal-header">
+      <text class="list-modal-title">👁 访客记录</text>
+      <text class="list-modal-close" bindtap="onCloseVisitors">✕</text>
+    </view>
+
+    <text class="visitor-section-label">谁看过我</text>
+    <view class="list-modal-empty" wx:if="{{visitorList.length === 0}}">
+      <text class="list-empty-text">暂无访客记录</text>
+    </view>
+    <scroll-view scroll-y style="max-height:220rpx;" wx:else>
+      <view class="user-row" wx:for="{{visitorList}}" wx:key="userId">
+        <image class="user-row-avatar"
+          src="{{item.avatarUrl || '/images/avatars男/avatar01.png'}}"
+          mode="aspectFill"/>
+        <view class="user-row-info">
+          <text class="user-row-nick">{{item.nickName || '平江用户'}}</text>
+          <text class="user-row-bio">{{item.time || ''}}</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <text class="visitor-section-label" style="margin-top:20rpx;">我看过谁</text>
+    <view class="list-modal-empty" wx:if="{{myViewedList.length === 0}}">
+      <text class="list-empty-text">暂无浏览记录</text>
+    </view>
+    <scroll-view scroll-y style="max-height:220rpx;" wx:else>
+      <view class="user-row" wx:for="{{myViewedList}}" wx:key="userId">
+        <image class="user-row-avatar"
+          src="{{item.avatarUrl || '/images/avatars男/avatar01.png'}}"
+          mode="aspectFill"/>
+        <view class="user-row-info">
+          <text class="user-row-nick">{{item.nickName || '平江用户'}}</text>
+          <text class="user-row-bio">{{item.time || ''}}</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <view class="list-modal-footer" bindtap="onCloseVisitors">关闭</view>
+  </view>
+</view>
+
+</view>
+/* pages/community/user/index.wxss */
+/* 问题2：浅色暖橙渐变代替深棕色；风格与"我的"一致 */
+
+page { background: #FAFAFA; }
+
+.profile-page {
+  min-height: 100vh;
+  background: #FAFAFA;
+  padding-bottom: 100rpx;
+}
+
+/* ══ 顶部背景区 ════════════════════════════════════════════ */
+.profile-top {
+  position: relative;
+  width: 100%;
+  height: 420rpx;
+  overflow: visible;
+}
+
+.profile-bg-media {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 420rpx;
+  display: block;
+  object-fit: cover;
+}
+
+/* 问题2修复：原深棕色(#C8860A→#5C2D0E)→换成浅色温暖渐变 */
+.profile-bg-gradient {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%;
+  height: 420rpx;
+  background: linear-gradient(180deg,
+    #FFF3E0 0%,
+    #FFE0B2 40%,
+    #FFCC80 75%,
+    #FFA726 100%
+  );
+}
+
+/* 底部自然过渡遮罩 */
+.profile-top-mask {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 160rpx;
+  background: linear-gradient(to bottom, transparent, rgba(250,250,250,0.94));
+  pointer-events: none;
+  z-index: 5;
+}
+
+/* 状态栏 */
+.status-bar-holder {
+  height: env(safe-area-inset-top, 44px);
+  width: 100%;
+  position: absolute;
+  top: 0; left: 0;
+  z-index: 10;
+}
+
+/* 顶部导航栏 */
+.top-nav-bar {
+  position: absolute;
+  top: calc(env(safe-area-inset-top, 44px) + 8rpx);
+  left: 0; right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24rpx;
+  z-index: 20;
+}
+
+.nav-back-btn {
+  width: 72rpx; height: 72rpx;
+  background: rgba(255,255,255,0.55);
+  border-radius: 36rpx;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.1);
+}
+.nav-back-icon {
+  font-size: 54rpx;
+  color: #4A3220;
+  font-weight: 300;
+  line-height: 1;
+  margin-top: -4rpx;
+}
+
+.change-bg-btn {
+  display: flex; align-items: center; gap: 6rpx;
+  background: rgba(255,255,255,0.55);
+  border-radius: 30rpx;
+  padding: 10rpx 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.1);
+}
+.change-bg-icon { font-size: 28rpx; }
+.change-bg-text { font-size: 22rpx; color: #4A3220; font-weight: 500; }
+
+/* 头像悬浮右下角（朋友圈风格） */
+.avatar-float {
+  position: absolute;
+  right: 32rpx;
+  bottom: -64rpx;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.avatar-float-img {
+  width: 152rpx; height: 152rpx;
+  border-radius: 22rpx;
+  border: 5rpx solid #FFFFFF;
+  box-shadow: 0 4rpx 20rpx rgba(0,0,0,0.18);
+  display: block;
+}
+.vip-crown-tag {
+  position: absolute;
+  top: -20rpx;
+  background: linear-gradient(135deg, #C8860A, #F0C040);
+  border-radius: 16rpx;
+  padding: 3rpx 14rpx;
+}
+.vip-crown-text { font-size: 18rpx; color: #FFFFFF; font-weight: 700; }
+
+/* ══ 用户信息区 ════════════════════════════════════════════ */
+.info-block {
+  background: #FFFFFF;
+  padding: 20rpx 220rpx 24rpx 32rpx;
+  border-bottom: 1rpx solid #F0EAE0;
+  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.04);
+}
+
+.info-nick-row { margin-bottom: 8rpx; margin-top: 12rpx; }
+.info-nick {
+  font-size: 42rpx;
+  font-weight: 700;
+  color: #1A1A1A;
+  letter-spacing: 0.5rpx;
+}
+
+.info-id-row { margin-bottom: 10rpx; }
+.info-id { font-size: 24rpx; color: #999999; }
+
+.info-bio {
+  display: block;
+  font-size: 28rpx;
+  color: #555555;
+  line-height: 1.65;
+  margin-bottom: 24rpx;
+}
+
+/* 统计行 */
+.stats-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-right: 28rpx;
+}
+.stat-item:active { opacity: 0.65; }
+.stat-num { font-size: 36rpx; font-weight: 700; color: #1A1A1A; line-height: 1.2; }
+.stat-label { font-size: 22rpx; color: #999999; margin-top: 4rpx; }
+.stat-sep {
+  width: 1rpx; height: 40rpx;
+  background: #EDE8E0;
+  margin-right: 28rpx;
+}
+
+/* 功能按钮行 */
+.func-btn-row { display: flex; flex-direction: row; gap: 16rpx; flex-wrap: wrap; }
+.func-btn {
+  display: flex; align-items: center; gap: 8rpx;
+  background: #FFF8F0;
+  border: 1rpx solid #E6D0B8;
+  border-radius: 30rpx;
+  padding: 10rpx 22rpx;
+}
+.func-btn:active { background: #FFEDE0; }
+.func-btn-icon { font-size: 28rpx; }
+.func-btn-label { font-size: 24rpx; color: #1A1A1A; font-weight: 500; }
+.vip-lock-badge {
+  background: linear-gradient(135deg, #C8860A, #F0C040);
+  border-radius: 10rpx;
+  padding: 2rpx 10rpx;
+  margin-left: 4rpx;
+}
+.vip-lock-text { font-size: 18rpx; color: #FFFFFF; font-weight: 700; }
+
+/* ══ 动态区 ════════════════════════════════════════════════ */
+.posts-section {
+  background: #FFFFFF;
+  margin-top: 16rpx;
+}
+
+.posts-title-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20rpx 32rpx 16rpx;
+  background: #FAFAFA;
+  border-bottom: 1rpx solid #F0EAE0;
+}
+.posts-title-left { display: flex; align-items: center; gap: 10rpx; }
+.posts-dot {
+  width: 8rpx; height: 8rpx;
+  border-radius: 4rpx;
+  background: #B06A36;
+}
+.posts-title-text { font-size: 28rpx; font-weight: 700; color: #4A3220; }
+.posts-count-text  { font-size: 22rpx; color: #AAAAAA; }
+
+/* 空状态 */
+.posts-empty {
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 80rpx 0 60rpx;
+}
+.posts-empty-icon { font-size: 80rpx; margin-bottom: 20rpx; }
+.posts-empty-text { font-size: 28rpx; color: #BBBBBB; }
+
+/* 帖子卡片 */
+.post-card {
+  padding: 28rpx 32rpx 20rpx;
+  border-bottom: 1rpx solid #F5F0E8;
+  background: #FFFFFF;
+}
+.post-card:active { background: #FAFAFA; }
+
+.post-card-head {
+  display: flex; align-items: center;
+  margin-bottom: 16rpx;
+}
+.post-card-avatar {
+  width: 70rpx; height: 70rpx;
+  border-radius: 12rpx;
+  border: 2rpx solid #EDE8E0;
+  margin-right: 16rpx;
+  flex-shrink: 0;
+}
+.post-card-meta { display: flex; flex-direction: column; }
+.post-card-nick { font-size: 28rpx; font-weight: 600; color: #B06A36; }
+.post-card-time { font-size: 22rpx; color: #BBBBBB; margin-top: 4rpx; }
+
+.post-body-text {
+  display: block;
+  font-size: 30rpx;
+  color: #1A1A1A;
+  line-height: 1.7;
+  margin-bottom: 16rpx;
+}
+
+/* 图片 */
+.post-imgs-wrap {
+  display: flex; flex-wrap: wrap;
+  gap: 8rpx; margin-bottom: 16rpx;
+}
+.post-img--single { width: 380rpx; height: 280rpx; border-radius: 12rpx; }
+.post-img--multi  { width: 220rpx; height: 220rpx; border-radius: 10rpx; }
+
+/* 标签 */
+.post-tags-wrap {
+  display: flex; flex-wrap: wrap;
+  gap: 10rpx; margin-bottom: 16rpx;
+}
+.post-tag {
+  font-size: 24rpx; color: #B06A36;
+  background: #FFF0E6;
+  border-radius: 20rpx;
+  padding: 4rpx 16rpx;
+  border: 1rpx solid #DDB08A;
+}
+
+/* 互动栏 */
+.post-action-bar {
+  display: flex; flex-direction: row;
+  align-items: center;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #F5EDE0;
+}
+.action-btn {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8rpx; padding: 8rpx 0;
+  background: transparent; border: none;
+  line-height: 1;
+}
+.action-btn::after { border: none; }
+.action-share-btn {
+  flex: 1;
+  display: flex; align-items: center; justify-content: center;
+  gap: 8rpx; padding: 8rpx 0;
+  background: transparent; border: none;
+  margin: 0; min-height: unset; height: auto;
+  font-size: inherit; color: inherit; line-height: 1;
+}
+.action-share-btn::after { border: none; }
+.action-icon  { font-size: 30rpx; color: #888888; }
+.action-count { font-size: 24rpx; color: #888888; }
+
+/* ══ 通用弹窗遮罩 ══════════════════════════════════════════ */
+.modal-mask {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.46);
+  z-index: 999;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+/* ══ 列表弹窗（关注/粉丝/访客通用） ════════════════════════ */
+.list-modal {
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 28rpx 28rpx 0 0;
+  padding-bottom: calc(env(safe-area-inset-bottom) + 16rpx);
+  max-height: 75vh;
+  display: flex;
+  flex-direction: column;
+  border-top: 2rpx solid #F0EAE0;
+}
+.list-modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 32rpx 32rpx 24rpx;
+  border-bottom: 1rpx solid #F0EAE0;
+  flex-shrink: 0;
+}
+.list-modal-title { font-size: 34rpx; font-weight: 700; color: #1A1A1A; }
+.list-modal-close { font-size: 32rpx; color: #AAAAAA; padding: 0 8rpx; }
+
+.list-modal-empty {
+  display: flex; flex-direction: column;
+  align-items: center;
+  padding: 60rpx 0 40rpx;
+}
+.list-empty-icon { font-size: 70rpx; margin-bottom: 16rpx; }
+.list-empty-text { font-size: 28rpx; color: #BBBBBB; }
+.list-empty-sub  { font-size: 22rpx; color: #CCCCCC; margin-top: 10rpx; }
+
+.list-modal-scroll {
+  flex: 1;
+  max-height: 52vh;
+  padding: 0 32rpx;
+}
+
+.user-row {
+  display: flex; align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #F5F0E8;
+}
+.user-row:last-child { border-bottom: none; }
+.user-row-avatar {
+  width: 80rpx; height: 80rpx;
+  border-radius: 12rpx;
+  border: 2rpx solid #EDE8E0;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+.user-row-info { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+.user-row-nick { font-size: 28rpx; font-weight: 600; color: #1A1A1A; }
+.user-row-bio  {
+  font-size: 22rpx; color: #AAAAAA; margin-top: 6rpx;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+.list-modal-footer {
+  text-align: center;
+  font-size: 30rpx; color: #888888;
+  padding: 20rpx 32rpx;
+  border-top: 1rpx solid #F0EAE0;
+  flex-shrink: 0;
+}
+
+.visitor-section-label {
+  display: block;
+  font-size: 24rpx; color: #B06A36; font-weight: 600;
+  padding: 16rpx 32rpx 8rpx;
+}

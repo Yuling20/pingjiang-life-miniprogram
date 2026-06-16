@@ -1,0 +1,1393 @@
+// pages/community/community.js
+const app = getApp()
+
+Page({
+  data: {
+    searchKeyword: '',
+    // ✅ 替换为新的社区分类列表
+    categories: ['全部', '扯闲谈', '宠物', '美食', '活动', '游玩', '二手交易', '求助互助'],
+    currentCategory: 0,
+    activeCategory: '全部', // 新增：当前激活的分类名称
+    posts: [],
+    filteredPosts: [],
+    showShareMenu: false,
+    currentSharePost: null,
+    showPoster: false,
+    posterImagePath: '',
+    posterLoading: false,
+    isRealNameVerified: true,
+    isAndroid: false,
+
+    // ✅ 替换为新的分类标签颜色映射（低饱和度护眼配色）
+    categoryColorMap: {
+      '全部':   { bg: '#f0f0f0', text: '#888888' },
+      '扯闲谈': { bg: '#e8f4e8', text: '#4a8a5a' },
+      '宠物':   { bg: '#fce8f5', text: '#a0508a' },
+      '美食':   { bg: '#faf5e0', text: '#8a7030' },
+      '活动':   { bg: '#faeee8', text: '#a05838' },
+      '游玩':   { bg: '#e8f0fa', text: '#3a6090' },
+      '二手交易':{ bg: '#f0ece0', text: '#807040' },
+      '求助互助':{ bg: '#e8f5fa', text: '#307880' },
+    }
+  },
+
+  onLoad() {
+    try {
+      const sysInfo = wx.getSystemInfoSync()
+      this.setData({ isAndroid: sysInfo.platform === 'android' })
+    } catch (e) {
+      this.setData({ isAndroid: false })
+    }
+    this._loadMockPosts()
+    this._checkRealName()
+  },
+
+  onShow() {
+    // ✅ 升级为新的首页分类参数读取逻辑
+    // 读取首页传入的分类筛选参数
+    const app = getApp();
+    const initCategory = app.globalData.communityInitCategory;
+    if (initCategory !== undefined && initCategory !== null) {
+      this.setData({ activeCategory: initCategory || '全部' });
+      this.filterPostsByCategory(initCategory);
+      app.globalData.communityInitCategory = null; // 用完清空
+    }
+  },
+
+  // ==================== 初始化 ====================
+
+  _loadMockPosts() {
+    const posts = [
+      {
+        id: '1',
+        avatarColor: '#FF6B6B',
+        avatarEmoji: '😊',
+        nickname: '张小明',
+        time: '10分钟前',
+        category: '求助互助',
+        content: '小区门口捡到一只橘猫，有失主吗？已送到物业处。',
+        tags: ['#求助互助', '#宠物'],
+        images: [],
+        likeCount: 12,
+        commentCount: 5,
+        liked: false,
+      },
+      {
+        id: '2',
+        avatarColor: '#4ECDC4',
+        avatarEmoji: '🌸',
+        nickname: '李美丽',
+        time: '30分钟前',
+        category: '美食',
+        content: '今天做了红烧肉，分享给大家！配方在评论区～',
+        tags: ['#美食', '#生活'],
+        images: [],
+        likeCount: 38,
+        commentCount: 14,
+        liked: true,
+      },
+      {
+        id: '3',
+        avatarColor: '#45B7D1',
+        avatarEmoji: '👴',
+        nickname: '王大爷',
+        time: '1小时前',
+        category: '活动',
+        content: '本周六下午3点，小区广场举办亲子活动，欢迎带孩子参加！',
+        tags: ['#活动', '#亲子'],
+        images: [],
+        likeCount: 56,
+        commentCount: 23,
+        liked: false,
+      },
+      {
+        id: '4',
+        avatarColor: '#F7DC6F',
+        avatarEmoji: '🌻',
+        nickname: '赵小花',
+        time: '2小时前',
+        category: '二手交易',
+        content: '九成新婴儿车出售，价格面议，有意者私信。',
+        tags: ['#二手交易'],
+        images: [],
+        likeCount: 8,
+        commentCount: 3,
+        liked: false,
+      },
+      {
+        id: '5',
+        avatarColor: '#A29BFE',
+        avatarEmoji: '🐶',
+        nickname: '陈先生',
+        time: '3小时前',
+        category: '宠物',
+        content: '我家狗狗今天洗澡了，分享一下萌照～',
+        tags: ['#宠物', '#萌宠'],
+        images: [],
+        likeCount: 24,
+        commentCount: 9,
+        liked: false,
+      },
+      {
+        id: '6',
+        avatarColor: '#FD79A8',
+        avatarEmoji: '👩',
+        nickname: '刘阿姨',
+        time: '昨天',
+        category: '求助互助',
+        content: '有没有人知道附近哪里可以修鞋？谢谢大家！',
+        tags: ['#求助互助'],
+        images: [],
+        likeCount: 5,
+        commentCount: 12,
+        liked: false,
+      },
+    ]
+    this.setData({ posts, filteredPosts: posts })
+    // 存入缓存，供 filterPostsByCategory 使用
+    wx.setStorageSync('communityPosts', posts);
+  },
+
+  _checkRealName() {
+    // 预留后端接口：GET /api/user/realname-status
+    this.setData({ isRealNameVerified: true })
+  },
+
+  // ==================== 按分类筛选帖子（按方案重写） ====================
+  /**
+   * 按分类筛选帖子，并注入颜色信息
+   */
+  filterPostsByCategory(category) {
+    const allPosts = wx.getStorageSync('communityPosts') || [];
+    const colorMap = this.data.categoryColorMap;
+
+    let filtered = (!category || category === '全部')
+      ? allPosts
+      : allPosts.filter(post => post.category === category);
+
+    // 注入颜色
+    filtered = filtered.map(post => {
+      const color = colorMap[post.category] || colorMap['全部'];
+      return {
+        ...post,
+        tagBg:   color.bg,
+        tagText: color.text,
+      };
+    });
+
+    this.setData({
+      filteredPosts: filtered,
+      activeCategory: category || '全部'
+    });
+  },
+
+  /**
+   * 分类 Tab 点击事件（按方案修正，绑定 dataset.category）
+   */
+  onCategoryTap(e) {
+    const category = e.currentTarget.dataset.category || '全部';
+    this.filterPostsByCategory(category);
+  },
+
+  // ==================== 返回上一页（兼容 tabBar 页与普通页，已按方案修复） ====================
+  /** 返回上一页 */
+  handleNavBack() {
+    const pages = getCurrentPages();
+    if (pages.length > 1) {
+      // 有历史页面栈，正常返回
+      wx.navigateBack({ delta: 1 });
+    } else {
+      // 从 tabBar 直接进入时，返回首页 tabBar
+      wx.switchTab({ url: '/pages/home/home' });
+    }
+  },
+
+  // ==================== 搜索 ====================
+
+  onSearchInput(e) {
+    const keyword = e.detail.value
+    this.setData({ searchKeyword: keyword })
+    this._filterPosts(keyword, this.data.currentCategory)
+  },
+
+  onSearchClear() {
+    this.setData({ searchKeyword: '' })
+    this._filterPosts('', this.data.currentCategory)
+  },
+
+  // ==================== 原有分类筛选逻辑（保留兼容） ====================
+  _filterPosts(keyword, categoryIndex) {
+    const { posts, categories } = this.data
+    let result = posts
+    if (categoryIndex !== 0) {
+      result = result.filter(p => p.category === categories[categoryIndex])
+    }
+    if (keyword && keyword.trim()) {
+      const kw = keyword.trim().toLowerCase()
+      result = result.filter(p =>
+        p.content.toLowerCase().includes(kw) ||
+        p.nickname.toLowerCase().includes(kw) ||
+        (p.tags && p.tags.some(t => t.toLowerCase().includes(kw)))
+      )
+    }
+    this.setData({ filteredPosts: result })
+  },
+
+  // ==================== 统一实名拦截 ====================
+  _requireAuth(action) {
+    const info1 = wx.getStorageSync('userRealNameInfo');
+    const info2 = wx.getStorageSync('userAuthStatus');
+    const isAuthed = !!(
+      (info1 && info1.verified) || info2 === true
+    );
+    if (!isAuthed) {
+      wx.showModal({
+        title: '需要实名认证',
+        content: `${action}需要完成实名认证，请前往「我的」页面完成认证。`,
+        confirmText: '去认证',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm) {
+            wx.switchTab({ url: '/pages/mine/mine' });
+          }
+        },
+      });
+      return false;
+    }
+    return true;
+  },
+
+  // ==================== 点赞（需实名） ====================
+  onLikeTap(e) {
+    if (!this._requireAuth('点赞')) return;
+    const { id } = e.currentTarget.dataset
+    const updateList = (list) => list.map(p => {
+      if (p.id === id) {
+        return { ...p, liked: !p.liked, likeCount: p.liked ? p.likeCount - 1 : p.likeCount + 1 }
+      }
+      return p
+    })
+    this.setData({
+      posts: updateList(this.data.posts),
+      filteredPosts: updateList(this.data.filteredPosts)
+    })
+    // 预留后端接口：POST /api/post/like { postId: id }
+  },
+
+  // ==================== 评论跳转（需实名） ====================
+  onCommentTap(e) {
+    if (!this._requireAuth('评论')) return;
+    const { id } = e.currentTarget.dataset
+    wx.navigateTo({
+      url: `/pages/community/detail/index?postId=${id}&focus=comment`
+    })
+  },
+
+  // ==================== 帖子详情 ====================
+  onPostTap(e) {
+    const { id } = e.currentTarget.dataset
+    wx.navigateTo({
+      url: `/pages/community/detail/index?postId=${id}`
+    })
+  },
+
+  // ==================== 发帖（需实名） ====================
+  onPublishTap() {
+    if (!this._requireAuth('发帖')) return;
+    wx.navigateTo({ url: '/pages/community/publish/index' })
+  },
+
+  // ==================== 分享菜单（需实名） ====================
+  onShareTap(e) {
+    if (!this._requireAuth('转发')) return;
+    const { id } = e.currentTarget.dataset
+    const post = this.data.posts.find(p => p.id === id) || null
+    this.setData({ showShareMenu: true, currentSharePost: post })
+  },
+
+  onShareMenuClose() {
+    this.setData({ showShareMenu: false, currentSharePost: null })
+  },
+
+  onShareMaskTap() {
+    this.onShareMenuClose()
+  },
+
+  // ——— 发给好友/群聊（原生转发） ———
+  onShareAppMessage() {
+    const post = this.data.currentSharePost || {}
+    return {
+      title: post.content ? post.content.slice(0, 30) : '平江汇生活社区',
+      path: `/pages/community/detail/index?postId=${post.id || ''}`,
+    }
+  },
+
+  // ——— 生成分享海报 ———
+  onGeneratePoster() {
+    if (!this._checkRealNameGuard()) return
+    const post = this.data.currentSharePost
+    if (!post) return
+    this.onShareMenuClose()
+    this.setData({ showPoster: true, posterLoading: true, posterImagePath: '' })
+    // 延迟确保弹窗渲染完成后再绘制
+    setTimeout(() => {
+      this._drawPoster(post)
+    }, 300)
+  },
+
+  _drawPoster(post) {
+    const self = this
+    const ctx = wx.createCanvasContext('posterCanvas', this)
+    const canvasW = 300
+    const canvasH = 480
+
+    // 白色背景
+    ctx.setFillStyle('#ffffff')
+    ctx.fillRect(0, 0, canvasW, canvasH)
+
+    // 顶部绿色条
+    ctx.setFillStyle('#07c160')
+    ctx.fillRect(0, 0, canvasW, 6)
+
+    // 头像圆形背景
+    const avatarColor = post.avatarColor || '#07c160'
+    ctx.setFillStyle(avatarColor)
+    ctx.beginPath()
+    ctx.arc(36, 50, 24, 0, Math.PI * 2)
+    ctx.fill()
+
+    // 头像 emoji 文字
+    ctx.setFillStyle('#ffffff')
+    ctx.setFontSize(22)
+    ctx.setTextAlign('center')
+    ctx.fillText(post.avatarEmoji || '👤', 36, 58)
+
+    // 昵称
+    ctx.setFillStyle('#333333')
+    ctx.setFontSize(14)
+    ctx.setTextAlign('left')
+    ctx.fillText(post.nickname || '匿名用户', 70, 44)
+
+    // 时间
+    ctx.setFillStyle('#999999')
+    ctx.setFontSize(11)
+    ctx.fillText(post.time || '', 70, 62)
+
+    // 分类标签
+    ctx.setFillStyle('#e8f7ef')
+    ctx.fillRect(70, 68, 56, 18)
+    ctx.setFillStyle('#07c160')
+    ctx.setFontSize(10)
+    ctx.setTextAlign('center')
+    ctx.fillText(post.category || '', 98, 80)
+
+    // 分割线
+    ctx.setStrokeStyle('#eeeeee')
+    ctx.setLineWidth(1)
+    ctx.beginPath()
+    ctx.moveTo(16, 96)
+    ctx.lineTo(canvasW - 16, 96)
+    ctx.stroke()
+
+    // 正文（自动换行）
+    ctx.setFillStyle('#333333')
+    ctx.setFontSize(13)
+    ctx.setTextAlign('left')
+    const maxW = canvasW - 32
+    const lineH = 22
+    const words = post.content || ''
+    let line = ''
+    let y = 118
+    for (let i = 0; i < words.length; i++) {
+      const testLine = line + words[i]
+      if (ctx.measureText(testLine).width > maxW && i > 0) {
+        ctx.fillText(line, 16, y)
+        line = words[i]
+        y += lineH
+        if (y > 260) {
+          ctx.fillText(line + '...', 16, y)
+          line = ''
+          break
+        }
+      } else {
+        line = testLine
+      }
+    }
+    if (line) ctx.fillText(line, 16, y)
+
+    // 话题标签
+    if (post.tags && post.tags.length) {
+      ctx.setFillStyle('#07c160')
+      ctx.setFontSize(12)
+      ctx.setTextAlign('left')
+      ctx.fillText(post.tags.join('  '), 16, y + lineH + 8)
+    }
+
+    // 底部灰色区域
+    ctx.setFillStyle('#f7f7f7')
+    ctx.fillRect(0, canvasH - 100, canvasW, 100)
+
+    // 小程序码占位框
+    ctx.setStrokeStyle('#dddddd')
+    ctx.setLineWidth(1)
+    ctx.strokeRect(16, canvasH - 88, 64, 64)
+    ctx.setFillStyle('#07c160')
+    ctx.setFontSize(20)
+    ctx.setTextAlign('center')
+    ctx.fillText('☷', 48, canvasH - 48)
+    ctx.setFillStyle('#999')
+    ctx.setFontSize(9)
+    ctx.fillText('小程序码', 48, canvasH - 26)
+
+    // 右侧提示文字
+    ctx.setFillStyle('#555555')
+    ctx.setFontSize(13)
+    ctx.setTextAlign('left')
+    ctx.fillText('扫码查看完整帖子', 96, canvasH - 70)
+
+    ctx.setFillStyle('#07c160')
+    ctx.setFontSize(12)
+    ctx.fillText('平江汇生活', 96, canvasH - 50)
+
+    ctx.setFillStyle('#999999')
+    ctx.setFontSize(10)
+    ctx.fillText('发现身边美好生活', 96, canvasH - 34)
+
+    // 底部版权
+    ctx.setFillStyle('#cccccc')
+    ctx.setFontSize(9)
+    ctx.setTextAlign('center')
+    ctx.fillText('平江汇生活小程序', canvasW / 2, canvasH - 10)
+
+    ctx.draw(false, () => {
+      setTimeout(() => {
+        wx.canvasToTempFilePath({
+          canvasId: 'posterCanvas',
+          x: 0, y: 0,
+          width: canvasW,
+          height: canvasH,
+          destWidth: canvasW * 2,
+          destHeight: canvasH * 2,
+          success(res) {
+            self.setData({ posterImagePath: res.tempFilePath, posterLoading: false })
+          },
+          fail(err) {
+            console.error('canvasToTempFilePath fail', err)
+            self.setData({ posterLoading: false })
+            wx.showToast({ title: '海报生成失败，请重试', icon: 'none' })
+          }
+        }, self)
+      }, 200)
+    })
+  },
+
+  onSavePoster() {
+    const { posterImagePath, posterLoading } = this.data
+    if (posterLoading) {
+      wx.showToast({ title: '海报生成中，请稍候', icon: 'none' })
+      return
+    }
+    if (!posterImagePath) {
+      wx.showToast({ title: '海报尚未生成', icon: 'none' })
+      return
+    }
+    wx.saveImageToPhotosAlbum({
+      filePath: posterImagePath,
+      success() {
+        wx.showToast({ title: '已保存到相册', icon: 'success' })
+      },
+      fail(err) {
+        if (err.errMsg && err.errMsg.includes('auth deny')) {
+          wx.showModal({
+            title: '需要相册权限',
+            content: '请在设置中开启相册权限后重试',
+            confirmText: '去设置',
+            success(r) {
+              if (r.confirm) wx.openSetting()
+            }
+          })
+        } else {
+          wx.showToast({ title: '保存失败，请重试', icon: 'none' })
+        }
+      }
+    })
+  },
+
+  onClosePoster() {
+    this.setData({ showPoster: false, posterImagePath: '', posterLoading: false })
+  },
+
+  // ——— 分享到朋友圈（原生） ———
+  onShareTimeline() {
+    const post = this.data.currentSharePost || {}
+    return {
+      title: post.content ? post.content.slice(0, 30) : '平江汇生活社区',
+      query: `postId=${post.id || ''}`,
+    }
+  },
+
+  onShareToTimeline() {
+    if (!this._checkRealNameGuard()) return
+    const { isAndroid, currentSharePost } = this.data
+    this.onShareMenuClose()
+    if (isAndroid) {
+      wx.showToast({ title: '请点击右上角 → 分享到朋友圈', icon: 'none', duration: 2500 })
+    } else {
+      // iOS 降级为生成海报
+      wx.showModal({
+        title: 'iOS 暂不支持直接分享',
+        content: '将为您生成分享海报，保存后可发布到朋友圈',
+        confirmText: '生成海报',
+        cancelText: '取消',
+        success: (res) => {
+          if (res.confirm && currentSharePost) {
+            this.setData({ showPoster: true, posterLoading: true, posterImagePath: '' })
+            setTimeout(() => { this._drawPoster(currentSharePost) }, 300)
+          }
+        }
+      })
+    }
+  },
+
+  // ==================== 实名校验守卫 ====================
+  _checkRealNameGuard() {
+    if (!this.data.isRealNameVerified) {
+      wx.showModal({
+        title: '需要实名认证',
+        content: '分享功能需要完成实名认证后方可使用',
+        confirmText: '去认证',
+        cancelText: '取消',
+        success(res) {
+          if (res.confirm) {
+            wx.switchTab({ url: '/pages/mine/mine' })
+          }
+        }
+      })
+      return false
+    }
+    return true
+  },
+
+  // ==================== 关注 ====================
+  onFollowTap() {
+    wx.navigateTo({ url: '/pages/community/follow/index' })
+  },
+
+  // 阻止事件冒泡（操作栏用）
+  stopPropagation() {},
+}){
+  "navigationBarTitleText": "平江汇社区",
+  "navigationBarBackgroundColor": "#fff",
+  "navigationBarTextStyle": "black",
+  "enablePullDownRefresh": true,
+  "backgroundColor": "#f5f5f5"
+}
+<!--pages/community/community.wxml-->
+<view class="page-container">
+
+<!-- 顶部搜索栏（含返回按钮，已按方案修正bindtap） -->
+<view class="search-bar-wrap">
+  <!-- 返回按钮：bindtap必须与JS方法名完全一致 -->
+  <view class="nav-back-btn" bindtap="handleNavBack">
+    <text class="nav-back-icon">‹</text>
+  </view>
+
+  <!-- 原有搜索框代码保持不变 -->
+  <view class="search-input-wrap">
+    <text class="search-icon-text">🔍</text>
+    <input
+      class="search-input"
+      placeholder="搜索帖子、话题、用户"
+      placeholder-class="search-placeholder"
+      value="{{searchKeyword}}"
+      bindinput="onSearchInput"
+      confirm-type="search"
+    />
+    <view class="search-clear" wx:if="{{searchKeyword}}" bindtap="onSearchClear">×</view>
+  </view>
+
+  <view class="follow-btn" bindtap="onFollowTap">关注</view>
+</view>
+
+<!-- ===== 分类标签横向滚动栏（已按方案替换） ===== -->
+<scroll-view class="category-scroll" scroll-x enable-flex>
+  <view class="category-tab-list">
+
+    <view
+      wx:for="{{categories}}"
+      wx:key="index"
+      class="category-tab-item {{activeCategory === item ? 'category-tab-active' : ''}}"
+      bindtap="onCategoryTap"
+      data-category="{{item}}"
+      style="background-color: {{activeCategory === item ? categoryColorMap[item].text : categoryColorMap[item].bg}};color: {{activeCategory === item ? '#fff' : categoryColorMap[item].text}};border-color: {{categoryColorMap[item].text}};"
+    >
+      {{item}}
+    </view>
+
+  </view>
+</scroll-view>
+
+<!-- 帖子列表 -->
+<scroll-view class="post-list" scroll-y>
+  <view wx:if="{{filteredPosts.length === 0}}" class="empty-tip">暂无相关内容</view>
+
+  <view
+    wx:for="{{filteredPosts}}"
+    wx:key="id"
+    class="post-card"
+    data-id="{{item.id}}"
+    bindtap="onPostTap"
+  >
+    <!-- 用户信息行 -->
+    <view class="post-header">
+      <view class="post-avatar-wrap">
+        <image class="post-avatar" src="{{item.avatar}}" mode="aspectFill" />
+      </view>
+      <view class="post-meta">
+        <text class="post-nickname">{{item.nickname}}</text>
+        <text class="post-time">{{item.time}}</text>
+      </view>
+      <!-- 帖子分类标签（动态颜色，已按方案替换） -->
+      <view
+        class="post-category-tag"
+        style="background-color: {{item.tagBg || '#f0f0f0'}};"
+      >
+        <text
+          class="post-category-text"
+          style="color: {{item.tagText || '#888888'}};"
+        >{{item.category}}</text>
+      </view>
+    </view>
+
+    <!-- 正文 -->
+    <text class="post-content">{{item.content}}</text>
+
+    <!-- 图片（有图才渲染） -->
+    <view class="post-images" wx:if="{{item.images && item.images.length > 0}}">
+      <image
+        wx:for="{{item.images}}"
+        wx:key="index"
+        wx:for-item="img"
+        class="post-img {{item.images.length === 1 ? 'single' : ''}}"
+        src="{{img}}"
+        mode="aspectFill"
+      />
+    </view>
+
+    <!-- 话题标签 -->
+    <view class="post-tags" wx:if="{{item.tags && item.tags.length > 0}}">
+      <text
+        wx:for="{{item.tags}}"
+        wx:key="index"
+        wx:for-item="tag"
+        class="tag-item"
+      >{{tag}}</text>
+    </view>
+
+    <!-- 操作栏 -->
+    <view class="post-actions" catchtap="doNothing">
+      <!-- 点赞 -->
+      <view
+        class="action-btn {{item.liked ? 'liked' : ''}}"
+        data-id="{{item.id}}"
+        catchtap="onLikeTap"
+      >
+        <text class="action-icon-text {{item.liked ? 'liked-icon' : ''}}">👍</text>
+        <text>{{item.likeCount}}</text>
+      </view>
+      <!-- 评论 -->
+      <view class="action-btn" data-id="{{item.id}}" catchtap="onCommentTap">
+        <text class="action-icon-text">💬</text>
+        <text>{{item.commentCount}}</text>
+      </view>
+      <!-- 分享 -->
+      <view class="action-btn" data-id="{{item.id}}" catchtap="onShareTap">
+        <text class="action-icon-text">↗</text>
+        <text>分享</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部留白（避免被 tabBar 遮挡） -->
+  <view class="list-bottom-placeholder" />
+</scroll-view>
+
+<!-- 发帖按钮 -->
+<view class="publish-btn" bindtap="onPublishTap">
+  <text class="publish-icon-text">＋</text>
+</view>
+
+<!-- ==================== 分享菜单弹窗 ==================== -->
+<view
+  class="share-mask"
+  wx:if="{{showShareMenu}}"
+  catchtap="onShareMaskTap"
+/>
+<view class="share-sheet {{showShareMenu ? 'show' : ''}}">
+  <view class="share-sheet-title">分享到</view>
+  <view class="share-options">
+
+    <!-- 发给好友/群聊：button open-type="share" 触发原生转发 -->
+    <view class="share-option-item">
+      <button
+        class="share-btn-reset"
+        open-type="share"
+        bindtap="onShareToFriend"
+      >
+        <view class="share-option-icon-wrap friend-bg">
+          <text class="share-option-icon-text">💬</text>
+        </view>
+        <text class="share-option-label">好友/群聊</text>
+      </button>
+    </view>
+
+    <!-- 生成海报 -->
+    <view class="share-option-item" catchtap="onGeneratePoster">
+      <view class="share-option-icon-wrap poster-bg">
+        <text class="share-option-icon-text">🖼</text>
+      </view>
+      <text class="share-option-label">生成海报</text>
+    </view>
+
+    <!-- 分享到朋友圈 -->
+    <!-- Android：button open-type="shareTimeline" 触发原生朋友圈分享 -->
+    <!-- iOS：降级弹窗提示生成海报 -->
+    <view class="share-option-item" wx:if="{{isAndroid}}">
+      <button
+        class="share-btn-reset"
+        open-type="shareTimeline"
+        bindtap="onShareToTimeline"
+      >
+        <view class="share-option-icon-wrap moments-bg">
+          <text class="share-option-icon-text">🌐</text>
+        </view>
+        <text class="share-option-label">朋友圈</text>
+      </button>
+    </view>
+    <view class="share-option-item" wx:else catchtap="onShareToTimeline">
+      <view class="share-option-icon-wrap moments-bg">
+        <text class="share-option-icon-text">🌐</text>
+      </view>
+      <text class="share-option-label">朋友圈</text>
+    </view>
+
+  </view>
+  <view class="share-cancel" catchtap="onShareMenuClose">取消</view>
+</view>
+
+<!-- ==================== 海报预览弹窗 ==================== -->
+<view class="poster-mask" wx:if="{{showPoster}}" />
+<view class="poster-modal {{showPoster ? 'show' : ''}}">
+  <view class="poster-header">
+    <text class="poster-title">分享海报</text>
+    <view class="poster-close" catchtap="onClosePoster">×</view>
+  </view>
+
+  <!-- Canvas（隐藏，仅用于绘图） -->
+  <canvas
+    canvas-id="posterCanvas"
+    style="position:fixed;left:-9999px;top:-9999px;width:375px;height:620px;"
+  />
+
+  <!-- 预览区 -->
+  <view class="poster-preview">
+    <view wx:if="{{posterLoading}}" class="poster-loading">
+      <text class="poster-loading-text">海报生成中...</text>
+    </view>
+    <image
+      wx:if="{{!posterLoading && posterImagePath}}"
+      class="poster-img"
+      src="{{posterImagePath}}"
+      mode="aspectFit"
+      show-menu-by-longpress="{{true}}"
+    />
+    <view wx:if="{{!posterLoading && !posterImagePath}}" class="poster-error">
+      <text class="poster-error-text">生成失败，请关闭重试</text>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="poster-actions">
+    <view
+      class="poster-save-btn {{posterLoading ? 'disabled' : ''}}"
+      catchtap="onSavePoster"
+    >保存到相册</view>
+    <view class="poster-cancel-btn" catchtap="onClosePoster">关闭</view>
+  </view>
+
+  <view class="poster-tip">长按图片也可保存到相册</view>
+</view>
+
+</view>/* pages/community/community.wxss */
+
+/* ==================== 基础容器 ==================== */
+.page-container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #F5F0E8;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ==================== 搜索栏 ==================== */
+.search-bar {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 24rpx;
+  background: #ffffff;
+  gap: 16rpx;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  box-shadow: 0 2rpx 8rpx rgba(0,0,0,0.04);
+}
+.back-icon {
+  font-size: 36rpx;
+  color: #D4820A;
+}
+
+.search-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #f5f5f5;
+  border-radius: 32rpx;
+  padding: 10rpx 20rpx;
+  gap: 10rpx;
+}
+
+.search-icon-text {
+  font-size: 28rpx;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+  background: transparent;
+  height: 48rpx;
+  line-height: 48rpx;
+}
+
+.search-placeholder {
+  color: #bbbbbb;
+  font-size: 28rpx;
+}
+
+.search-clear {
+  font-size: 36rpx;
+  color: #bbb;
+  padding: 0 4rpx;
+  line-height: 1;
+}
+
+.follow-btn {
+  font-size: 28rpx;
+  color: #07c160;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 8rpx 0;
+}
+
+/* ==================== 分类标签 ==================== */
+.category-bar {
+  display: flex;
+  flex-direction: row;
+  white-space: nowrap;
+  background: #ffffff;
+  padding: 12rpx 16rpx 16rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  flex-shrink: 0;
+}
+
+.category-item {
+  display: inline-block;
+  padding: 10rpx 28rpx;
+  margin-right: 12rpx;
+  border-radius: 32rpx;
+  font-size: 26rpx;
+  color: #666;
+  background: #f5f5f5;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.category-item.active {
+  background: #07c160;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* ==================== 帖子列表 ==================== */
+.post-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16rpx;
+  box-sizing: border-box;
+}
+
+.list-bottom-placeholder {
+  height: 160rpx;
+}
+
+.empty-tip {
+  text-align: center;
+  color: #bbb;
+  font-size: 28rpx;
+  padding: 100rpx 0;
+}
+
+/* ==================== 帖子卡片 ==================== */
+.post-card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 12rpx rgba(0,0,0,0.04);
+}
+
+.post-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 16rpx;
+  gap: 16rpx;
+}
+
+.post-avatar-wrap {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: #f0f0f0;
+}
+
+.post-avatar {
+  width: 72rpx;
+  height: 72rpx;
+  border-radius: 50%;
+  display: block;
+}
+
+.post-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  overflow: hidden;
+}
+
+.post-nickname {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.post-time {
+  font-size: 22rpx;
+  color: #999;
+}
+
+.post-category-tag {
+  font-size: 22rpx;
+  color: #07c160;
+  background: #e8f7ef;
+  padding: 4rpx 18rpx;
+  border-radius: 20rpx;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.post-content {
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.75;
+  margin-bottom: 16rpx;
+  display: block;
+  word-break: break-all;
+}
+
+/* 图片网格 */
+.post-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+  margin-bottom: 16rpx;
+}
+
+.post-img {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 8rpx;
+  background: #f0f0f0;
+}
+
+.post-img.single {
+  width: 320rpx;
+  height: 240rpx;
+}
+
+/* 话题标签 */
+.post-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10rpx;
+  margin-bottom: 16rpx;
+}
+
+.tag-item {
+  font-size: 24rpx;
+  color: #07c160;
+}
+
+/* 操作栏 */
+.post-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 48rpx;
+  padding-top: 16rpx;
+  border-top: 1rpx solid #f5f5f5;
+}
+
+.action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  font-size: 26rpx;
+  color: #999;
+}
+
+.action-btn.liked {
+  color: #07c160;
+}
+
+.action-icon-text {
+  font-size: 30rpx;
+  line-height: 1;
+}
+
+.liked-icon {
+  color: #07c160;
+}
+
+/* ==================== 发帖悬浮按钮 ==================== */
+.publish-btn {
+  position: fixed;
+  right: 40rpx;
+  bottom: 140rpx;
+  width: 96rpx;
+  height: 96rpx;
+  background: #07c160;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8rpx 24rpx rgba(7,193,96,0.45);
+  z-index: 50;
+}
+
+.publish-icon-text {
+  font-size: 52rpx;
+  color: #ffffff;
+  line-height: 1;
+  margin-top: -4rpx;
+}
+
+/* ==================== 分享菜单 ==================== */
+.share-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 100;
+}
+
+.share-sheet {
+  position: fixed;
+  bottom: -400rpx;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 32rpx 0 60rpx;
+  z-index: 101;
+  transition: bottom 0.3s ease;
+}
+
+.share-sheet.show {
+  bottom: 0;
+}
+
+.share-sheet-title {
+  text-align: center;
+  font-size: 26rpx;
+  color: #aaa;
+  margin-bottom: 36rpx;
+}
+
+.share-options {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 56rpx;
+  padding: 0 32rpx 32rpx;
+}
+
+.share-option-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14rpx;
+}
+
+/* 重置 button 默认样式 */
+.share-btn-reset {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  line-height: normal !important;
+  font-size: inherit !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14rpx;
+}
+
+.share-btn-reset::after {
+  display: none !important;
+  border: none !important;
+}
+
+.share-option-icon-wrap {
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.friend-bg   { background: #e8f4ff; }
+.poster-bg   { background: #fff3e8; }
+.moments-bg  { background: #e8f7ef; }
+
+.share-option-icon-text {
+  font-size: 44rpx;
+  line-height: 1;
+}
+
+.share-option-label {
+  font-size: 24rpx;
+  color: #555;
+  white-space: nowrap;
+}
+
+.share-cancel {
+  text-align: center;
+  font-size: 30rpx;
+  color: #333;
+  padding: 24rpx 0 0;
+  border-top: 1rpx solid #f0f0f0;
+  margin: 0 32rpx;
+}
+
+/* ==================== 海报弹窗 ==================== */
+.poster-mask {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.7);
+  z-index: 200;
+}
+
+.poster-modal {
+  position: fixed;
+  bottom: -100%;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border-radius: 24rpx 24rpx 0 0;
+  padding: 32rpx 32rpx 48rpx;
+  z-index: 201;
+  transition: bottom 0.3s ease;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.poster-modal.show {
+  bottom: 0;
+}
+
+.poster-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+  flex-shrink: 0;
+}
+
+.poster-title {
+  font-size: 32rpx;
+  color: #333;
+  font-weight: 600;
+}
+
+.poster-close {
+  font-size: 52rpx;
+  color: #bbb;
+  line-height: 1;
+  padding: 0 8rpx;
+}
+
+.poster-preview {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 420rpx;
+  max-height: 55vh;
+  background: #f5f5f5;
+  border-radius: 16rpx;
+  margin-bottom: 24rpx;
+  overflow: hidden;
+}
+
+.poster-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.poster-loading-text {
+  font-size: 28rpx;
+  color: #999;
+}
+
+.poster-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 16rpx;
+}
+
+.poster-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.poster-error-text {
+  font-size: 26rpx;
+  color: #ff4d4f;
+}
+
+.poster-actions {
+  display: flex;
+  gap: 20rpx;
+  flex-shrink: 0;
+}
+
+.poster-save-btn {
+  flex: 1;
+  background: #07c160;
+  color: #ffffff;
+  text-align: center;
+  padding: 26rpx 0;
+  border-radius: 48rpx;
+  font-size: 30rpx;
+  font-weight: 600;
+}
+
+.poster-save-btn.disabled {
+  background: #aaaaaa;
+}
+
+.poster-cancel-btn {
+  width: 160rpx;
+  background: #f5f5f5;
+  color: #666;
+  text-align: center;
+  padding: 26rpx 0;
+  border-radius: 48rpx;
+  font-size: 30rpx;
+}
+
+.poster-tip {
+  text-align: center;
+  font-size: 22rpx;
+  color: #bbb;
+  margin-top: 16rpx;
+  flex-shrink: 0;
+}
+/* ─── 分类标签横向滚动栏 ─────────────────────────────────── */
+
+.category-scroll {
+  width: 100%;
+  white-space: nowrap;
+  background-color: #fff;
+  padding: 12rpx 0;
+  border-bottom: 1rpx solid #f5ead8;
+}
+
+.category-tab-list {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 0 20rpx;
+  gap: 16rpx;
+}
+
+/* 标签基础样式 */
+.category-tab-item {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10rpx 28rpx;
+  border-radius: 32rpx;
+  font-size: 26rpx;
+  font-weight: 500;
+  border: 1rpx solid transparent;
+  flex-shrink: 0;
+  transition: all 0.2s;
+  /* background-color / color / border-color 由 style 动态注入 */
+}
+
+/* 激活状态由 style 内联控制，此处保留点击态 */
+.category-tab-item:active {
+  opacity: 0.82;
+}
+
+/* ─── 帖子分类标签 ──────────────────────────────────────── */
+
+.post-category-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 4rpx 16rpx;
+  border-radius: 24rpx;
+  flex-shrink: 0;
+}
+
+.post-category-text {
+  font-size: 22rpx;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* ─── 平江贴吧首页第二行 grid 间距 ─────────────────────── */
+
+.tieba-grid-second {
+  margin-top: 16rpx;
+}
+
+/* 萌宠图标背景色 */
+.tieba-icon-pet {
+  background-color: #fce8f5;
+}

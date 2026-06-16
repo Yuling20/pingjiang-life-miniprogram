@@ -1,0 +1,1109 @@
+// pages/community/publish/index.js
+Page({
+  data: {
+    // ─── 实名状态 ──────────────────────────────────
+    isAuthed: false,
+
+    // ─── 底部 Tab ──────────────────────────────────
+    activeTab: 'text',
+
+    // ─── 表单内容 ─────────────────────────────────
+    content: '',
+    contentCount: 0,
+
+    // ─── 图片 ──────────────────────────────────────
+    images: [],   // 最多9张
+
+    // ─── 视频 ──────────────────────────────────────
+    video: null,
+    videoThumb: '',
+
+    // ─── 话题 ──────────────────────────────────────
+    selectedTopic: '',
+    showTopicPanel: false,
+    hotTopics: [
+      '平江生活', '本地美食', '平江旅游', '亲子活动',
+      '二手交流', '租房求租', '求职招聘', '平江新鲜事',
+      '中式美学', '健康养生', '爱宠乐园', '运动健身',
+    ],
+
+    // ─── 可见范围 ──────────────────────────────────
+    visibility: 'public',
+
+    // ─── AI 灵感 ───────────────────────────────────
+    showAiTip: false,
+    currentAiTip: '',
+    aiTips: [
+      '分享一个你最近发现的平江美食打卡地 🍜',
+      '聊聊平江最近有什么好玩的活动？🎉',
+      '推荐一个平江周边适合周末游的地方 🌿',
+      '说说你对平江近期变化的感受 🏙️',
+      '有什么平江生活小技巧想分享吗？💡',
+    ],
+
+    // ─── 发布状态 ──────────────────────────────────
+    isPublishing: false,
+    canPublish: false,
+  },
+
+  // ═══ 生命周期 ════════════════════════════════════
+
+  onLoad() {
+    // ✅ 问题1修复：进入页面立即校验实名，未认证直接拦截
+    this._checkAuth();
+  },
+
+  onShow() {
+    // 每次显示页面都重新校验（防止用户从设置返回后状态变化）
+    this._checkAuth();
+    this._refreshCanPublish();
+  },
+
+  // ═══ 实名校验（强制前置）════════════════════════════
+
+  /**
+   * ✅ 问题1修复核心：
+   * 发布页进入 onLoad 时即调用此方法，
+   * 未实名则弹窗提示并返回上一页，不允许进入发布流程。
+   */
+  _checkAuth() {
+    const info1 = wx.getStorageSync('userRealNameInfo');
+    const info2 = wx.getStorageSync('userAuthStatus');
+    const isAuthed = !!(
+      (info1 && info1.verified) || info2 === true
+    );
+    this.setData({ isAuthed });
+
+    if (!isAuthed) {
+      wx.showModal({
+        title: '发帖需要实名认证',
+        content: '发帖功能需完成实名认证后方可使用，请前往「我的」页面完成认证。',
+        confirmText: '去认证',
+        cancelText: '取消',
+        showCancel: true,
+        success: (res) => {
+          if (res.confirm) {
+            wx.switchTab({ url: '/pages/mine/mine' });
+          } else {
+            // 取消也返回，不允许停留在发布页
+            wx.navigateBack({ delta: 1 });
+          }
+        },
+        // 点击蒙层关闭也返回
+        fail: () => {
+          wx.navigateBack({ delta: 1 });
+        },
+      });
+    }
+  },
+
+  // ═══ canPublish 计算 ═════════════════════════════
+
+  _refreshCanPublish() {
+    const { content, images, video } = this.data;
+    const canPublish =
+      content.trim().length > 0 ||
+      images.length > 0 ||
+      !!video;
+    this.setData({ canPublish });
+  },
+
+  // ═══ 底部类型 Tab ═════════════════════════════════
+
+  onSwitchTab(e) {
+    const tab = e.currentTarget.dataset.tab;
+    this.setData({ activeTab: tab });
+    if (tab === 'image') {
+      if (this.data.video) {
+        wx.showToast({ title: '已有视频，不能同时添加图片', icon: 'none' });
+      } else if (this.data.images.length >= 9) {
+        wx.showToast({ title: '最多上传9张图片', icon: 'none' });
+      } else {
+        this._pickImages();
+      }
+    } else if (tab === 'video') {
+      if (this.data.images.length > 0) {
+        wx.showToast({ title: '已有图片，不能同时添加视频', icon: 'none' });
+      } else if (this.data.video) {
+        wx.showToast({ title: '已有视频，如需更换请先删除', icon: 'none' });
+      } else {
+        this._pickVideo();
+      }
+    }
+  },
+
+  // ═══ 正文输入 ════════════════════════════════════
+
+  onContentInput(e) {
+    const val = e.detail.value;
+    this.setData({ content: val, contentCount: val.length });
+    this._refreshCanPublish();
+  },
+
+  // ═══ 图片操作 ════════════════════════════════════
+
+  _pickImages() {
+    const remain = 9 - this.data.images.length;
+    wx.chooseMedia({
+      count: remain,
+      mediaType: ['image'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const newImgs = res.tempFiles.map(f => f.tempFilePath);
+        const images = [...this.data.images, ...newImgs];
+        this.setData({ images });
+        this._refreshCanPublish();
+      },
+    });
+  },
+
+  onChooseImage() {
+    if (this.data.video) {
+      wx.showToast({ title: '已有视频，不能同时添加图片', icon: 'none' });
+      return;
+    }
+    if (this.data.images.length >= 9) {
+      wx.showToast({ title: '最多上传9张图片', icon: 'none' });
+      return;
+    }
+    this._pickImages();
+  },
+
+  onDeleteImage(e) {
+    const idx = e.currentTarget.dataset.idx;
+    const images = [...this.data.images];
+    images.splice(idx, 1);
+    this.setData({ images });
+    this._refreshCanPublish();
+  },
+
+  onPreviewImage(e) {
+    wx.previewImage({
+      current: this.data.images[e.currentTarget.dataset.idx],
+      urls: this.data.images,
+    });
+  },
+
+  // ═══ 视频操作 ════════════════════════════════════
+
+  _pickVideo() {
+    wx.chooseMedia({
+      count: 1,
+      mediaType: ['video'],
+      sourceType: ['album', 'camera'],
+      maxDuration: 180,
+      camera: 'back',
+      success: (res) => {
+        const file = res.tempFiles[0];
+        this.setData({
+          video: {
+            tempFilePath: file.tempFilePath,
+            duration: file.duration,
+            thumbTempFilePath: file.thumbTempFilePath || '',
+          },
+          videoThumb: file.thumbTempFilePath || '',
+        });
+        this._refreshCanPublish();
+      },
+    });
+  },
+
+  onDeleteVideo() {
+    wx.showModal({
+      title: '删除视频',
+      content: '确认删除已选视频？',
+      confirmText: '删除',
+      cancelText: '取消',
+      success: (res) => {
+        if (res.confirm) {
+          this.setData({ video: null, videoThumb: '' });
+          this._refreshCanPublish();
+        }
+      },
+    });
+  },
+
+  onPreviewVideo() {
+    if (!this.data.video) return;
+    wx.previewMedia({
+      sources: [{ url: this.data.video.tempFilePath, type: 'video' }],
+    });
+  },
+
+  // ═══ 话题操作 ════════════════════════════════════
+
+  onOpenTopic() { this.setData({ showTopicPanel: true }); },
+  onCloseTopic() { this.setData({ showTopicPanel: false }); },
+
+  onSelectTopic(e) {
+    const topic = e.currentTarget.dataset.topic;
+    this.setData({
+      selectedTopic: this.data.selectedTopic === topic ? '' : topic,
+      showTopicPanel: false,
+    });
+  },
+
+  onClearTopic() { this.setData({ selectedTopic: '' }); },
+
+  // ═══ 可见范围 ════════════════════════════════════
+
+  onToggleVisibility() {
+    this.setData({
+      visibility: this.data.visibility === 'public' ? 'follow' : 'public',
+    });
+  },
+
+  // ═══ AI 灵感 ═════════════════════════════════════
+
+  onAiInspire() {
+    const tips = this.data.aiTips;
+    const tip = tips[Math.floor(Math.random() * tips.length)];
+    this.setData({ showAiTip: true, currentAiTip: tip });
+    setTimeout(() => this.setData({ showAiTip: false }), 5000);
+  },
+
+  onUseAiTip() {
+    const tip = this.data.currentAiTip
+      .replace(/[\u{1F300}-\u{1FFFF}]/gu, '')
+      .trim();
+    this.setData({ content: tip, contentCount: tip.length, showAiTip: false });
+    this._refreshCanPublish();
+  },
+
+  onCloseAiTip() { this.setData({ showAiTip: false }); },
+
+  // ═══ 关闭 / 返回 ═════════════════════════════════
+
+  onClose() {
+    const { content, images, video } = this.data;
+    if (!content.trim() && images.length === 0 && !video) {
+      wx.navigateBack({ delta: 1 });
+      return;
+    }
+    wx.showModal({
+      title: '放弃发布？',
+      content: '当前内容将不会保存，确认放弃？',
+      confirmText: '放弃',
+      cancelText: '继续编辑',
+      success: (res) => {
+        if (res.confirm) wx.navigateBack({ delta: 1 });
+      },
+    });
+  },
+
+  // ═══ 发布 ════════════════════════════════════════
+
+  onPublish() {
+    // 双重校验，防止绕过
+    if (!this.data.isAuthed) { this._checkAuth(); return; }
+    if (!this.data.canPublish) {
+      wx.showToast({ title: '请输入内容或添加图片/视频', icon: 'none' });
+      return;
+    }
+    if (this.data.isPublishing) return;
+
+    this.setData({ isPublishing: true });
+    wx.showLoading({ title: '发布中...' });
+
+    // ── 积分奖励 ──
+    try {
+      const pts = wx.getStorageSync('userPoints');
+      let cur = 0;
+      if (typeof pts === 'number') {
+        cur = pts;
+        wx.setStorageSync('userPoints', cur + 10);
+      } else if (pts && typeof pts.total === 'number') {
+        wx.setStorageSync('userPoints', { ...pts, total: pts.total + 10 });
+      } else {
+        wx.setStorageSync('userPoints', 10);
+      }
+      const records = wx.getStorageSync('pointsEarnRecords') || [];
+      records.unshift({ scene: '发布帖子', points: 10, time: new Date().toISOString() });
+      wx.setStorageSync('pointsEarnRecords', records.slice(0, 200));
+    } catch (e) {
+      console.warn('[publish] 积分同步失败', e);
+    }
+
+    const { content, images, video, selectedTopic, visibility } = this.data;
+    let mediaType = 'text';
+    if (video) mediaType = 'video';
+    else if (images.length > 0 && content.trim()) mediaType = 'imageText';
+    else if (images.length > 0) mediaType = 'image';
+
+    const post = {
+      id: Date.now(),
+      content: content.trim(),
+      images: images.slice(),
+      video: video ? { ...video } : null,
+      mediaType,
+      topic: selectedTopic,
+      visibility,
+      publishTime: new Date().toISOString(),
+      likeCount: 0,
+      commentCount: 0,
+      shareCount: 0,
+      isLiked: false,
+    };
+
+    try {
+      const list = wx.getStorageSync('myPublishedPosts') || [];
+      list.unshift(post);
+      wx.setStorageSync('myPublishedPosts', list);
+    } catch (e) {
+      console.warn('[publish] 写入失败', e);
+    }
+
+    setTimeout(() => {
+      wx.hideLoading();
+      this.setData({ isPublishing: false });
+      wx.showToast({ title: '发布成功 +10积分', icon: 'success', duration: 2000 });
+      setTimeout(() => wx.navigateBack({ delta: 1 }), 1600);
+    }, 1200);
+  },
+
+  // ─── 分享相关（保留原生分享hook） ────────────────
+  onShareAppMessage() {
+    return {
+      title: '平江汇生活社区',
+      path: '/pages/community/community',
+    };
+  },
+});
+{
+  "navigationBarTitleText": "发帖子",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#FFFDF8",
+  "usingComponents": {}
+}
+<!-- pages/community/publish/index.wxml -->
+<view class="publish-page">
+
+<!-- ═══ 顶部导航 ═══ -->
+<view class="nav-bar">
+  <view class="nav-close" bindtap="onClose">
+    <text class="nav-close-icon">✕</text>
+  </view>
+  <text class="nav-title">发帖子</text>
+  <view
+    class="nav-pub-btn {{canPublish && !isPublishing ? 'nav-pub-btn--on' : ''}}"
+    bindtap="onPublish"
+  >
+    <text>{{isPublishing ? '发布中' : '发布'}}</text>
+  </view>
+</view>
+
+<!-- ═══ 实名提示条 ═══ -->
+<view class="auth-bar" wx:if="{{!isAuthed}}">
+  <text class="auth-bar__icon">🔐</text>
+  <text class="auth-bar__text">发帖、点赞、评论等互动均需实名认证</text>
+  <view class="auth-bar__btn" bindtap="_checkAuth">去认证</view>
+</view>
+
+<!-- ═══ 主体滚动区 ═══ -->
+<scroll-view class="pub-body" scroll-y>
+
+  <!-- 正文输入 -->
+  <view class="text-area-wrap">
+    <textarea
+      class="text-input"
+      placeholder="分享你的平江生活，超过10字获得更多曝光～"
+      placeholder-class="text-ph"
+      value="{{content}}"
+      bindinput="onContentInput"
+      maxlength="1000"
+      auto-height
+      focus="{{isAuthed}}"
+    />
+    <text class="text-count">{{contentCount}}/1000</text>
+  </view>
+
+  <!-- AI 灵感卡 -->
+  <view class="ai-card" wx:if="{{showAiTip}}">
+    <view class="ai-card__head">
+      <text class="ai-card__label">✨ AI创作灵感</text>
+      <text class="ai-card__close" bindtap="onCloseAiTip">✕</text>
+    </view>
+    <text class="ai-card__tip">{{currentAiTip}}</text>
+    <view class="ai-card__use" bindtap="onUseAiTip">使用这个灵感</view>
+  </view>
+
+  <!-- 已选话题 -->
+  <view class="topic-tag" wx:if="{{selectedTopic}}">
+    <text class="topic-tag__hash">#</text>
+    <text class="topic-tag__name">{{selectedTopic}}</text>
+    <text class="topic-tag__del" bindtap="onClearTopic">✕</text>
+  </view>
+
+  <!-- ══ 媒体区：图片 + 视频互斥 ══ -->
+
+  <!-- 图片区（无视频时显示） -->
+  <view class="media-section" wx:if="{{!video}}">
+
+    <!-- 有图片时展示网格 -->
+    <view class="img-grid" wx:if="{{images.length > 0}}">
+      <view
+        class="img-cell"
+        wx:for="{{images}}"
+        wx:key="*this"
+        wx:for-index="idx"
+      >
+        <image
+          class="img-cell__img"
+          src="{{item}}"
+          mode="aspectFill"
+          data-idx="{{idx}}"
+          bindtap="onPreviewImage"
+        />
+        <view class="img-cell__del" data-idx="{{idx}}" bindtap="onDeleteImage">
+          <text>✕</text>
+        </view>
+      </view>
+
+      <!-- 未满9张显示添加按钮 -->
+      <view
+        class="img-add-btn"
+        wx:if="{{images.length < 9}}"
+        bindtap="onChooseImage"
+      >
+        <text class="img-add-btn__plus">＋</text>
+        <text class="img-add-btn__label">添加图片</text>
+      </view>
+    </view>
+
+  </view>
+
+  <!-- 视频区（有视频时显示） -->
+  <view class="video-section" wx:if="{{video}}">
+    <view class="video-wrap">
+      <!-- 封面预览 -->
+      <image
+        class="video-thumb"
+        src="{{videoThumb}}"
+        mode="aspectFill"
+        bindtap="onPreviewVideo"
+      />
+      <!-- 播放图标 -->
+      <view class="video-play-icon" bindtap="onPreviewVideo">
+        <text class="video-play-icon__tri">▶</text>
+      </view>
+      <!-- 时长 -->
+      <view class="video-duration">
+        <text class="video-duration__txt">
+          {{video.duration ? (video.duration > 60 ? (Math.floor(video.duration/60) + ':' + (video.duration%60 < 10 ? '0' : '') + (video.duration%60)) : ('0:' + (video.duration < 10 ? '0' : '') + video.duration)) : '--:--'}}
+        </text>
+      </view>
+      <!-- 删除 -->
+      <view class="video-del" bindtap="onDeleteVideo">
+        <text>🗑️ 删除视频</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ══ 工具栏 ══ -->
+  <view class="tool-bar">
+    <view class="tool-item" bindtap="onAiInspire">
+      <text class="tool-item__icon">✨</text>
+      <text class="tool-item__label">AI灵感</text>
+    </view>
+    <view class="tool-item" bindtap="onOpenTopic">
+      <text class="tool-item__icon">#</text>
+      <text class="tool-item__label">{{selectedTopic ? selectedTopic : '加话题'}}</text>
+    </view>
+    <view class="tool-item tool-item--vis" bindtap="onToggleVisibility">
+      <text class="tool-item__icon">{{visibility === 'public' ? '🌐' : '👥'}}</text>
+      <text class="tool-item__label">{{visibility === 'public' ? '广场可见' : '仅关注'}}</text>
+      <text class="tool-item__arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 规则提示 -->
+  <view class="rule-tip">
+    <text class="rule-tip__icon">📋</text>
+    <text class="rule-tip__text">
+      禁止发布广告、联系方式、违规信息。优质帖子可获 +10 积分奖励 🎁
+    </text>
+  </view>
+
+  <!-- 积分激励 -->
+  <view class="pts-tip">
+    <text class="pts-tip__icon">🎁</text>
+    <text class="pts-tip__text">发帖 +10积分 · 被点赞 +2积分 · 被评论 +3积分</text>
+  </view>
+
+  <view style="height:200rpx;"></view>
+</scroll-view>
+
+<!-- ═══ 底部类型切换栏 ═══ -->
+<view class="bottom-bar">
+  <!-- 发文字（始终高亮，因为文字区始终存在） -->
+  <view
+    class="bottom-tab {{activeTab === 'text' ? 'bottom-tab--on' : ''}}"
+    bindtap="onSwitchTab"
+    data-tab="text"
+  >
+    <text class="bottom-tab__icon">📝</text>
+    <text class="bottom-tab__label">文字</text>
+  </view>
+
+  <!-- 发图片（有图片时高亮） -->
+  <view
+    class="bottom-tab {{images.length > 0 || activeTab === 'image' ? 'bottom-tab--on' : ''}}"
+    bindtap="onSwitchTab"
+    data-tab="image"
+  >
+    <text class="bottom-tab__icon">🖼️</text>
+    <text class="bottom-tab__label">
+      {{images.length > 0 ? images.length + '张图片' : '图片'}}
+    </text>
+  </view>
+
+  <!-- 发视频（有视频时高亮） -->
+  <view
+    class="bottom-tab {{video || activeTab === 'video' ? 'bottom-tab--on' : ''}}"
+    bindtap="onSwitchTab"
+    data-tab="video"
+  >
+    <text class="bottom-tab__icon">🎬</text>
+    <text class="bottom-tab__label">{{video ? '已添视频' : '视频'}}</text>
+  </view>
+
+  <!-- 分割线 -->
+  <view class="bottom-divider"></view>
+
+  <!-- @Ta（预留） -->
+  <view class="bottom-extra" bindtap="onAiInspire">
+    <text class="bottom-extra__icon">✨</text>
+    <text class="bottom-extra__label">灵感</text>
+  </view>
+  <view class="bottom-extra" bindtap="onOpenTopic">
+    <text class="bottom-extra__icon">#</text>
+    <text class="bottom-extra__label">话题</text>
+  </view>
+</view>
+
+<!-- ═══ 话题面板 ═══ -->
+<view
+  class="topic-mask {{showTopicPanel ? 'topic-mask--show' : ''}}"
+  bindtap="onCloseTopic"
+>
+  <view class="topic-panel" catchtap="">
+    <view class="topic-panel__handle"></view>
+    <text class="topic-panel__title">选择话题</text>
+    <text class="topic-panel__sub">选对话题，让更多人看到你的帖子</text>
+    <scroll-view class="topic-scroll" scroll-y>
+      <view class="topic-grid">
+        <view
+          class="topic-item {{selectedTopic === item ? 'topic-item--on' : ''}}"
+          wx:for="{{hotTopics}}"
+          wx:key="*this"
+          data-topic="{{item}}"
+          bindtap="onSelectTopic"
+        >
+          <text class="topic-item__hash">#</text>
+          <text class="topic-item__name">{{item}}</text>
+        </view>
+      </view>
+    </scroll-view>
+    <view class="topic-panel__close" bindtap="onCloseTopic">关闭</view>
+  </view>
+</view>
+
+</view>
+/* pages/community/publish/index.wxss */
+page {
+  background: #FFFDF8;
+  font-family: -apple-system, 'PingFang SC', sans-serif;
+}
+
+.publish-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background: #FFFDF8;
+  overflow: hidden;
+}
+
+/* ══ 顶部导航 ═══════════════════════════════════════ */
+.nav-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20rpx 32rpx;
+  background: #FFF8EE;
+  border-bottom: 1rpx solid #EDE3D0;
+  flex-shrink: 0;
+}
+
+.nav-close {
+  width: 64rpx;
+  height: 64rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-close-icon {
+  font-size: 36rpx;
+  color: #7A6050;
+}
+
+.nav-title {
+  font-size: 32rpx;
+  font-weight: 700;
+  color: #3A2F1E;
+}
+
+.nav-pub-btn {
+  padding: 14rpx 40rpx;
+  border-radius: 40rpx;
+  background: #D0C4B0;
+  color: #F5EFE6;
+  font-size: 28rpx;
+  font-weight: 700;
+}
+
+.nav-pub-btn--on {
+  background: #D4820A;
+  color: #FFFFFF;
+}
+
+/* ══ 实名提示条 ════════════════════════════════════ */
+.auth-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 16rpx 28rpx;
+  background: #FFF3CD;
+  border-bottom: 1rpx solid #FFD580;
+  flex-shrink: 0;
+}
+
+.auth-bar__icon { font-size: 28rpx; margin-right: 10rpx; }
+.auth-bar__text { flex: 1; font-size: 24rpx; color: #856404; }
+.auth-bar__btn {
+  font-size: 24rpx;
+  color: #D4820A;
+  font-weight: 700;
+  padding: 6rpx 20rpx;
+  border: 1rpx solid #D4820A;
+  border-radius: 20rpx;
+}
+
+/* ══ 主体滚动区 ════════════════════════════════════ */
+.pub-body {
+  flex: 1;
+  overflow: hidden;
+}
+
+/* ══ 正文输入 ══════════════════════════════════════ */
+.text-area-wrap {
+  padding: 28rpx 32rpx 0;
+}
+
+.text-input {
+  width: 100%;
+  min-height: 200rpx;
+  font-size: 30rpx;
+  color: #3A2F1E;
+  line-height: 1.8;
+  box-sizing: border-box;
+  background: transparent;
+}
+
+.text-ph {
+  color: #C4B8A8;
+  font-size: 30rpx;
+}
+
+.text-count {
+  display: block;
+  text-align: right;
+  font-size: 22rpx;
+  color: #C4B8A8;
+  margin-top: 8rpx;
+}
+
+/* ══ AI 灵感卡 ══════════════════════════════════════ */
+.ai-card {
+  margin: 16rpx 28rpx;
+  background: linear-gradient(135deg, #FFF0D4, #FFF8EE);
+  border: 1rpx solid #F0D090;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+}
+
+.ai-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+
+.ai-card__label { font-size: 24rpx; font-weight: 700; color: #D4820A; }
+.ai-card__close { font-size: 28rpx; color: #A08060; padding: 4rpx 8rpx; }
+.ai-card__tip {
+  font-size: 26rpx;
+  color: #5A4030;
+  line-height: 1.7;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.ai-card__use {
+  display: inline-block;
+  padding: 10rpx 28rpx;
+  background: #D4820A;
+  color: #fff;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  font-weight: 600;
+}
+
+/* ══ 已选话题 ══════════════════════════════════════ */
+.topic-tag {
+  display: inline-flex;
+  align-items: center;
+  margin: 8rpx 28rpx 0;
+  padding: 10rpx 20rpx;
+  background: #FFF0D4;
+  border: 1rpx solid #D4820A;
+  border-radius: 20rpx;
+  gap: 6rpx;
+}
+
+.topic-tag__hash { font-size: 26rpx; font-weight: 700; color: #D4820A; }
+.topic-tag__name { font-size: 26rpx; color: #D4820A; font-weight: 600; }
+.topic-tag__del  { font-size: 24rpx; color: #A08060; padding: 0 4rpx; }
+
+/* ══ 图片网格 ══════════════════════════════════════ */
+.media-section {
+  padding: 20rpx 28rpx;
+}
+
+.img-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+}
+
+.img-cell {
+  width: 212rpx;
+  height: 212rpx;
+  border-radius: 12rpx;
+  position: relative;
+  overflow: visible;
+}
+
+.img-cell__img {
+  width: 212rpx;
+  height: 212rpx;
+  border-radius: 12rpx;
+  display: block;
+}
+
+.img-cell__del {
+  position: absolute;
+  top: -14rpx;
+  right: -14rpx;
+  width: 44rpx;
+  height: 44rpx;
+  background: rgba(0,0,0,.65);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20rpx;
+  z-index: 10;
+}
+
+.img-add-btn {
+  width: 212rpx;
+  height: 212rpx;
+  border-radius: 12rpx;
+  border: 2rpx dashed #D4B896;
+  background: #FAF5EE;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+
+.img-add-btn__plus { font-size: 56rpx; color: #C4A882; line-height: 1; }
+.img-add-btn__label { font-size: 22rpx; color: #A89070; }
+
+/* ══ 视频区 ════════════════════════════════════════ */
+.video-section {
+  padding: 20rpx 28rpx;
+}
+
+.video-wrap {
+  position: relative;
+  width: 100%;
+  height: 380rpx;
+  border-radius: 16rpx;
+  overflow: hidden;
+  background: #1A1A1A;
+}
+
+.video-thumb {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.video-play-icon {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100rpx;
+  height: 100rpx;
+  border-radius: 50%;
+  background: rgba(0,0,0,.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-play-icon__tri {
+  font-size: 44rpx;
+  color: #FFFFFF;
+  margin-left: 6rpx; /* 视觉居中补偿 */
+}
+
+.video-duration {
+  position: absolute;
+  bottom: 16rpx;
+  left: 20rpx;
+  background: rgba(0,0,0,.5);
+  padding: 4rpx 16rpx;
+  border-radius: 20rpx;
+}
+
+.video-duration__txt {
+  font-size: 24rpx;
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+.video-del {
+  position: absolute;
+  bottom: 16rpx;
+  right: 20rpx;
+  background: rgba(200,50,50,.75);
+  padding: 8rpx 20rpx;
+  border-radius: 20rpx;
+}
+
+.video-del text {
+  font-size: 24rpx;
+  color: #FFFFFF;
+  font-weight: 600;
+}
+
+/* ══ 工具栏 ════════════════════════════════════════ */
+.tool-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: wrap;
+  padding: 12rpx 24rpx 8rpx;
+  border-top: 1rpx solid #F0E8D8;
+  gap: 8rpx;
+}
+
+.tool-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 12rpx 20rpx;
+  border-radius: 24rpx;
+  background: #F5F0E8;
+  gap: 6rpx;
+  margin-bottom: 8rpx;
+}
+
+.tool-item__icon  { font-size: 28rpx; }
+.tool-item__label { font-size: 24rpx; color: #5A4030; font-weight: 600; }
+.tool-item__arrow { font-size: 28rpx; color: #D4820A; }
+
+.tool-item--vis {
+  background: #FFF0D4;
+  border: 1rpx solid #D4B896;
+}
+.tool-item--vis .tool-item__label { color: #D4820A; }
+
+/* ══ 规则 & 积分提示 ═══════════════════════════════ */
+.rule-tip {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  margin: 0 28rpx 12rpx;
+  padding: 16rpx 20rpx;
+  background: #FFF8E1;
+  border-radius: 12rpx;
+  border: 1rpx solid #FFE082;
+}
+
+.rule-tip__icon { font-size: 26rpx; margin-right: 10rpx; flex-shrink: 0; }
+.rule-tip__text { font-size: 22rpx; color: #856404; line-height: 1.6; }
+
+.pts-tip {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 0 28rpx 16rpx;
+  padding: 16rpx 20rpx;
+  background: linear-gradient(135deg, #FFF0D4, #FFF8EE);
+  border-radius: 12rpx;
+  border: 1rpx solid #F0D090;
+}
+
+.pts-tip__icon { font-size: 28rpx; margin-right: 10rpx; }
+.pts-tip__text { font-size: 22rpx; color: #D4820A; font-weight: 600; }
+
+/* ══ 底部类型切换栏 ════════════════════════════════ */
+.bottom-bar {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 16rpx 20rpx;
+  padding-bottom: calc(16rpx + env(safe-area-inset-bottom));
+  background: #FFF8EE;
+  border-top: 1rpx solid #EDE3D0;
+  flex-shrink: 0;
+  gap: 4rpx;
+}
+
+.bottom-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10rpx 16rpx;
+  border-radius: 16rpx;
+  min-width: 120rpx;
+  gap: 4rpx;
+  background: transparent;
+}
+
+.bottom-tab__icon  { font-size: 32rpx; }
+.bottom-tab__label { font-size: 20rpx; color: #9A8070; }
+
+.bottom-tab--on {
+  background: #FFF0D4;
+}
+.bottom-tab--on .bottom-tab__label { color: #D4820A; font-weight: 700; }
+
+.bottom-divider {
+  flex: 1;
+}
+
+.bottom-extra {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10rpx 16rpx;
+  gap: 4rpx;
+}
+
+.bottom-extra__icon  { font-size: 30rpx; }
+.bottom-extra__label { font-size: 20rpx; color: #9A8070; }
+
+/* ══ 话题面板 ══════════════════════════════════════ */
+.topic-mask {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0);
+  z-index: 300;
+  pointer-events: none;
+  display: flex;
+  align-items: flex-end;
+  transition: background 0.25s;
+}
+
+.topic-mask--show {
+  background: rgba(0,0,0,.5);
+  pointer-events: all;
+}
+
+.topic-panel {
+  width: 100%;
+  max-height: 70vh;
+  background: #FFFDF8;
+  border-radius: 28rpx 28rpx 0 0;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: env(safe-area-inset-bottom);
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(.32,1,.6,1);
+}
+
+.topic-mask--show .topic-panel {
+  transform: translateY(0);
+}
+
+.topic-panel__handle {
+  width: 80rpx; height: 8rpx;
+  background: #D4C4B0; border-radius: 4rpx;
+  margin: 16rpx auto 8rpx;
+}
+
+.topic-panel__title {
+  font-size: 30rpx; font-weight: 700;
+  color: #3A2F1E; text-align: center;
+  padding: 4rpx 0 4rpx;
+  display: block;
+}
+
+.topic-panel__sub {
+  font-size: 22rpx; color: #A89070;
+  text-align: center; display: block;
+  padding-bottom: 16rpx;
+}
+
+.topic-scroll {
+  flex: 1;
+  overflow: hidden;
+  padding: 0 24rpx;
+}
+
+.topic-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  padding-bottom: 24rpx;
+}
+
+.topic-item {
+  padding: 14rpx 28rpx;
+  border-radius: 32rpx;
+  background: #F5F0E8;
+  border: 2rpx solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+}
+
+.topic-item--on {
+  background: #FFF0D4;
+  border-color: #D4820A;
+}
+
+.topic-item__hash { font-size: 24rpx; color: #D4820A; font-weight: 700; }
+.topic-item__name { font-size: 26rpx; color: #5A4030; font-weight: 600; }
+.topic-item--on .topic-item__name { color: #D4820A; }
+
+.topic-panel__close {
+  padding: 20rpx 0 24rpx;
+  text-align: center;
+  font-size: 28rpx;
+  color: #D4820A;
+  font-weight: 700;
+  border-top: 1rpx solid #F0E8D8;
+}

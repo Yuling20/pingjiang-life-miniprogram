@@ -1,0 +1,561 @@
+// pages/community/follow/index.js
+// 关注粉丝页 - 含 Tab 切换、搜索过滤、关注/取关、回关、防误操作确认
+
+// 模拟当前登录用户ID
+const MY_USER_ID = 'u_me'
+
+// 模拟关注列表（替换为接口 GET /api/follow/list?userId=&type=follow）
+const MOCK_FOLLOW = [
+  {
+    userId: 'u1', avatar: '/images/avatar.png',
+    nickname: '平江老表', bio: '土生土长平江人，爱分享本地生活',
+    badge: '本地居民', isVip: false,
+    postCount: 47, fansCount: 360, isMutual: true, isFollowed: true
+  },
+  {
+    userId: 'u3', avatar: '/images/avatar.png',
+    nickname: '嘉义街坊', bio: 'VIP用户，热爱美食，经常探店',
+    badge: '', isVip: true,
+    postCount: 89, fansCount: 1024, isMutual: false, isFollowed: true
+  },
+  {
+    userId: 'u4', avatar: '/images/avatar.png',
+    nickname: '天岳山人', bio: '爱爬山，平江天岳山是我家',
+    badge: '', isVip: false,
+    postCount: 23, fansCount: 180, isMutual: false, isFollowed: true
+  }
+]
+
+// 模拟粉丝列表（替换为接口 GET /api/follow/list?userId=&type=fans）
+const MOCK_FANS = [
+  {
+    userId: 'u1', avatar: '/images/avatar.png',
+    nickname: '平江老表', bio: '土生土长平江人，爱分享本地生活',
+    badge: '本地居民', isVip: false,
+    postCount: 47, fansCount: 360, isMutual: true, isFollowed: true
+  },
+  {
+    userId: 'u2', avatar: '/images/avatar.png',
+    nickname: '汉昌居民', bio: '平江县汉昌街道，普通市民一枚',
+    badge: '', isVip: false,
+    postCount: 18, fansCount: 120, isMutual: false, isFollowed: false
+  },
+  {
+    userId: 'u5', avatar: '/images/avatar.png',
+    nickname: '平江新来的', bio: '刚搬到平江，什么都不熟悉',
+    badge: '', isVip: false,
+    postCount: 3, fansCount: 5, isMutual: false, isFollowed: false
+  }
+]
+
+Page({
+  data: {
+    userId: MY_USER_ID,  // 当前查看的用户ID
+    isSelf: true,         // 是否是自己的列表
+    activeTab: 0,         // 0=关注 1=粉丝
+    followList: [],       // 关注列表（全量）
+    fansList: [],         // 粉丝列表（全量）
+    filteredFollow: [],   // 过滤后关注列表
+    filteredFans: [],     // 过滤后粉丝列表
+    searchVal: '',        // 搜索关键词
+    isLoading: false,
+    hasMore: false
+  },
+
+  onLoad(options) {
+    const userId = options.userId || MY_USER_ID
+    const tab = parseInt(options.tab) || 0
+    const isSelf = userId === MY_USER_ID
+    this.setData({ userId, isSelf, activeTab: tab })
+    this.loadData()
+  },
+
+  onPullDownRefresh() {
+    this.loadData()
+    wx.stopPullDownRefresh()
+  },
+
+  // =============================================
+  // 加载关注/粉丝数据
+  // =============================================
+  loadData() {
+    this.setData({ isLoading: true })
+    setTimeout(() => {
+      // TODO: 替换为接口
+      // GET /api/follow/list?userId=&type=follow
+      // GET /api/follow/list?userId=&type=fans
+      this.setData({
+        followList: MOCK_FOLLOW,
+        fansList: MOCK_FANS,
+        filteredFollow: MOCK_FOLLOW,
+        filteredFans: MOCK_FANS,
+        isLoading: false,
+        hasMore: false
+      })
+    }, 400)
+  },
+
+  // =============================================
+  // Tab 切换
+  // =============================================
+  switchTab(e) {
+    const tab = parseInt(e.currentTarget.dataset.tab)
+    this.setData({ activeTab: tab, searchVal: '' })
+    this.applyFilter('')
+  },
+
+  // =============================================
+  // 搜索过滤
+  // =============================================
+  onSearch(e) {
+    const val = e.detail.value
+    this.setData({ searchVal: val })
+    this.applyFilter(val)
+  },
+
+  clearSearch() {
+    this.setData({ searchVal: '' })
+    this.applyFilter('')
+  },
+
+  applyFilter(keyword) {
+    const kw = keyword.trim().toLowerCase()
+    const filteredFollow = kw
+      ? this.data.followList.filter(u => u.nickname.toLowerCase().includes(kw))
+      : this.data.followList
+    const filteredFans = kw
+      ? this.data.fansList.filter(u => u.nickname.toLowerCase().includes(kw))
+      : this.data.fansList
+    this.setData({ filteredFollow, filteredFans })
+  },
+
+  // =============================================
+  // 取消关注（关注列表中操作）
+  // =============================================
+  unfollow(e) {
+    const { id, index } = e.currentTarget.dataset
+
+    // 实名授权检查
+    if (!wx.getStorageSync('user_authed')) {
+      wx.showToast({ title: '请先完成实名授权', icon: 'none' })
+      return
+    }
+
+    wx.showModal({
+      title: '取消关注',
+      content: `确认取消关注该用户？`,
+      confirmText: '取消关注',
+      cancelText: '再想想',
+      confirmColor: '#E53935',
+      success: (res) => {
+        if (res.confirm) {
+          // 从关注列表移除
+          const followList = this.data.followList.filter(u => u.userId !== id)
+          // 同步更新粉丝列表中的互关状态
+          const fansList = this.data.fansList.map(u => {
+            if (u.userId === id) return { ...u, isMutual: false, isFollowed: false }
+            return u
+          })
+          this.setData({ followList, fansList })
+          this.applyFilter(this.data.searchVal)
+          wx.showToast({ title: '已取消关注', icon: 'success' })
+          // TODO: POST /api/follow/unfollow { targetUserId: id }
+        }
+      }
+    })
+  },
+
+  // =============================================
+  // 回关/取关（粉丝列表中操作）
+  // =============================================
+  toggleFanFollow(e) {
+    const { id, index, followed } = e.currentTarget.dataset
+
+    // 实名授权检查
+    if (!wx.getStorageSync('user_authed')) {
+      wx.showToast({ title: '请先完成实名授权', icon: 'none' })
+      return
+    }
+
+    const isFollowed = followed === true || followed === 'true'
+
+    if (isFollowed) {
+      // 取关确认
+      wx.showModal({
+        title: '取消关注', content: '确认取消关注该粉丝？',
+        confirmText: '取消关注', cancelText: '再想想',
+        confirmColor: '#E53935',
+        success: (res) => {
+          if (res.confirm) {
+            this.doToggleFan(id, false)
+          }
+        }
+      })
+    } else {
+      // 直接回关
+      this.doToggleFan(id, true)
+    }
+  },
+
+  doToggleFan(userId, toFollow) {
+    const fansList = this.data.fansList.map(u => {
+      if (u.userId === userId) {
+        return { ...u, isFollowed: toFollow, isMutual: toFollow }
+      }
+      return u
+    })
+    // 同步关注列表：回关则添加，取关则移除
+    let followList = [...this.data.followList]
+    if (toFollow) {
+      const fan = this.data.fansList.find(u => u.userId === userId)
+      if (fan && !followList.find(u => u.userId === userId)) {
+        followList = [{ ...fan, isFollowed: true, isMutual: true }, ...followList]
+      }
+    } else {
+      followList = followList.filter(u => u.userId !== userId)
+    }
+
+    this.setData({ fansList, followList })
+    this.applyFilter(this.data.searchVal)
+    wx.showToast({ title: toFollow ? '回关成功' : '已取消关注', icon: 'success' })
+    // TODO: POST /api/follow { targetUserId: userId, action: toFollow ? 'follow' : 'unfollow' }
+  },
+
+  // =============================================
+  // 跳转个人主页
+  // =============================================
+  goUser(e) {
+    wx.navigateTo({ url: `../user/index?userId=${e.currentTarget.dataset.id}` })
+  },
+
+  // =============================================
+  // 去逛社区（关注为空时引导）
+  // =============================================
+  goCommunity() {
+    wx.navigateBack({ delta: 10 })
+  },
+
+  // =============================================
+  // 去发帖（粉丝为空时引导）
+  // =============================================
+  goPublish() {
+    wx.navigateTo({ url: '../publish/index' })
+  },
+
+  // =============================================
+  // 微信分享
+  // =============================================
+  onShareAppMessage() {
+    return {
+      title: '平江汇生活 - 发现有趣的平江人',
+      path: '/pages/community/index/index'
+    }
+  }
+})
+{
+  "navigationBarTitleText": "关注与粉丝",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "enablePullDownRefresh": true,
+  "backgroundTextStyle": "dark",
+  "usingComponents": {}
+}
+<!--pages/community/follow/index.wxml-->
+<view class="page-wrap">
+
+<!-- Tab 切换栏 -->
+<view class="tab-bar">
+  <view
+    class="tab-item {{activeTab === 0 ? 'tab-active' : ''}}"
+    bindtap="switchTab"
+    data-tab="0"
+  >
+    <text class="tab-text">关注</text>
+    <text class="tab-num">{{followList.length}}</text>
+  </view>
+  <view
+    class="tab-item {{activeTab === 1 ? 'tab-active' : ''}}"
+    bindtap="switchTab"
+    data-tab="1"
+  >
+    <text class="tab-text">粉丝</text>
+    <text class="tab-num">{{fansList.length}}</text>
+  </view>
+</view>
+
+<!-- 搜索栏 -->
+<view class="search-bar">
+  <view class="search-wrap">
+    <text class="search-icon">🔍</text>
+    <input
+      class="search-input"
+      placeholder="搜索昵称..."
+      placeholder-class="search-ph"
+      value="{{searchVal}}"
+      bindinput="onSearch"
+      confirm-type="search"
+    />
+    <view class="search-clear" wx:if="{{searchVal}}" bindtap="clearSearch">
+      <text class="clear-text">✕</text>
+    </view>
+  </view>
+</view>
+
+<!-- 关注列表 -->
+<view class="user-list" wx:if="{{activeTab === 0}}">
+  <view
+    class="user-card"
+    wx:for="{{filteredFollow}}"
+    wx:key="userId"
+  >
+    <!-- 用户基础信息 -->
+    <view
+      class="user-base"
+      bindtap="goUser"
+      data-id="{{item.userId}}"
+    >
+      <view class="avatar-wrap">
+        <image class="u-avatar" src="{{item.avatar}}" mode="aspectFill"/>
+        <view class="vip-dot" wx:if="{{item.isVip}}"/>
+      </view>
+      <view class="u-meta">
+        <view class="u-name-row">
+          <text class="u-name">{{item.nickname}}</text>
+          <text class="u-badge" wx:if="{{item.badge}}">{{item.badge}}</text>
+        </view>
+        <text class="u-bio">{{item.bio || '这个人很懒，什么都没写~'}}</text>
+        <text class="u-stats">帖子 {{item.postCount}} · 粉丝 {{item.fansCount}}</text>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="u-action">
+      <!-- 互相关注标识 -->
+      <text class="mutual-tag" wx:if="{{item.isMutual}}">互关</text>
+      <!-- 取关按钮 -->
+      <view
+        class="follow-btn btn-followed"
+        bindtap="unfollow"
+        data-id="{{item.userId}}"
+        data-index="{{index}}"
+      >
+        <text class="follow-btn-text">已关注</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 关注列表为空 -->
+  <view class="empty-tip" wx:if="{{filteredFollow.length === 0}}">
+    <text class="empty-icon">🧑‍🤝‍🧑</text>
+    <text class="empty-text" wx:if="{{searchVal}}">没有找到相关用户</text>
+    <text class="empty-text" wx:else>还没有关注任何人，去社区发现有趣的人吧</text>
+    <view class="empty-btn" bindtap="goCommunity" wx:if="{{!searchVal}}">
+      <text class="empty-btn-text">去逛社区</text>
+    </view>
+  </view>
+</view>
+
+<!-- 粉丝列表 -->
+<view class="user-list" wx:if="{{activeTab === 1}}">
+  <view
+    class="user-card"
+    wx:for="{{filteredFans}}"
+    wx:key="userId"
+  >
+    <!-- 用户基础信息 -->
+    <view
+      class="user-base"
+      bindtap="goUser"
+      data-id="{{item.userId}}"
+    >
+      <view class="avatar-wrap">
+        <image class="u-avatar" src="{{item.avatar}}" mode="aspectFill"/>
+        <view class="vip-dot" wx:if="{{item.isVip}}"/>
+      </view>
+      <view class="u-meta">
+        <view class="u-name-row">
+          <text class="u-name">{{item.nickname}}</text>
+          <text class="u-badge" wx:if="{{item.badge}}">{{item.badge}}</text>
+        </view>
+        <text class="u-bio">{{item.bio || '这个人很懒，什么都没写~'}}</text>
+        <text class="u-stats">帖子 {{item.postCount}} · 粉丝 {{item.fansCount}}</text>
+      </view>
+    </view>
+
+    <!-- 操作按钮 -->
+    <view class="u-action">
+      <!-- 互相关注标识 -->
+      <text class="mutual-tag" wx:if="{{item.isMutual}}">互关</text>
+      <!-- 回关/已关注切换 -->
+      <view
+        class="follow-btn {{item.isFollowed ? 'btn-followed' : 'btn-follow'}}"
+        bindtap="toggleFanFollow"
+        data-id="{{item.userId}}"
+        data-index="{{index}}"
+        data-followed="{{item.isFollowed}}"
+      >
+        <text class="follow-btn-text">{{item.isFollowed ? '已关注' : '+ 回关'}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 粉丝列表为空 -->
+  <view class="empty-tip" wx:if="{{filteredFans.length === 0}}">
+    <text class="empty-icon">💌</text>
+    <text class="empty-text" wx:if="{{searchVal}}">没有找到相关粉丝</text>
+    <text class="empty-text" wx:else>还没有粉丝，多发帖子吸引更多人关注你吧</text>
+    <view class="empty-btn" bindtap="goPublish" wx:if="{{!searchVal}}">
+      <text class="empty-btn-text">去发帖</text>
+    </view>
+  </view>
+</view>
+
+<!-- 加载状态 -->
+<view class="load-tip" wx:if="{{isLoading}}">
+  <text class="load-text">加载中...</text>
+</view>
+<view class="load-tip" wx:if="{{!hasMore && !isLoading && (activeTab===0 ? followList.length : fansList.length) > 0}}">
+  <text class="load-text">— 已经到底了 —</text>
+</view>
+
+<!-- 底部安全距离 -->
+<view style="height: 60rpx;"/>
+
+</view>
+/* pages/community/follow/index.wxss */
+page { background: #F5F0E8; }
+
+.page-wrap { min-height: 100vh; }
+
+/* Tab 切换栏 */
+.tab-bar {
+  display: flex; background: #FFF8EE;
+  border-bottom: 2rpx solid #F0E5D8;
+  position: sticky; top: 0; z-index: 10;
+}
+.tab-item {
+  flex: 1; display: flex; align-items: center;
+  justify-content: center; gap: 8rpx;
+  padding: 28rpx 0; position: relative;
+}
+.tab-text { font-size: 30rpx; color: #999; }
+.tab-num {
+  font-size: 24rpx; color: #BBB;
+  background: #F0E5D8; padding: 2rpx 12rpx;
+  border-radius: 20rpx;
+}
+.tab-active .tab-text { color: #D4820A; font-weight: bold; }
+.tab-active .tab-num { color: #FFFFFF; background: #D4820A; }
+.tab-active::after {
+  content: ''; position: absolute;
+  bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 60rpx; height: 6rpx;
+  background: #D4820A; border-radius: 4rpx;
+}
+
+/* 搜索栏 */
+.search-bar {
+  padding: 16rpx 24rpx; background: #F5F0E8;
+}
+.search-wrap {
+  display: flex; align-items: center;
+  background: #FFFFFF; border-radius: 40rpx;
+  padding: 14rpx 24rpx; gap: 12rpx;
+  box-shadow: 0 2rpx 8rpx rgba(139,115,85,0.08);
+}
+.search-icon { font-size: 28rpx; flex-shrink: 0; }
+.search-input { flex: 1; font-size: 28rpx; color: #333; }
+.search-ph { font-size: 28rpx; color: #CCC; }
+.search-clear { padding: 4rpx; }
+.clear-text { font-size: 26rpx; color: #BBB; }
+
+/* 用户列表 */
+.user-list { padding: 16rpx; }
+
+/* 用户卡片 */
+.user-card {
+  display: flex; align-items: center;
+  justify-content: space-between;
+  background: #FFFFFF; border-radius: 16rpx;
+  padding: 24rpx; margin-bottom: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(139,115,85,0.08);
+}
+.user-base { display: flex; align-items: center; flex: 1; overflow: hidden; }
+
+/* 头像 */
+.avatar-wrap { position: relative; flex-shrink: 0; margin-right: 20rpx; }
+.u-avatar {
+  width: 96rpx; height: 96rpx; border-radius: 50%;
+  border: 3rpx solid #F0E5D8;
+}
+.vip-dot {
+  position: absolute; bottom: 2rpx; right: 2rpx;
+  width: 22rpx; height: 22rpx; border-radius: 50%;
+  background: linear-gradient(135deg, #D4820A, #E8A040);
+  border: 2rpx solid #FFFFFF;
+}
+
+/* 用户信息 */
+.u-meta { display: flex; flex-direction: column; gap: 6rpx; overflow: hidden; flex: 1; }
+.u-name-row { display: flex; align-items: center; gap: 10rpx; }
+.u-name {
+  font-size: 30rpx; color: #333; font-weight: bold;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 200rpx;
+}
+.u-badge {
+  font-size: 20rpx; color: #D4820A;
+  background: #FFF3E0; padding: 2rpx 10rpx;
+  border-radius: 10rpx; flex-shrink: 0;
+}
+.u-bio {
+  font-size: 24rpx; color: #999;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  max-width: 340rpx;
+}
+.u-stats { font-size: 22rpx; color: #CCC; }
+
+/* 操作按钮 */
+.u-action {
+  display: flex; flex-direction: column;
+  align-items: flex-end; gap: 8rpx;
+  flex-shrink: 0; margin-left: 16rpx;
+}
+.mutual-tag {
+  font-size: 22rpx; color: #D4820A;
+  background: #FFF3E0; padding: 2rpx 12rpx;
+  border-radius: 10rpx;
+}
+.follow-btn {
+  padding: 12rpx 28rpx; border-radius: 30rpx;
+  display: flex; align-items: center; justify-content: center;
+  min-width: 120rpx;
+}
+.btn-follow {
+  background: linear-gradient(90deg, #D4820A, #E8A040);
+  box-shadow: 0 2rpx 8rpx rgba(212,130,10,0.25);
+}
+.btn-followed {
+  background: #F0E5D8; border: 1rpx solid #DDD;
+}
+.follow-btn-text { font-size: 26rpx; font-weight: bold; color: #FFFFFF; }
+.btn-followed .follow-btn-text { color: #999; }
+
+/* 空状态 */
+.empty-tip {
+  display: flex; flex-direction: column;
+  align-items: center; padding: 100rpx 0; gap: 20rpx;
+}
+.empty-icon { font-size: 80rpx; }
+.empty-text { font-size: 28rpx; color: #BBB; text-align: center; padding: 0 60rpx; }
+.empty-btn {
+  background: linear-gradient(90deg, #D4820A, #E8A040);
+  padding: 18rpx 60rpx; border-radius: 40rpx;
+  margin-top: 10rpx;
+  box-shadow: 0 4rpx 16rpx rgba(212,130,10,0.25);
+}
+.empty-btn-text { font-size: 28rpx; color: #FFFFFF; font-weight: bold; }
+
+/* 加载提示 */
+.load-tip { text-align: center; padding: 30rpx; }
+.load-text { font-size: 26rpx; color: #BBB; }
