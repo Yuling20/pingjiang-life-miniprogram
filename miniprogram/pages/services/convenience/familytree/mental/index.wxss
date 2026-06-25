@@ -1,0 +1,912 @@
+/* pages/services/convenience/familytree/mental/index.wxss */
+/* ============================================================
+  心理健康中心 · 样式
+  配色：
+    主紫  #4527A0  深紫（导航）
+    亮紫  #7C4DFF  中紫（按钮/高亮）
+    浅紫  #EDE7F6  淡紫（背景）
+    薰衣草 #B39DDB  辅助
+    暖橙  #FF9800  心情/直播
+    深绿  #2E7D32  底部导航
+============================================================ */
+
+/* ========== 基础 ========== */
+page {
+  background: #EDE7F6;
+}
+
+.mental-page {
+  min-height: 100vh;
+  background: #EDE7F6;
+  padding-bottom: 160rpx;
+}
+
+/* ========== 加载占位 ========== */
+.page-loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20rpx;
+}
+
+.loading-icon {
+  font-size: 80rpx;
+}
+
+.loading-text {
+  font-size: 26rpx;
+  color: #7C4DFF;
+}
+
+/* ========== 顶部导航 ========== */
+.nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #4527A0;
+  padding: 24rpx 32rpx;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-back {
+  font-size: 32rpx;
+  color: #D1C4E9;
+  font-weight: bold;
+  min-width: 80rpx;
+}
+
+.nav-center {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.nav-icon {
+  font-size: 34rpx;
+}
+
+.nav-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #fff;
+  letter-spacing: 2rpx;
+}
+
+.nav-right {
+  min-width: 80rpx;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.nav-history {
+  font-size: 26rpx;
+  color: #CE93D8;
+  background: rgba(255,255,255,0.12);
+  padding: 8rpx 20rpx;
+  border-radius: 20rpx;
+}
+
+/* ========== ① 心情打卡卡片 ========== */
+.mood-card {
+  background: linear-gradient(135deg, #4527A0, #7B1FA2);
+  margin: 24rpx 24rpx 0;
+  border-radius: 28rpx;
+  padding: 36rpx 32rpx 28rpx;
+  box-shadow: 0 8rpx 30rpx rgba(69,39,160,0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 背景装饰圆 */
+.mood-card::before {
+  content: '';
+  position: absolute;
+  width: 260rpx;
+  height: 260rpx;
+  background: rgba(255,255,255,0.06);
+  border-radius: 50%;
+  top: -80rpx;
+  right: -60rpx;
+}
+
+.mood-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 28rpx;
+}
+
+.mood-card__left {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.mood-card__greet {
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.75);
+}
+
+.mood-card__question {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #fff;
+  line-height: 1.5;
+}
+
+.mood-card__date-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255,255,255,0.12);
+  border-radius: 16rpx;
+  padding: 14rpx 20rpx;
+}
+
+.mood-card__date {
+  font-size: 24rpx;
+  color: #fff;
+  font-weight: bold;
+}
+
+.mood-card__date-sub {
+  font-size: 20rpx;
+  color: rgba(255,255,255,0.6);
+}
+
+/* 心情选项行 */
+.mood-row {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 24rpx;
+}
+
+.mood-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  padding: 16rpx 12rpx;
+  border-radius: 16rpx;
+  background: rgba(255,255,255,0.1);
+  min-width: 100rpx;
+  transition: all 0.2s;
+}
+
+.mood-option:active {
+  background: rgba(255,255,255,0.2);
+  transform: scale(1.05);
+}
+
+.mood-option__emoji {
+  font-size: 48rpx;
+}
+
+.mood-option__label {
+  font-size: 20rpx;
+  color: rgba(255,255,255,0.85);
+}
+
+/* 已打卡状态 */
+.mood-done {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  background: rgba(255,255,255,0.12);
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 20rpx;
+}
+
+.mood-done__emoji {
+  font-size: 52rpx;
+}
+
+.mood-done__right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.mood-done__text {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #fff;
+}
+
+.mood-done__tip {
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.65);
+}
+
+.mood-done__change {
+  font-size: 22rpx;
+  color: #CE93D8;
+  border: 1rpx solid rgba(206,147,216,0.5);
+  padding: 6rpx 16rpx;
+  border-radius: 12rpx;
+}
+
+/* 连续打卡条 */
+.streak-bar {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  background: rgba(255,255,255,0.08);
+  border-radius: 12rpx;
+  padding: 14rpx 20rpx;
+}
+
+.streak-icon {
+  font-size: 28rpx;
+}
+
+.streak-text {
+  font-size: 24rpx;
+  color: #FFD54F;
+  font-weight: bold;
+}
+
+.streak-tip {
+  font-size: 20rpx;
+  color: rgba(255,255,255,0.5);
+  margin-left: auto;
+}
+
+/* ========== 通用区块 ========== */
+.section {
+  background: #fff;
+  border-radius: 24rpx;
+  margin: 20rpx 24rpx 0;
+  padding: 28rpx;
+  box-shadow: 0 2rpx 12rpx rgba(69,39,160,0.06);
+}
+
+.section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 14rpx;
+  margin-bottom: 24rpx;
+}
+
+.section-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #4527A0;
+}
+
+.section-sub {
+  font-size: 22rpx;
+  color: #B39DDB;
+}
+
+.section-more {
+  font-size: 24rpx;
+  color: #7C4DFF;
+  margin-left: auto;
+}
+
+/* ========== ② 心理测试 ========== */
+
+/* 留守儿童专项 Banner */
+.test-banner {
+  display: flex;
+  align-items: center;
+  background: linear-gradient(135deg, #FF6F00, #FF8F00);
+  border-radius: 20rpx;
+  padding: 24rpx 28rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 4rpx 16rpx rgba(255,111,0,0.3);
+}
+
+.test-banner__left {
+  display: flex;
+  align-items: flex-start;
+  gap: 16rpx;
+  flex: 1;
+}
+
+.test-banner__emoji {
+  font-size: 52rpx;
+  flex-shrink: 0;
+}
+
+.test-banner__title {
+  display: block;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 6rpx;
+}
+
+.test-banner__desc {
+  display: block;
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.85);
+  margin-bottom: 10rpx;
+  line-height: 1.5;
+}
+
+.test-banner__tags {
+  display: flex;
+  gap: 10rpx;
+  flex-wrap: wrap;
+}
+
+.test-banner__tag {
+  font-size: 18rpx;
+  background: rgba(255,255,255,0.2);
+  color: #fff;
+  padding: 4rpx 14rpx;
+  border-radius: 20rpx;
+}
+
+.test-banner__arrow {
+  font-size: 40rpx;
+  color: rgba(255,255,255,0.8);
+  margin-left: 12rpx;
+}
+
+/* 测试卡片网格 */
+.test-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+}
+
+.test-card {
+  background: #F3E5F5;
+  border-radius: 20rpx;
+  padding: 24rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+  border: 2rpx solid #E1BEE7;
+  position: relative;
+  overflow: hidden;
+}
+
+.test-card::before {
+  content: '';
+  position: absolute;
+  width: 120rpx;
+  height: 120rpx;
+  background: rgba(124,77,255,0.06);
+  border-radius: 50%;
+  top: -30rpx;
+  right: -30rpx;
+}
+
+.test-card__top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4rpx;
+}
+
+.test-card__emoji {
+  font-size: 52rpx;
+}
+
+.test-card__badges {
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+  align-items: flex-end;
+}
+
+.test-card__badge {
+  font-size: 18rpx;
+  padding: 3rpx 12rpx;
+  border-radius: 10rpx;
+  font-weight: bold;
+}
+
+.test-card__badge--free {
+  background: #E8F5E9;
+  color: #2E7D32;
+}
+
+.test-card__badge--new {
+  background: #FFCDD2;
+  color: #C62828;
+}
+
+.test-card__title {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #4527A0;
+  line-height: 1.4;
+}
+
+.test-card__scale {
+  font-size: 20rpx;
+  color: #9575CD;
+}
+
+.test-card__info {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4rpx;
+}
+
+.test-card__time {
+  font-size: 20rpx;
+  color: #9575CD;
+}
+
+.test-card__count {
+  font-size: 20rpx;
+  color: #BDBDBD;
+}
+
+.test-card__btn {
+  margin-top: 12rpx;
+  background: linear-gradient(135deg, #7C4DFF, #4527A0);
+  color: #fff;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  font-weight: bold;
+  text-align: center;
+  padding: 14rpx 0;
+}
+
+/* ========== ③ 直播区域 ========== */
+
+/* 正在直播卡片 */
+.live-card--on {
+  background: linear-gradient(135deg, #B71C1C, #E53935);
+  border-radius: 20rpx;
+  padding: 24rpx 28rpx;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 20rpx;
+  box-shadow: 0 6rpx 20rpx rgba(183,28,28,0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.live-card--on::before {
+  content: '';
+  position: absolute;
+  width: 200rpx;
+  height: 200rpx;
+  background: rgba(255,255,255,0.06);
+  border-radius: 50%;
+  top: -60rpx;
+  right: -40rpx;
+}
+
+.live-card__badge {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  width: fit-content;
+}
+
+.live-dot {
+  width: 16rpx;
+  height: 16rpx;
+  background: #fff;
+  border-radius: 50%;
+  animation: livePulse 1.2s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%,100% { opacity: 1; transform: scale(1);   }
+  50%      { opacity: 0.4; transform: scale(0.8); }
+}
+
+.live-badge-text {
+  font-size: 22rpx;
+  color: #fff;
+  font-weight: bold;
+  letter-spacing: 2rpx;
+}
+
+.live-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
+}
+
+.live-card__title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #fff;
+  line-height: 1.4;
+}
+
+.live-card__teacher {
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.8);
+}
+
+.live-card__info {
+  display: flex;
+  gap: 20rpx;
+}
+
+.live-card__viewers,
+.live-card__location {
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.7);
+}
+
+.live-card__enter-btn {
+  background: #fff;
+  color: #B71C1C;
+  border-radius: 14rpx;
+  font-size: 26rpx;
+  font-weight: bold;
+  text-align: center;
+  padding: 18rpx 0;
+  margin-top: 4rpx;
+}
+
+/* 无直播占位 */
+.live-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40rpx 0;
+  gap: 16rpx;
+}
+
+.live-empty-icon {
+  font-size: 60rpx;
+  opacity: 0.3;
+}
+
+.live-empty-text {
+  font-size: 26rpx;
+  color: #BDBDBD;
+}
+
+/* 即将开播标题 */
+.upcoming-title {
+  font-size: 24rpx;
+  font-weight: bold;
+  color: #7C4DFF;
+  margin-bottom: 16rpx;
+}
+
+/* 即将开播卡片 */
+.live-card--upcoming {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  background: #F3E5F5;
+  border-radius: 16rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 16rpx;
+  border: 2rpx solid #E1BEE7;
+}
+
+.live-card--upcoming:last-child {
+  margin-bottom: 0;
+}
+
+.live-upcoming__time-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #4527A0;
+  border-radius: 12rpx;
+  padding: 14rpx 16rpx;
+  min-width: 90rpx;
+}
+
+.live-upcoming__date {
+  font-size: 18rpx;
+  color: rgba(255,255,255,0.7);
+}
+
+.live-upcoming__time {
+  font-size: 24rpx;
+  font-weight: bold;
+  color: #fff;
+}
+
+.live-upcoming__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.live-upcoming__title {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #4527A0;
+  line-height: 1.4;
+}
+
+.live-upcoming__teacher {
+  font-size: 22rpx;
+  color: #9575CD;
+}
+
+.live-upcoming__tags {
+  display: flex;
+  gap: 10rpx;
+  margin-top: 6rpx;
+}
+
+.live-upcoming__tag {
+  font-size: 18rpx;
+  padding: 3rpx 12rpx;
+  border-radius: 10rpx;
+}
+
+.live-upcoming__tag--online {
+  background: #E3F2FD;
+  color: #1565C0;
+}
+
+.live-upcoming__tag--offline {
+  background: #E8F5E9;
+  color: #1B5E20;
+}
+
+.live-card__subscribe-btn {
+  font-size: 22rpx;
+  color: #7C4DFF;
+  border: 2rpx solid #7C4DFF;
+  border-radius: 12rpx;
+  padding: 10rpx 16rpx;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.live-card__subscribe-btn.subscribed {
+  background: #EDE7F6;
+  color: #9575CD;
+  border-color: #9575CD;
+}
+
+/* ========== ④ 心理课程 ========== */
+
+/* Tab 滚动栏 */
+.course-tabs {
+  display: flex;
+  white-space: nowrap;
+  margin-bottom: 20rpx;
+}
+
+.course-tab {
+  display: inline-block;
+  font-size: 24rpx;
+  color: #9575CD;
+  padding: 10rpx 24rpx;
+  border-radius: 20rpx;
+  margin-right: 12rpx;
+  background: #F3E5F5;
+  white-space: nowrap;
+}
+
+.course-tab--active {
+  background: #4527A0;
+  color: #fff;
+  font-weight: bold;
+}
+
+/* 课程列表 */
+.course-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.course-item {
+  display: flex;
+  gap: 20rpx;
+  align-items: flex-start;
+  background: #FAFAFA;
+  border-radius: 16rpx;
+  padding: 16rpx;
+  border: 1rpx solid #F3E5F5;
+}
+
+/* 课程封面 */
+.course-cover {
+  width: 160rpx;
+  height: 110rpx;
+  border-radius: 12rpx;
+  background: linear-gradient(135deg, #4527A0, #7B1FA2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.course-cover__emoji {
+  font-size: 48rpx;
+}
+
+.course-cover__duration {
+  position: absolute;
+  bottom: 6rpx;
+  right: 8rpx;
+  font-size: 18rpx;
+  color: rgba(255,255,255,0.85);
+  background: rgba(0,0,0,0.35);
+  padding: 2rpx 8rpx;
+  border-radius: 6rpx;
+}
+
+.course-cover__play {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 36rpx;
+  color: rgba(255,255,255,0.85);
+}
+
+/* 课程信息 */
+.course-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.course-info__title {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #3E2723;
+  line-height: 1.4;
+}
+
+.course-info__desc {
+  font-size: 22rpx;
+  color: #9E9E9E;
+  line-height: 1.5;
+}
+
+.course-info__bottom {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  margin-top: 6rpx;
+  flex-wrap: wrap;
+}
+
+.course-stars {
+  display: flex;
+  align-items: center;
+  gap: 2rpx;
+}
+
+.star-icon {
+  font-size: 18rpx;
+}
+
+.course-score {
+  font-size: 20rpx;
+  color: #FF9800;
+  font-weight: bold;
+  margin-left: 4rpx;
+}
+
+.course-plays {
+  font-size: 20rpx;
+  color: #BDBDBD;
+}
+
+.course-free {
+  font-size: 18rpx;
+  padding: 2rpx 10rpx;
+  border-radius: 8rpx;
+  font-weight: bold;
+}
+
+.tag-free { background: #E8F5E9; color: #2E7D32; }
+.tag-pay  { background: #FFF3E0; color: #E65100; }
+
+/* ========== ⑤ 心理援助热线 ========== */
+.hotline-section {
+  background: linear-gradient(135deg, #1A237E, #283593);
+  margin: 20rpx 24rpx 0;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  box-shadow: 0 4rpx 16rpx rgba(26,35,126,0.3);
+}
+
+.hotline-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #fff;
+  margin-bottom: 20rpx;
+}
+
+.hotline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.hotline-item {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  background: rgba(255,255,255,0.1);
+  border-radius: 14rpx;
+  padding: 18rpx 20rpx;
+}
+
+.hotline-item__icon {
+  font-size: 32rpx;
+}
+
+.hotline-item__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.hotline-item__name {
+  font-size: 24rpx;
+  color: #fff;
+  font-weight: bold;
+}
+
+.hotline-item__phone {
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.65);
+  letter-spacing: 2rpx;
+}
+
+.hotline-item__call {
+  font-size: 22rpx;
+  color: #FFD54F;
+  border: 1rpx solid rgba(255,213,79,0.5);
+  padding: 8rpx 18rpx;
+  border-radius: 12rpx;
+}
+
+/* ========== 底部导航 ========== */
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  display: flex;
+  border-top: 2rpx solid #F3E5F5;
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 200;
+}
+
+.bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16rpx 0 14rpx;
+  gap: 4rpx;
+}
+
+.bottom-nav-icon {
+  font-size: 40rpx;
+}
+
+.bottom-nav-label {
+  font-size: 20rpx;
+  color: #BDBDBD;
+}
+
+.bottom-nav-item--active .bottom-nav-label {
+  color: #4527A0;
+  font-weight: bold;
+}

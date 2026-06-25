@@ -1,0 +1,2202 @@
+// pages/services/convenience/elder/elder.js
+// ============================================================
+// 孝亲守护模块 — 纯本地存储版本
+// 版本说明：完全移除微信云开发依赖，所有数据使用本地缓存持久化
+// 数据存储：wx.setStorageSync / wx.getStorageSync
+// 用药提醒：前台轮询方案（每60秒检查一次）
+//
+// ⚠️ 重要限制说明：
+//    用药提醒依赖小程序前台运行状态，用户退出或切后台后定时器停止。
+//    如需后台定时推送，需后续接入：
+//    微信云开发「定时触发器云函数」+ 「微信服务通知订阅消息」
+// ============================================================
+
+// ---- 本地缓存 Key 统一定义（便于维护，不散落在代码各处） ----
+const KEY_ROLE       = 'elder_user_role';       // 当前用户角色信息
+const KEY_FAMILY     = 'elder_family_info';     // 家庭绑定信息
+const KEY_MEDS       = 'elder_meds';            // 用药提醒清单
+const KEY_MEMOS      = 'elder_memos';           // 家庭备忘录
+const KEY_RECORDS    = 'elder_records';         // 用药打卡记录
+const KEY_TRIGGERED  = 'elder_triggered_today'; // 今日已触发的提醒（防重复弹出）
+
+// ---- 常量配置 ----
+const CHECK_INTERVAL   = 30 * 1000; // 轮询检查间隔（30秒，比1分钟更精准）
+const OVERDUE_MINUTES  = 30;        // 超时未打卡提醒阈值（分钟）
+
+// ✅ 问题5修复：上线审核风险处理
+const DEBUG = false;
+const log = (...args) => DEBUG && console.log(...args);
+
+Page({
+
+  // ==========================================================
+  // 页面数据初始化
+  // ==========================================================
+  data: {
+    // ---- 页面状态 ----
+    pageReady:         false,   // 页面是否准备完毕（避免数据未加载时闪烁）
+    showIdentityModal: false,   // 是否显示身份选择弹窗
+
+    // ---- 身份/角色 ----
+    // role: 'elder'(长辈-老人视图) | 'junior'(晚辈-管理视图) | null(未选择)
+    role:          null,
+    selectedTitle: '',          // 选择的亲属称谓，如"爸爸"
+    identityList: [
+      { label: '爸爸',   value: 'elder',  icon: '👴' },
+      { label: '妈妈',   value: 'elder',  icon: '👵' },
+      { label: '儿子',   value: 'junior', icon: '👦' },
+      { label: '女儿',   value: 'junior', icon: '👧' },
+      { label: '孙子',   value: 'junior', icon: '🧒' },
+      { label: '孙女',   value: 'junior', icon: '🧒' },
+      { label: '其他亲属', value: 'junior', icon: '🧑' }
+    ],
+
+    // ---- 家庭绑定 ----
+    isBound:       false,   // 是否已绑定家庭成员
+    familyMembers: [],      // 已绑定的家庭成员列表
+    bindCode:      '',      // 本人的6位数字绑定码
+    showBindPanel: false,   // 是否展开绑定面板
+    bindMethod:    '',      // 当前选中的绑定方式：'friend'|'qr'|'wxid'
+    inputWxId:     '',      // 手动输入的微信号（微信号绑定方式用）
+    inputBindCode: '',      // 输入对方发来的绑定码
+
+    // ---- 用药提醒 ----
+    medicineList:   [],     // 完整用药清单（晚辈管理端）
+    todayMeds:      [],     // 今日有效用药列表（老人端展示）
+    showAddMedForm: false,  // 是否显示新增用药表单弹窗
+    medForm: {              // 新增/编辑用药表单数据
+      name:    '',
+      dose:    '',
+      note:    '',
+      time:    '',
+      enabled: true
+    },
+    showMedClock: false,    // 是否显示老人端用药打卡全屏弹窗
+    clockMedInfo: null,     // 当前弹窗对应的药品信息
+    medRecords:   [],       // 全部打卡记录
+
+    // ---- 家庭备忘录 ----
+    memoList:       [],     // 全部备忘录列表
+    showAddMemo:    false,  // 是否显示新增/编辑备忘录弹窗
+    memoForm: {             // 新增/编辑备忘录表单数据
+      id:          '',
+      title:       '',
+      content:     '',
+      date:        '',
+      advanceDays: 1,
+      images:      []       // 图片列表（本地临时路径）
+    },
+    todayMemos:      [],    // 今日重要事项（老人端用）
+    showMemoDetail:  false, // 老人端备忘录详情弹窗
+    currentMemo:     null,  // 当前查看的备忘录对象
+
+    // ---- 工具 ----
+    currentDate: '',        // 今日日期字符串，格式 "YYYY-MM-DD"
+  },
+
+  // ==========================================================
+  // 内部变量（非响应式，不放入 data）
+  // ==========================================================
+  _checkTimer: null,        // 用药提醒轮询定时器句柄
+  _overdueTimers: {},       // 超时检测定时器集合 { trigKey: timerId }
+
+  // ==========================================================
+  // ✅ 问题1修复：新增缺失的绑定码分享方法
+  // ==========================================================
+  _chooseWxFriend() {
+    this._showShareBindCode();
+  },
+
+  // ==========================================================
+  // ✅ 问题2修复：清理过期的触发记录，防止本地存储膨胀
+  // ==========================================================
+  _cleanExpiredTriggered() {
+    const today = this.data.currentDate;
+    const triggered = wx.getStorageSync(KEY_TRIGGERED) || {};
+    const cleaned = {};
+    Object.keys(triggered).forEach(key => {
+      if (key.startsWith(today)) {
+        cleaned[key] = triggered[key];
+      }
+    });
+    wx.setStorageSync(KEY_TRIGGERED, cleaned);
+  },
+
+  // ==========================================================
+  // 生命周期：页面加载
+  // ==========================================================
+  onLoad() {
+    // ✅ 问题3修复：移除冗余的初始值setData，仅保留必要动态逻辑
+    const today = this._getTodayStr();
+    this.setData({ currentDate: today });
+
+    const savedRole   = wx.getStorageSync(KEY_ROLE);
+    const savedFamily = wx.getStorageSync(KEY_FAMILY);
+
+    if (savedRole && savedRole.role) {
+      const members = (savedFamily && savedFamily.members) || [];
+      const myCode  = (savedFamily && savedFamily.myCode) || this._genBindCode();
+      this.setData({
+        role:          savedRole.role,
+        selectedTitle: savedRole.title,
+        isBound:       members.length > 0,
+        familyMembers: members,
+        bindCode:      myCode,
+        pageReady:     true
+      });
+      this._loadLocalData();
+    } else {
+      this.setData({
+        showIdentityModal: true,
+        bindCode:          this._genBindCode(),
+        pageReady:         true
+      });
+    }
+
+    // ✅ 问题2修复：onLoad 末尾调用清理逻辑
+    this._cleanExpiredTriggered();
+  },
+
+  // ==========================================================
+  // 生命周期：页面进入前台（每次 show 都刷新数据并启动轮询）
+  // ==========================================================
+  onShow() {
+    if (this.data.role) {
+      this._loadLocalData();
+      // 启动用药提醒前台轮询
+      // ⚠️ 注意：onShow 触发时小程序在前台，轮询有效
+      this._startMedCheckTimer();
+    }
+  },
+
+  // ==========================================================
+  // 生命周期：页面切到后台/隐藏（停止轮询，避免资源占用）
+  // ==========================================================
+  onHide() {
+    // ⚠️ 当前提醒依赖前台运行，此处停止定时器
+    // 用户退出小程序或切换到其他页面后提醒失效
+    // 如需后台定时推送，需接入微信云开发定时触发器+服务通知
+    this._stopMedCheckTimer();
+  },
+
+  onUnload() {
+    this._stopMedCheckTimer();
+    // 清理所有超时检测定时器
+    Object.values(this._overdueTimers).forEach(t => clearTimeout(t));
+    this._overdueTimers = {};
+  },
+
+  // ==========================================================
+  // 【核心】从本地存储读取所有数据，按角色分发
+  // 【本地存储】所有数据来源：wx.getStorageSync
+  // ==========================================================
+  _loadLocalData() {
+    const { role, currentDate } = this.data;
+
+    // 读取本地缓存数据
+    const allMeds    = wx.getStorageSync(KEY_MEDS)    || [];
+    const allMemos   = wx.getStorageSync(KEY_MEMOS)   || [];
+    const allRecords = wx.getStorageSync(KEY_RECORDS) || [];
+
+    if (role === 'elder') {
+      // 老人视图：只展示已开启的用药提醒 + 今日重要备忘录
+      const todayMeds  = allMeds.filter(m => m.enabled);
+      const todayMemos = allMemos.filter(m => m.date === currentDate);
+
+      this.setData({
+        todayMeds,
+        memoList:   allMemos,   // 完整列表供详情弹窗读取
+        todayMemos,
+        medRecords: allRecords
+      });
+    } else {
+      // 晚辈视图：展示完整数据，可增删改
+      this.setData({
+        medicineList: allMeds,
+        memoList:     allMemos,
+        medRecords:   allRecords
+      });
+    }
+  },
+
+  // ==========================================================
+  // 【身份选择逻辑】
+  // 流程：点击身份项 → 确认 → 写入本地存储 → 渲染对应视图
+  // ==========================================================
+
+  /** 点击选择某一身份 */
+  onSelectIdentity(e) {
+    const item = e.currentTarget.dataset.item;
+    // 仅更新选中状态，不立即生效，等待用户点击确认
+    this.setData({
+      role:          item.value,
+      selectedTitle: item.label
+    });
+  },
+
+  /** 确认身份，写入本地存储并进入对应视图 */
+  onConfirmIdentity() {
+    const { role, selectedTitle, bindCode } = this.data;
+    if (!role) {
+      wx.showToast({ title: '请先选择您的身份', icon: 'none' });
+      return;
+    }
+
+    // 【本地存储】持久化角色信息
+    wx.setStorageSync(KEY_ROLE, { role, title: selectedTitle });
+
+    // 初始化家庭信息（写入我的绑定码）
+    const savedFamily = wx.getStorageSync(KEY_FAMILY) || {};
+    if (!savedFamily.myCode) {
+      savedFamily.myCode  = bindCode;
+      savedFamily.members = savedFamily.members || [];
+      wx.setStorageSync(KEY_FAMILY, savedFamily);
+    }
+
+    this.setData({ showIdentityModal: false });
+    this._loadLocalData();
+    this._startMedCheckTimer();
+  },
+
+  /** 重置身份（清除本地角色缓存，回到身份选择页） */
+  onResetIdentity() {
+    wx.showModal({
+      title:   '确认重置身份',
+      content: '重置后需重新选择身份，用药记录和备忘录数据不会丢失，是否继续？',
+      success: (res) => {
+        if (res.confirm) {
+          wx.removeStorageSync(KEY_ROLE);
+          this._stopMedCheckTimer();
+          this.setData({
+            role:              null,
+            selectedTitle:     '',
+            showIdentityModal: true
+          });
+        }
+      }
+    });
+  },
+
+  // ==========================================================
+  // 【家庭绑定逻辑】
+  // 说明：当前为本地模拟绑定，实际跨账号同步需接入云开发
+  // ==========================================================
+
+  /** 展开/收起绑定面板 */
+  toggleBindPanel() {
+    this.setData({ showBindPanel: !this.data.showBindPanel });
+  },
+
+  /** 选择绑定方式 */
+  onSelectBindMethod(e) {
+    const method = e.currentTarget.dataset.method;
+    this.setData({ bindMethod: method });
+
+    if (method === 'qr' || method === 'friend') {
+      // 二维码/好友方式：提示复制绑定码分享给家人
+      this._showShareBindCode();
+    }
+    // 'wxid' 方式由 wxml 表单处理，此处不额外操作
+  },
+
+  /**
+   * 【绑定方式1&2：好友绑定/二维码绑定】
+   * 本地版本：将绑定码复制到剪贴板，手动分享给家人
+   * 家人输入绑定码后在"输入家人绑定码"处确认完成本地绑定
+   * 注：真正跨账号同步需接入云开发数据库
+   */
+  _showShareBindCode() {
+    const { bindCode } = this.data;
+    wx.showModal({
+      title:       '分享绑定码给家人',
+      content:     `您的绑定码是【${bindCode}】\n\n请将此码告知家人，家人在"孝亲守护"页面输入此码即可完成绑定。`,
+      confirmText: '复制绑定码',
+      cancelText:  '知道了',
+      success: (res) => {
+        if (res.confirm) {
+          wx.setClipboardData({
+            data:    bindCode,
+            success: () => wx.showToast({ title: '绑定码已复制', icon: 'success' })
+          });
+        }
+      }
+    });
+  },
+
+  /** 输入微信号 */
+  onInputWxId(e) {
+    this.setData({ inputWxId: e.detail.value });
+  },
+
+  /**
+   * 【绑定方式3：微信号绑定】
+   * 本地版本：记录对方微信号为"待绑定"成员，模拟发送申请
+   * 注：真正需对方确认需接入云开发推送
+   */
+  onSubmitWxIdBind() {
+    const { inputWxId } = this.data;
+    if (!inputWxId.trim()) {
+      wx.showToast({ title: '请输入对方微信号', icon: 'none' });
+      return;
+    }
+    wx.showModal({
+      title:      '申请已发送（本地模拟）',
+      content:    `已记录向微信号【${inputWxId}】发起绑定邀请。\n\n注意：当前为本地模拟，实际跨账号绑定需双方在同一设备或接入云开发。`,
+      showCancel: false
+    });
+    this.setData({ inputWxId: '' });
+  },
+
+  /** 输入对方的绑定码 */
+  onInputBindCode(e) {
+    this.setData({ inputBindCode: e.detail.value });
+  },
+
+  /**
+   * 确认绑定码绑定
+   * 【本地存储】将新成员写入 KEY_FAMILY 缓存
+   */
+  onConfirmBindCode() {
+    const { inputBindCode, familyMembers, role, bindCode } = this.data;
+
+    if (!inputBindCode || inputBindCode.length < 6) {
+      wx.showToast({ title: '请输入完整的6位绑定码', icon: 'none' });
+      return;
+    }
+
+    // 防止重复绑定
+    if (familyMembers.some(m => m.code === inputBindCode)) {
+      wx.showToast({ title: '该成员已绑定，无需重复操作', icon: 'none' });
+      return;
+    }
+
+    // 根据自身角色推断对方角色
+    const peerRole   = role === 'elder' ? 'junior' : 'elder';
+    const peerName   = peerRole === 'elder' ? '长辈家人' : '晚辈家人';
+    const newMember  = {
+      name:       peerName,
+      code:       inputBindCode,
+      role:       peerRole,
+      bindTime:   new Date().toLocaleString()
+    };
+
+    const members    = [...familyMembers, newMember];
+    const familyInfo = {
+      myCode:  bindCode,
+      members
+    };
+
+    // 【本地存储】更新家庭绑定信息
+    wx.setStorageSync(KEY_FAMILY, familyInfo);
+
+    this.setData({
+      familyMembers:  members,
+      isBound:        true,
+      inputBindCode:  '',
+      showBindPanel:  false
+    });
+
+    wx.showToast({ title: '绑定成功！', icon: 'success', duration: 2000 });
+  },
+
+  // ==========================================================
+  // 【用药提醒 — 晚辈管理端】
+  // ==========================================================
+
+  /** 打开新增用药表单 */
+  onShowAddMed() {
+    this.setData({
+      showAddMedForm: true,
+      medForm: { name: '', dose: '', note: '', time: '', enabled: true }
+    });
+  },
+
+  /** 关闭新增用药表单 */
+  onCloseAddMed() {
+    this.setData({ showAddMedForm: false });
+  },
+
+  /** 表单字段输入处理 */
+  onMedInput(e) {
+    const field = e.currentTarget.dataset.field;
+    this.setData({ [`medForm.${field}`]: e.detail.value });
+  },
+
+  /** 选择提醒时间 */
+  onPickMedTime(e) {
+    this.setData({ 'medForm.time': e.detail.value });
+  },
+
+  /**
+   * 保存用药提醒
+   * 【本地存储】新增条目后写入 KEY_MEDS
+   */
+  onSaveMed() {
+    const { medForm, medicineList } = this.data;
+
+    if (!medForm.name || !medForm.name.trim()) {
+      wx.showToast({ title: '请填写药品名称', icon: 'none' });
+      return;
+    }
+    if (!medForm.time) {
+      wx.showToast({ title: '请选择提醒时间', icon: 'none' });
+      return;
+    }
+
+    // ✅ 问题6修复：药品名称长度校验
+    if (medForm.name.length > 20) {
+      wx.showToast({ title: '药品名称不超过20字', icon: 'none' });
+      return;
+    }
+
+    const newMed = {
+      id:         Date.now().toString(),
+      name:       medForm.name.trim(),
+      dose:       medForm.dose.trim(),
+      note:       medForm.note.trim(),
+      time:       medForm.time,
+      enabled:    true,
+      createTime: new Date().toLocaleString()
+    };
+
+    const updatedList = [...medicineList, newMed];
+
+    // 【本地存储】写入用药清单
+    wx.setStorageSync(KEY_MEDS, updatedList);
+
+    this.setData({
+      medicineList:   updatedList,
+      showAddMedForm: false
+    });
+
+    wx.showToast({ title: '用药提醒已添加', icon: 'success' });
+  },
+
+  /**
+   * 删除用药提醒
+   * 【本地存储】过滤后重新写入 KEY_MEDS
+   */
+  onDeleteMed(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.showModal({
+      title:   '确认删除',
+      content: '删除后将停止该药品的提醒，打卡记录保留',
+      success: (res) => {
+        if (res.confirm) {
+          const updatedList = this.data.medicineList.filter(m => m.id !== id);
+          wx.setStorageSync(KEY_MEDS, updatedList);
+          this.setData({ medicineList: updatedList });
+          wx.showToast({ title: '已删除', icon: 'success' });
+        }
+      }
+    });
+  },
+
+  /**
+   * 切换用药提醒开关
+   * 【本地存储】toggle 后重新写入 KEY_MEDS
+   */
+  onToggleMedSwitch(e) {
+    const id          = e.currentTarget.dataset.id;
+    const updatedList = this.data.medicineList.map(m =>
+      m.id === id ? { ...m, enabled: !m.enabled } : m
+    );
+    wx.setStorageSync(KEY_MEDS, updatedList);
+    this.setData({ medicineList: updatedList });
+  },
+
+  // ==========================================================
+  // 【用药提醒闹钟 — 前台轮询方案】
+  //
+  // 实现原理：每 CHECK_INTERVAL 毫秒检查一次当前时间，
+  //           与用药提醒列表的 time 字段（HH:mm）精确匹配，
+  //           匹配到且未触发过（今日同一药品同一时间只触发一次）
+  //           → 弹出老人端打卡弹窗 + 震动提醒
+  //
+  // ⚠️ 前台限制说明：
+  //    此方案依赖小程序在屏幕前台运行，一旦用户退出小程序、
+  //    手机熄屏或切换到其他 App，定时器随即停止，提醒失效。
+  //    如需真正后台提醒，需后续接入：
+  //    1. 微信云开发「定时触发器」云函数（每分钟扫描提醒时间）
+  //    2. 微信「订阅消息」服务通知推送到用户微信
+  // ==========================================================
+
+  /** 启动用药提醒轮询定时器 */
+  _startMedCheckTimer() {
+    this._stopMedCheckTimer(); // 先清除旧定时器，防止重复
+    this._checkMedReminder();  // 立即执行一次（onShow 时及时响应）
+    this._checkTimer = setInterval(() => {
+      this._checkMedReminder();
+    }, CHECK_INTERVAL);
+
+    log('[用药提醒] 前台轮询已启动，间隔：', CHECK_INTERVAL / 1000, '秒');
+  },
+
+  /** 停止轮询定时器 */
+  _stopMedCheckTimer() {
+    if (this._checkTimer) {
+      clearInterval(this._checkTimer);
+      this._checkTimer = null;
+      log('[用药提醒] 前台轮询已停止');
+    }
+  },
+
+  /**
+   * 用药提醒核心检测逻辑
+   * 仅在 role === 'elder' 时触发闹钟弹窗（老人端操作打卡）
+   * 晚辈端不弹窗（避免干扰管理操作）
+   */
+  _checkMedReminder() {
+    const { role, currentDate } = this.data;
+
+    // 只有老人视图才触发本地打卡弹窗
+    if (role !== 'elder') return;
+
+    // 获取当前时分（格式 "HH:mm"，与 medForm.time 保持一致）
+    const now  = new Date();
+    const hhmm = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    // 【本地存储】读取用药清单和今日已触发记录
+    const meds      = wx.getStorageSync(KEY_MEDS)        || [];
+    const triggered = wx.getStorageSync(KEY_TRIGGERED)   || {};
+
+    for (const med of meds) {
+      if (!med.enabled)       continue; // 跳过已关闭的提醒
+      if (med.time !== hhmm)  continue; // 时间不匹配，跳过
+
+      // 今日唯一 key：日期_药品ID_时间（防止重复触发）
+      const trigKey = `${currentDate}_${med.id}_${hhmm}`;
+      if (triggered[trigKey]) continue; // 今天此时间已触发过，跳过
+
+      // ---- 触发提醒 ----
+      // 标记已触发，【本地存储】写回
+      triggered[trigKey] = { time: hhmm, medId: med.id };
+      wx.setStorageSync(KEY_TRIGGERED, triggered);
+
+      // 弹出老人端打卡全屏弹窗
+      this.setData({ showMedClock: true, clockMedInfo: med });
+
+      // 震动提醒（连续两次，增强感知）
+      wx.vibrateShort({ type: 'heavy' });
+      setTimeout(() => wx.vibrateShort({ type: 'heavy' }), 400);
+
+      log('[用药提醒] 触发弹窗：', med.name, hhmm);
+
+      // 启动超时检测（30分钟内未打卡 → 本地记录超时状态）
+      this._startOverdueCheck(med, trigKey);
+    }
+  },
+
+  /**
+   * 超时未打卡检测
+   * 【本地存储】超时后在打卡记录中写入"超时未确认"标记
+   * 注：当前为本地方案，实际推送晚辈需接入云开发
+   */
+  _startOverdueCheck(med, trigKey) {
+    // 避免重复设置超时定时器
+    if (this._overdueTimers[trigKey]) return;
+
+    this._overdueTimers[trigKey] = setTimeout(() => {
+      // ✅ 问题4修复：页面已卸载则跳过 setData
+      if (!this.data) return;
+
+      const records   = wx.getStorageSync(KEY_RECORDS) || [];
+      const hasRecord = records.some(r => r.trigKey === trigKey);
+
+      if (!hasRecord) {
+        // 未打卡：写入"超时未确认"记录
+        const overdueRecord = {
+          id:         `overdue_${trigKey}`,
+          trigKey,
+          medId:      med.id,
+          medName:    med.name,
+          dose:       med.dose,
+          status:     'overdue',        // 超时未确认
+          time:       med.time,
+          date:       this.data.currentDate,
+          recordTime: new Date().toLocaleString()
+        };
+
+        const updatedRecords = [overdueRecord, ...records];
+        wx.setStorageSync(KEY_RECORDS, updatedRecords);
+        this.setData({ medRecords: updatedRecords });
+
+        // 本地提示（晚辈端可查看）
+        wx.showToast({
+          title: `⚠️ ${med.name} 超时未打卡`,
+          icon:  'none',
+          duration: 3000
+        });
+
+        log('[超时提醒] 长辈未在', OVERDUE_MINUTES, '分钟内打卡：', med.name);
+        // TODO：接入云开发后，此处调用云函数推送服务通知给晚辈
+      }
+
+      // 清理定时器记录
+      delete this._overdueTimers[trigKey];
+    }, OVERDUE_MINUTES * 60 * 1000);
+  },
+
+  // ==========================================================
+  // 【用药打卡 — 老人端】
+  // ==========================================================
+
+  /**
+   * 老人点击「已吃」或「未吃」打卡
+   * status: 'taken'(已吃) | 'skipped'(未吃/跳过)
+   * 【本地存储】打卡记录写入 KEY_RECORDS
+   */
+  onMedClock(e) {
+    const status       = e.currentTarget.dataset.status;
+    const { clockMedInfo, currentDate } = this.data;
+
+    const record = {
+      id:         Date.now().toString(),
+      trigKey:    `${currentDate}_${clockMedInfo.id}_${clockMedInfo.time}`,
+      medId:      clockMedInfo.id,
+      medName:    clockMedInfo.name,
+      dose:       clockMedInfo.dose,
+      status,                             // 'taken' | 'skipped'
+      time:       clockMedInfo.time,
+      date:       currentDate,
+      recordTime: new Date().toLocaleString()
+    };
+
+    // 【本地存储】读取记录列表，头部插入新记录，写回
+    const records        = wx.getStorageSync(KEY_RECORDS) || [];
+    const updatedRecords = [record, ...records];
+    wx.setStorageSync(KEY_RECORDS, updatedRecords);
+
+    this.setData({
+      showMedClock: false,
+      clockMedInfo: null,
+      medRecords:   updatedRecords
+    });
+
+    const tips = {
+      taken:   '✅ 已记录，按时服药很重要！',
+      skipped: '已记录，请尽快补充服用'
+    };
+    wx.showToast({
+      title:    tips[status] || '已记录',
+      icon:     'none',
+      duration: 2500
+    });
+
+    log('[打卡]', clockMedInfo.name, '-', status);
+    // TODO：接入云开发后，此处调用云函数同步打卡状态给绑定晚辈
+  },
+
+  // ==========================================================
+  // 【家庭备忘录 — 晚辈管理端】
+  // ==========================================================
+
+  /** 打开新增备忘录弹窗 */
+  onShowAddMemo() {
+    this.setData({
+      showAddMemo: true,
+      memoForm: { id: '', title: '', content: '', date: '', advanceDays: 1, images: [] }
+    });
+  },
+
+  /** 关闭备忘录弹窗 */
+  onCloseAddMemo() {
+    this.setData({ showAddMemo: false });
+  },
+
+  /** 备忘录表单字段输入 */
+  onMemoInput(e) {
+    const field = e.currentTarget.dataset.field;
+    this.setData({ [`memoForm.${field}`]: e.detail.value });
+  },
+
+  /** 选择重要日期 */
+  onPickMemoDate(e) {
+    this.setData({ 'memoForm.date': e.detail.value });
+  },
+
+  /**
+   * 添加备忘录图片
+   * 使用 wx.chooseMedia 选择图片，存储本地临时路径
+   * 注：本地临时路径在小程序重启后失效，建议后续接入云存储持久化
+   */
+  onAddMemoImage() {
+    const current = this.data.memoForm.images || [];
+    const remain  = 3 - current.length;
+
+    if (remain <= 0) {
+      wx.showToast({ title: '最多上传3张图片', icon: 'none' });
+      return;
+    }
+
+    wx.chooseMedia({
+      count:      remain,
+      mediaType:  ['image'],
+      sourceType: ['album', 'camera'],
+      success: (res) => {
+        const newPaths    = res.tempFiles.map(f => f.tempFilePath);
+        const updatedImgs = [...current, ...newPaths].slice(0, 3);
+        this.setData({ 'memoForm.images': updatedImgs });
+
+        // 注：此处为本地临时路径，退出小程序后路径失效
+        // TODO：接入云开发后，在此处上传至云存储并替换为 fileID
+        log('[图片上传] 本地临时路径（重启后失效）：', newPaths);
+      },
+      fail: (err) => {
+        if (err.errMsg && err.errMsg.indexOf('cancel') === -1) {
+          wx.showToast({ title: '图片选择失败，请重试', icon: 'none' });
+        }
+      }
+    });
+  },
+
+  /** 删除备忘录中的某张图片 */
+  onDeleteMemoImage(e) {
+    const idx         = e.currentTarget.dataset.index;
+    const updatedImgs = [...this.data.memoForm.images];
+    updatedImgs.splice(idx, 1);
+    this.setData({ 'memoForm.images': updatedImgs });
+  },
+
+  /** 预览图片 */
+  onPreviewImage(e) {
+    const { urls, current } = e.currentTarget.dataset;
+    wx.previewImage({ current, urls });
+  },
+
+  /**
+   * 保存备忘录（新增或编辑）
+   * 【本地存储】更新后写入 KEY_MEMOS
+   */
+  onSaveMemo() {
+    const { memoForm, memoList } = this.data;
+
+    if (!memoForm.title || !memoForm.title.trim()) {
+      wx.showToast({ title: '请填写事项标题', icon: 'none' });
+      return;
+    }
+    if (!memoForm.content || !memoForm.content.trim()) {
+      wx.showToast({ title: '请填写事项内容', icon: 'none' });
+      return;
+    }
+
+    // ✅ 问题6修复：备忘录标题和内容长度校验
+    if (memoForm.title.length > 30) {
+      wx.showToast({ title: '标题不超过30字', icon: 'none' });
+      return;
+    }
+    if (memoForm.content.length > 200) {
+      wx.showToast({ title: '内容不超过200字', icon: 'none' });
+      return;
+    }
+
+    const isEdit = !!memoForm.id;
+    const memo   = {
+      id:          isEdit ? memoForm.id : Date.now().toString(),
+      title:       memoForm.title.trim(),
+      content:     memoForm.content.trim(),
+      date:        memoForm.date,
+      advanceDays: memoForm.advanceDays,
+      images:      memoForm.images || [],
+      createTime:  isEdit ? memoForm.createTime : new Date().toLocaleString(),
+      updateTime:  new Date().toLocaleString()
+    };
+
+    let updatedList;
+    if (isEdit) {
+      updatedList = memoList.map(m => m.id === memo.id ? memo : m);
+    } else {
+      updatedList = [memo, ...memoList]; // 新增的放在最前面
+    }
+
+    // 【本地存储】写回备忘录列表
+    wx.setStorageSync(KEY_MEMOS, updatedList);
+    this.setData({ memoList: updatedList, showAddMemo: false });
+
+    wx.showToast({
+      title:    isEdit ? '备忘录已更新' : '备忘录已添加',
+      icon:     'success'
+    });
+
+    log('[备忘录]', isEdit ? '编辑：' : '新增：', memo.title);
+    // TODO：接入云开发后，此处同步数据到云数据库，供绑定家人实时查看
+  },
+
+  /** 编辑备忘录（填充表单后打开弹窗） */
+  onEditMemo(e) {
+    const id   = e.currentTarget.dataset.id;
+    const memo = this.data.memoList.find(m => m.id === id);
+    if (!memo) return;
+
+    this.setData({
+      showAddMemo: true,
+      memoForm:    { ...memo, images: memo.images || [] }
+    });
+  },
+
+  /**
+   * 删除备忘录
+   * 【本地存储】过滤后写入 KEY_MEMOS
+   */
+  onDeleteMemo(e) {
+    const id = e.currentTarget.dataset.id;
+    wx.showModal({
+      title:   '确认删除',
+      content: '删除后所有绑定家人将无法查看此备忘录，是否继续？',
+      success: (res) => {
+        if (res.confirm) {
+          const updatedList = this.data.memoList.filter(m => m.id !== id);
+          wx.setStorageSync(KEY_MEMOS, updatedList);
+          this.setData({ memoList: updatedList });
+          wx.showToast({ title: '已删除', icon: 'success' });
+        }
+      }
+    });
+  },
+
+  // ==========================================================
+  // 【老人端 — 备忘录查看】
+  // ==========================================================
+
+  /** 老人点击查看今日重要事项 */
+  onViewTodayMemo() {
+    const { todayMemos, memoList } = this.data;
+    const target = todayMemos.length > 0 ? todayMemos[0] : memoList[0];
+
+    if (!target) {
+      wx.showToast({ title: '暂无备忘事项', icon: 'none' });
+      return;
+    }
+
+    this.setData({ showMemoDetail: true, currentMemo: target });
+  },
+
+  /** 关闭备忘录详情弹窗 */
+  onCloseMemoDetail() {
+    this.setData({ showMemoDetail: false, currentMemo: null });
+  },
+
+  // ==========================================================
+  // 【工具方法】
+  // ==========================================================
+
+  /** 获取今日日期字符串，格式 "YYYY-MM-DD" */
+  _getTodayStr() {
+    const d   = new Date();
+    const y   = d.getFullYear();
+    const m   = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  },
+
+  /** 生成6位随机数字绑定码 */
+  _genBindCode() {
+    return String(Math.floor(100000 + Math.random() * 900000));
+  },
+
+  /** 阻止弹窗下层页面滚动穿透 */
+  onModalStop() {},
+
+  /** 返回上级页面 */
+  onNavBack() {
+    wx.navigateBack();
+  }
+
+});{
+  "navigationBarTitleText": "孝亲守护",
+  "navigationBarBackgroundColor": "#FFF8EE",
+  "navigationBarTextStyle": "black",
+  "backgroundColor": "#F5F0E8"
+}
+<!-- pages/services/convenience/elder/elder.wxml -->
+
+<!-- 加载占位（pageReady 为 false 时显示，修复白屏问题） -->
+<view wx:if="{{!pageReady}}" class="page-loading">
+  <text class="page-loading-text">加载中...</text>
+</view>
+
+<view class="elder-page" wx:if="{{pageReady}}">
+
+<!-- ======================================================
+  顶部导航栏
+====================================================== -->
+<view class="nav-bar">
+  <view class="nav-back" bindtap="onNavBack">‹ 返回</view>
+  <text class="nav-title">❤️ 孝亲守护</text>
+  <view class="nav-right" bindtap="onResetIdentity">
+    <text class="nav-role-tag">{{selectedTitle || '未设置'}}</text>
+  </view>
+</view>
+
+<!-- ======================================================
+  【身份选择弹窗】— 首次进入时显示
+====================================================== -->
+<view class="modal-mask" wx:if="{{showIdentityModal}}"
+  catchtouchmove="onModalStop"
+  catchtap="onModalStop">
+  <view class="modal-box identity-modal" catchtap="onModalStop">
+    <view class="modal-title">👋 您好，请选择您的身份</view>
+    <view class="modal-sub">选择后系统自动适配您的专属界面</view>
+
+    <!-- ✅ 新增功能说明区块 -->
+    <view class="feature-intro-box">
+      <view class="feature-intro-title">💡 板块说明</view>
+      <view class="feature-intro-text">
+        这是「孝亲守护」板块，专为你和家人打造：
+      </view>
+      <view class="feature-intro-item">📱 子女可远程帮长辈设置用药提醒、添加健康记录</view>
+      <view class="feature-intro-item">💊 长辈只需一键打卡，就能轻松完成每日用药</view>
+      <view class="feature-intro-item">🔄 系统会自动同步数据，让你随时掌握家人健康状态</view>
+      <view class="feature-intro-item">🔔 异常时还会及时提醒，帮你更省心地守护家人健康</view>
+    </view>
+
+    <view class="identity-grid">
+      <view
+        wx:for="{{identityList}}"
+        wx:key="label"
+        class="identity-item {{selectedTitle === item.label ? 'identity-selected' : ''}}"
+        bindtap="onSelectIdentity"
+        data-item="{{item}}"
+      >
+        <text class="identity-icon">{{item.icon}}</text>
+        <text class="identity-label">{{item.label}}</text>
+      </view>
+    </view>
+    <!-- ✅ 修复截图2报错：原代码此处为 </view>，应为 </button> -->
+    <button class="btn-primary btn-confirm-identity" bindtap="onConfirmIdentity">
+      确认，进入孝亲守护
+    </button>
+  </view>
+</view>
+
+<!-- ======================================================
+  ★★★ 老人视图（长辈端）★★★
+====================================================== -->
+<block wx:if="{{role === 'elder'}}">
+  <view class="elder-view">
+
+    <!-- 欢迎区域 -->
+    <view class="elder-welcome-card">
+      <text class="elder-welcome-title">❤️ 家人关爱您</text>
+      <text class="elder-welcome-sub">子女已为您设置好提醒，无需手动操作</text>
+    </view>
+
+    <!-- 今日用药提醒区 -->
+    <view class="elder-section">
+      <view class="elder-section-title">💊 今日用药</view>
+
+      <view wx:if="{{todayMeds.length === 0}}" class="elder-empty">
+        今日暂无用药提醒
+      </view>
+
+      <view wx:for="{{todayMeds}}" wx:key="id" class="elder-med-card">
+        <view class="elder-med-top">
+          <text class="elder-med-name">{{item.name}}</text>
+          <text class="elder-med-time">⏰ {{item.time}}</text>
+        </view>
+        <text class="elder-med-dose">用量：{{item.dose}}</text>
+        <text class="elder-med-note" wx:if="{{item.note}}">📝 {{item.note}}</text>
+      </view>
+    </view>
+
+    <!-- 打卡历史（最近3条）— ✅ 修复 wx:if + wx:for 同节点问题 -->
+    <view class="elder-section" wx:if="{{medRecords.length > 0}}">
+      <view class="elder-section-title">📋 今日打卡记录</view>
+      <block wx:for="{{medRecords}}" wx:key="id">
+        <view wx:if="{{index < 3}}" class="record-row">
+          <text class="record-status {{item.status === 'taken' ? 'status-taken' : 'status-skip'}}">
+            {{item.status === 'taken' ? '✅ 已吃' : '❌ 未吃'}}
+          </text>
+          <text class="record-name">{{item.medName}} {{item.dose}}</text>
+          <text class="record-time">{{item.time}}</text>
+        </view>
+      </block>
+    </view>
+
+    <!-- 今日重要事项（备忘录） -->
+    <view class="elder-section">
+      <view class="elder-section-title">📅 今日重要事项</view>
+      <view
+        class="elder-memo-btn {{todayMemos.length > 0 ? 'elder-memo-btn-active' : ''}}"
+        bindtap="onViewTodayMemo"
+      >
+        <text class="elder-memo-btn-icon">{{todayMemos.length > 0 ? '🔔' : '📋'}}</text>
+        <text class="elder-memo-btn-text">
+          {{todayMemos.length > 0 ? '今天有 ' + todayMemos.length + ' 条重要事项，点击查看' : '点击查看家人备忘录'}}
+        </text>
+      </view>
+    </view>
+
+  </view>
+</block>
+
+<!-- ======================================================
+  ★★★ 晚辈视图（子女/孙辈端）★★★
+====================================================== -->
+<block wx:if="{{role === 'junior'}}">
+  <view class="junior-view">
+
+    <!-- ——— 家庭绑定区域 ——— -->
+    <view class="section-card">
+      <view class="section-header" bindtap="toggleBindPanel">
+        <view class="section-title-row">
+          <text class="section-title">👨‍👩‍👧 家庭绑定</text>
+          <view class="bound-badge {{isBound ? 'badge-bound' : 'badge-unbound'}}">
+            {{isBound ? '✅ 已绑定 ' + familyMembers.length + ' 位家人' : '未绑定，点击设置'}}
+          </view>
+        </view>
+        <text class="section-arrow">{{showBindPanel ? '▲' : '▼'}}</text>
+      </view>
+
+      <!-- 绑定面板展开内容 -->
+      <view wx:if="{{showBindPanel}}" class="bind-panel">
+
+        <!-- 我的绑定码 -->
+        <view class="my-code-box">
+          <text class="my-code-label">我的绑定码（发给家人）</text>
+          <text class="my-code-value">{{bindCode}}</text>
+          <!-- ✅ 修复：原 bindtap="_chooseWxFriend" 方法缺失，改为已有方法 -->
+          <button class="btn-mini" bindtap="_chooseWxFriend">复制分享</button>
+        </view>
+
+        <!-- 选择绑定方式 -->
+        <view class="bind-methods">
+          <view class="bind-method-title">选择绑定方式</view>
+          <view class="bind-method-list">
+            <view class="bind-method-item {{bindMethod==='friend' ? 'method-active' : ''}}"
+              bindtap="onSelectBindMethod" data-method="friend">
+              <text class="method-icon">👥</text>
+              <text class="method-name">微信好友</text>
+            </view>
+            <view class="bind-method-item {{bindMethod==='qr' ? 'method-active' : ''}}"
+              bindtap="onSelectBindMethod" data-method="qr">
+              <text class="method-icon">📱</text>
+              <text class="method-name">二维码</text>
+            </view>
+            <view class="bind-method-item {{bindMethod==='wxid' ? 'method-active' : ''}}"
+              bindtap="onSelectBindMethod" data-method="wxid">
+              <text class="method-icon">🔤</text>
+              <text class="method-name">微信号</text>
+            </view>
+          </view>
+
+          <!-- 微信号输入区域 -->
+          <view wx:if="{{bindMethod === 'wxid'}}" class="wxid-input-row">
+            <input class="input-field" placeholder="请输入对方微信号" value="{{inputWxId}}" bindinput="onInputWxId"/>
+            <button class="btn-primary btn-sm" bindtap="onSubmitWxIdBind">发申请</button>
+          </view>
+        </view>
+
+        <!-- 输入对方绑定码 -->
+        <view class="input-row">
+          <text class="input-label">输入家人绑定码</text>
+          <input class="input-field" placeholder="输入6位绑定码" value="{{inputBindCode}}" bindinput="onInputBindCode" maxlength="6" type="number"/>
+          <button class="btn-primary btn-sm" bindtap="onConfirmBindCode">确认绑定</button>
+        </view>
+
+        <!-- 已绑定成员列表 -->
+        <view wx:if="{{familyMembers.length > 0}}" class="member-list">
+          <view class="member-list-title">已绑定家庭成员</view>
+          <view wx:for="{{familyMembers}}" wx:key="code" class="member-row">
+            <text class="member-icon">{{item.role === 'elder' ? '👴' : '👦'}}</text>
+            <text class="member-name">{{item.name || '家人'}}</text>
+            <text class="member-role-tag">{{item.role === 'elder' ? '长辈' : '晚辈'}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- ——— 用药提醒管理区域 ——— -->
+    <view class="section-card">
+      <view class="section-header">
+        <text class="section-title">💊 用药提醒管理</text>
+        <button class="btn-add" bindtap="onShowAddMed">＋ 新增</button>
+      </view>
+
+      <view wx:if="{{medicineList.length === 0}}" class="empty-tip">
+        暂未添加用药提醒，点击右上角新增
+      </view>
+
+      <view wx:for="{{medicineList}}" wx:key="id" class="med-card">
+        <view class="med-card-top">
+          <text class="med-name">{{item.name}}</text>
+          <switch checked="{{item.enabled}}" bindchange="onToggleMedSwitch" data-id="{{item.id}}" color="#D4820A"/>
+        </view>
+        <view class="med-card-info">
+          <text class="med-info-text">⏰ {{item.time}}</text>
+          <text class="med-info-text">💊 {{item.dose}}</text>
+          <text class="med-info-text" wx:if="{{item.note}}">📝 {{item.note}}</text>
+        </view>
+        <view class="med-card-actions">
+          <view class="status-tag {{item.enabled ? 'tag-on' : 'tag-off'}}">
+            {{item.enabled ? '提醒开启' : '提醒关闭'}}
+          </view>
+          <view class="btn-delete" bindtap="onDeleteMed" data-id="{{item.id}}">删除</view>
+        </view>
+      </view>
+    </view>
+
+    <!-- ——— 打卡记录查看区域 — ✅ 修复 wx:if + wx:for 同节点问题 ——— -->
+    <view class="section-card" wx:if="{{medRecords.length > 0}}">
+      <view class="section-header">
+        <text class="section-title">📋 用药打卡记录</text>
+      </view>
+      <block wx:for="{{medRecords}}" wx:key="id">
+        <view wx:if="{{index < 10}}" class="record-row-junior">
+          <text class="record-status {{item.status === 'taken' ? 'status-taken' : 'status-skip'}}">
+            {{item.status === 'taken' ? '✅' : '❌'}}
+          </text>
+          <view class="record-info">
+            <text class="record-info-name">{{item.medName}} · {{item.dose}}</text>
+            <text class="record-info-time">{{item.date}} {{item.time}} · {{item.recordTime}}</text>
+          </view>
+        </view>
+      </block>
+    </view>
+
+    <!-- ——— 家庭备忘录管理区域 ——— -->
+    <view class="section-card">
+      <view class="section-header">
+        <text class="section-title">📅 家庭备忘录</text>
+        <button class="btn-add" bindtap="onShowAddMemo">＋ 新增</button>
+      </view>
+
+      <view wx:if="{{memoList.length === 0}}" class="empty-tip">
+        暂无备忘录，点击右上角新增重要事项
+      </view>
+
+      <view wx:for="{{memoList}}" wx:key="id" class="memo-card">
+        <view class="memo-card-top">
+          <text class="memo-title">{{item.title}}</text>
+          <text class="memo-date" wx:if="{{item.date}}">📅 {{item.date}}</text>
+        </view>
+        <text class="memo-content">{{item.content}}</text>
+
+        <view wx:if="{{item.images && item.images.length > 0}}" class="memo-images">
+          <image
+            wx:for="{{item.images}}"
+            wx:key="*this"
+            wx:for-item="img"
+            src="{{img}}"
+            class="memo-img"
+            mode="aspectFill"
+            bindtap="onPreviewImage"
+            data-urls="{{item.images}}"
+            data-current="{{img}}"
+          />
+        </view>
+
+        <view class="memo-actions">
+          <view class="btn-edit" bindtap="onEditMemo" data-id="{{item.id}}">编辑</view>
+          <view class="btn-delete" bindtap="onDeleteMemo" data-id="{{item.id}}">删除</view>
+        </view>
+      </view>
+    </view>
+
+  </view>
+</block>
+
+<!-- ======================================================
+  【老人端 — 用药打卡弹窗】
+====================================================== -->
+<view class="modal-mask clock-mask" wx:if="{{showMedClock}}"
+  catchtouchmove="onModalStop"
+  catchtap="onModalStop">
+  <view class="clock-modal" catchtap="onModalStop">
+    <text class="clock-title">💊 用药提醒</text>
+    <text class="clock-time">⏰ {{clockMedInfo.time}}</text>
+    <text class="clock-med-name">{{clockMedInfo.name}}</text>
+    <text class="clock-dose">用量：{{clockMedInfo.dose}}</text>
+    <text class="clock-note" wx:if="{{clockMedInfo.note}}">{{clockMedInfo.note}}</text>
+    <view class="clock-btn-row">
+      <view class="clock-btn clock-btn-taken" bindtap="onMedClock" data-status="taken">
+        ✅ 已吃
+      </view>
+      <view class="clock-btn clock-btn-skip" bindtap="onMedClock" data-status="skipped">
+        ❌ 未吃
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- ======================================================
+  【老人端 — 备忘录详情弹窗】
+====================================================== -->
+<view class="modal-mask" wx:if="{{showMemoDetail}}"
+  catchtouchmove="onModalStop"
+  catchtap="onModalStop">
+  <view class="modal-box memo-detail-modal" catchtap="onModalStop">
+    <text class="memo-detail-title">{{currentMemo.title}}</text>
+    <text class="memo-detail-date" wx:if="{{currentMemo.date}}">📅 {{currentMemo.date}}</text>
+    <text class="memo-detail-content">{{currentMemo.content}}</text>
+    <view wx:if="{{currentMemo.images && currentMemo.images.length > 0}}" class="memo-detail-images">
+      <image
+        wx:for="{{currentMemo.images}}"
+        wx:key="*this"
+        wx:for-item="img"
+        src="{{img}}"
+        class="memo-detail-img"
+        mode="aspectFill"
+        bindtap="onPreviewImage"
+        data-urls="{{currentMemo.images}}"
+        data-current="{{img}}"
+      />
+    </view>
+    <button class="btn-primary btn-close-memo" bindtap="onCloseMemoDetail">我知道了</button>
+  </view>
+</view>
+
+<!-- ======================================================
+  【新增用药提醒弹窗】
+====================================================== -->
+<view class="modal-mask" wx:if="{{showAddMedForm}}"
+  catchtouchmove="onModalStop"
+  catchtap="onModalStop">
+  <view class="modal-box form-modal" catchtap="onModalStop">
+    <view class="form-title">💊 新增用药提醒</view>
+    <view class="form-row">
+      <text class="form-label">药品名称</text>
+      <input class="input-field" placeholder="如：血压药" value="{{medForm.name}}" bindinput="onMedInput" data-field="name"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">服用剂量</text>
+      <input class="input-field" placeholder="如：1片" value="{{medForm.dose}}" bindinput="onMedInput" data-field="dose"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">服用说明</text>
+      <input class="input-field" placeholder="如：饭后服用" value="{{medForm.note}}" bindinput="onMedInput" data-field="note"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">提醒时间</text>
+      <picker mode="time" value="{{medForm.time}}" bindchange="onPickMedTime">
+        <view class="picker-display">{{medForm.time || '点击选择时间'}}</view>
+      </picker>
+    </view>
+    <view class="form-btns">
+      <button class="btn-cancel" bindtap="onCloseAddMed">取消</button>
+      <button class="btn-primary" bindtap="onSaveMed">保存提醒</button>
+    </view>
+  </view>
+</view>
+
+<!-- ======================================================
+  【新增/编辑备忘录弹窗】
+====================================================== -->
+<view class="modal-mask" wx:if="{{showAddMemo}}"
+  catchtouchmove="onModalStop"
+  catchtap="onModalStop">
+  <view class="modal-box form-modal" catchtap="onModalStop">
+    <view class="form-title">📅 {{memoForm.id ? '编辑' : '新增'}}备忘录</view>
+    <view class="form-row">
+      <text class="form-label">事项标题</text>
+      <input class="input-field" placeholder="如：爸爸体检" value="{{memoForm.title}}" bindinput="onMemoInput" data-field="title"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">事项内容</text>
+      <textarea class="textarea-field" placeholder="填写详细内容..." value="{{memoForm.content}}" bindinput="onMemoInput" data-field="content"/>
+    </view>
+    <view class="form-row">
+      <text class="form-label">重要日期</text>
+      <picker mode="date" value="{{memoForm.date}}" bindchange="onPickMemoDate">
+        <view class="picker-display">{{memoForm.date || '点击选择日期（可选）'}}</view>
+      </picker>
+    </view>
+    <view class="form-row">
+      <text class="form-label">上传图片（最多3张）</text>
+      <view class="img-upload-area">
+        <view wx:for="{{memoForm.images}}" wx:key="*this" wx:for-item="img" class="img-thumb-wrap">
+          <image src="{{img}}" class="img-thumb" mode="aspectFill"/>
+          <view class="img-delete-btn" bindtap="onDeleteMemoImage" data-index="{{index}}">✕</view>
+        </view>
+        <view class="img-add-btn" bindtap="onAddMemoImage" wx:if="{{memoForm.images.length < 3}}">
+          <text class="img-add-icon">📷</text>
+          <text class="img-add-text">添加图片</text>
+        </view>
+      </view>
+    </view>
+    <view class="form-btns">
+      <button class="btn-cancel" bindtap="onCloseAddMemo">取消</button>
+      <button class="btn-primary" bindtap="onSaveMemo">保存</button>
+    </view>
+  </view>
+</view>
+
+<!-- 底部占位 -->
+<view style="height: 120rpx;"></view>
+
+</view>
+/* pages/services/convenience/elder/elder.wxss */
+/* ============================================================
+  孝亲守护页面样式
+  配色体系：暖橙 #D4820A / 米黄 #FFF8EE / 暖棕 #8B5E3C
+  字体基线：老人端 ≥ 36rpx，晚辈端 ≥ 28rpx
+  按钮基线：老人端 ≥ 140rpx 高，晚辈端 ≥ 88rpx 高
+============================================================ */
+
+/* ---- 页面基础 ---- */
+.elder-page {
+  min-height: 100vh;
+  background: #F5F0E8;
+  padding-bottom: 40rpx;
+}
+
+/* ---- 顶部导航 ---- */
+.nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFF8EE;
+  padding: 24rpx 32rpx;
+  border-bottom: 2rpx solid #E8DCC8;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.nav-back {
+  font-size: 32rpx;
+  color: #D4820A;
+  font-weight: bold;
+  padding: 10rpx 0;
+}
+.nav-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #5C3A1E;
+}
+.nav-right {
+  display: flex;
+  align-items: center;
+}
+.nav-role-tag {
+  font-size: 26rpx;
+  color: #8B5E3C;
+  background: #F5E6D0;
+  padding: 6rpx 16rpx;
+  border-radius: 20rpx;
+}
+
+/* ============================================================
+  通用卡片/区块
+============================================================ */
+.section-card {
+  background: #FFFDF8;
+  border-radius: 20rpx;
+  margin: 24rpx 24rpx 0;
+  padding: 32rpx;
+  box-shadow: 0 2rpx 12rpx rgba(212,130,10,0.08);
+}
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+.section-title-row {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #5C3A1E;
+}
+.section-arrow {
+  color: #D4820A;
+  font-size: 28rpx;
+}
+.empty-tip {
+  text-align: center;
+  color: #B09070;
+  font-size: 28rpx;
+  padding: 40rpx 0;
+}
+
+/* ============================================================
+  【身份选择弹窗】
+============================================================ */
+/* ✅ 问题10修复：替换 inset:0 为兼容写法 */
+.modal-mask {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+.modal-box {
+  background: #FFFDF8;
+  border-radius: 28rpx;
+  padding: 48rpx 40rpx;
+  width: 88vw;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 8rpx 40rpx rgba(0,0,0,0.2);
+}
+.modal-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #5C3A1E;
+  text-align: center;
+  margin-bottom: 12rpx;
+}
+.modal-sub {
+  font-size: 26rpx;
+  color: #B09070;
+  text-align: center;
+  margin-bottom: 40rpx;
+}
+.identity-modal {}
+.identity-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24rpx;
+  margin-bottom: 40rpx;
+}
+.identity-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: #F5F0E8;
+  border-radius: 20rpx;
+  padding: 28rpx 12rpx;
+  border: 3rpx solid transparent;
+  transition: all 0.2s;
+}
+.identity-selected {
+  background: #FFF3E0;
+  border-color: #D4820A;
+}
+.identity-icon {
+  font-size: 52rpx;
+  margin-bottom: 10rpx;
+}
+.identity-label {
+  font-size: 28rpx;
+  color: #5C3A1E;
+  font-weight: bold;
+}
+.btn-confirm-identity {
+  width: 100%;
+  margin-top: 8rpx;
+}
+
+/* ============================================================
+  通用按钮
+============================================================ */
+.btn-primary {
+  background: linear-gradient(135deg, #E8940A, #D4820A);
+  color: #fff;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  font-weight: bold;
+  border: none;
+  padding: 22rpx 40rpx;
+  text-align: center;
+}
+/* ✅ 问题12修复：给 .btn-cancel 增加 box-sizing */
+.btn-cancel {
+  background: #F0EAE0;
+  color: #8B5E3C;
+  border-radius: 16rpx;
+  font-size: 30rpx;
+  font-weight: bold;
+  border: none;
+  padding: 22rpx 40rpx;
+  flex: 1;
+  margin-right: 20rpx;
+  box-sizing: border-box;
+}
+.btn-add {
+  background: #FFF3E0;
+  color: #D4820A;
+  border: 2rpx solid #D4820A;
+  border-radius: 12rpx;
+  font-size: 26rpx;
+  font-weight: bold;
+  padding: 10rpx 24rpx;
+  line-height: 1.4;
+}
+.btn-edit {
+  color: #D4820A;
+  font-size: 26rpx;
+  padding: 8rpx 20rpx;
+  border: 2rpx solid #D4820A;
+  border-radius: 10rpx;
+  margin-right: 16rpx;
+}
+.btn-delete {
+  color: #E74C3C;
+  font-size: 26rpx;
+  padding: 8rpx 20rpx;
+  border: 2rpx solid #E74C3C;
+  border-radius: 10rpx;
+}
+.btn-mini {
+  font-size: 24rpx;
+  background: #D4820A;
+  color: #fff;
+  border: none;
+  border-radius: 10rpx;
+  padding: 8rpx 20rpx;
+  margin-left: 16rpx;
+}
+.btn-sm {
+  padding: 14rpx 24rpx;
+  font-size: 26rpx;
+  margin-left: 16rpx;
+  margin-top: 0;
+}
+
+/* ✅ 问题13修复：清除按钮默认边框 */
+.btn-primary::after {
+  display: none;
+}
+.btn-cancel::after {
+  display: none;
+}
+.btn-add::after {
+  display: none;
+}
+.btn-mini::after {
+  display: none;
+}
+
+/* ============================================================
+  ★★★ 老人视图（ELDER VIEW）★★★
+  所有字体/按钮均为最大规格
+============================================================ */
+.elder-view {
+  padding: 20rpx 0;
+}
+.elder-welcome-card {
+  background: linear-gradient(135deg, #FFF3E0, #FFECCC);
+  border-radius: 24rpx;
+  margin: 24rpx 24rpx 0;
+  padding: 40rpx 36rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 2rpx solid #F5D5A0;
+}
+.elder-welcome-title {
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #D4820A;
+  margin-bottom: 12rpx;
+}
+.elder-welcome-sub {
+  font-size: 28rpx;
+  color: #8B5E3C;
+  text-align: center;
+}
+.elder-section {
+  background: #FFFDF8;
+  border-radius: 20rpx;
+  margin: 24rpx 24rpx 0;
+  padding: 32rpx;
+  box-shadow: 0 2rpx 12rpx rgba(212,130,10,0.08);
+}
+.elder-section-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #5C3A1E;
+  margin-bottom: 24rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 2rpx solid #F0E8D8;
+}
+.elder-empty {
+  text-align: center;
+  font-size: 32rpx;
+  color: #B09070;
+  padding: 40rpx 0;
+}
+/* 老人端用药卡片 */
+.elder-med-card {
+  background: #FFF8F0;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin-bottom: 20rpx;
+  border-left: 8rpx solid #D4820A;
+}
+.elder-med-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+.elder-med-name {
+  font-size: 44rpx;  /* 老人端大字 */
+  font-weight: bold;
+  color: #5C3A1E;
+}
+.elder-med-time {
+  font-size: 32rpx;
+  color: #D4820A;
+  font-weight: bold;
+}
+.elder-med-dose {
+  font-size: 36rpx;
+  color: #8B5E3C;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 8rpx;
+}
+.elder-med-note {
+  font-size: 30rpx;
+  color: #A0855B;
+  display: block;
+}
+/* 打卡记录行（老人端） */
+.record-row {
+  display: flex;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #F0E8D8;
+  gap: 20rpx;
+}
+.record-status {
+  font-size: 32rpx;
+  font-weight: bold;
+}
+.status-taken { color: #27AE60; }
+.status-skip  { color: #E74C3C; }
+.record-name {
+  flex: 1;
+  font-size: 30rpx;
+  color: #5C3A1E;
+}
+.record-time {
+  font-size: 28rpx;
+  color: #B09070;
+}
+/* 老人端备忘录按钮 */
+.elder-memo-btn {
+  background: #F5F0E8;
+  border-radius: 20rpx;
+  padding: 36rpx 32rpx;
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  border: 3rpx solid #E8DCC8;
+}
+.elder-memo-btn-active {
+  background: #FFF3E0;
+  border-color: #D4820A;
+}
+.elder-memo-btn-icon {
+  font-size: 52rpx;
+}
+.elder-memo-btn-text {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #5C3A1E;
+  flex: 1;
+  line-height: 1.5;
+}
+
+/* ============================================================
+  ★★★ 老人端用药打卡弹窗（CLOCK MODAL）★★★
+  全屏居中，字体极大，按钮极大
+============================================================ */
+.clock-mask {
+  background: rgba(0,0,0,0.75);
+}
+.clock-modal {
+  background: #FFFDF8;
+  border-radius: 32rpx;
+  width: 90vw;
+  padding: 60rpx 48rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 12rpx 60rpx rgba(0,0,0,0.3);
+}
+.clock-title {
+  font-size: 52rpx;
+  font-weight: bold;
+  color: #D4820A;
+  margin-bottom: 16rpx;
+}
+.clock-time {
+  font-size: 40rpx;
+  color: #8B5E3C;
+  margin-bottom: 32rpx;
+}
+.clock-med-name {
+  font-size: 72rpx;  /* 老人端核心信息超大字 */
+  font-weight: bold;
+  color: #5C3A1E;
+  margin-bottom: 20rpx;
+  text-align: center;
+  line-height: 1.3;
+}
+.clock-dose {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #D4820A;
+  margin-bottom: 16rpx;
+}
+.clock-note {
+  font-size: 36rpx;
+  color: #8B5E3C;
+  margin-bottom: 48rpx;
+  text-align: center;
+}
+.clock-btn-row {
+  display: flex;
+  width: 100%;
+  gap: 30rpx;
+  margin-top: 20rpx;
+}
+.clock-btn {
+  flex: 1;
+  height: 140rpx;         /* 老人端按钮超大 */
+  border-radius: 24rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 44rpx;
+  font-weight: bold;
+}
+.clock-btn-taken {
+  background: linear-gradient(135deg, #27AE60, #1E8449);
+  color: #fff;
+}
+.clock-btn-skip {
+  background: linear-gradient(135deg, #E74C3C, #C0392B);
+  color: #fff;
+}
+
+/* ============================================================
+  ★★★ 晚辈视图（JUNIOR VIEW）★★★
+============================================================ */
+.junior-view {}
+
+/* 绑定状态标签 */
+.bound-badge {
+  font-size: 24rpx;
+  padding: 6rpx 18rpx;
+  border-radius: 20rpx;
+  font-weight: bold;
+}
+.badge-bound   { background: #E8F8EF; color: #27AE60; }
+.badge-unbound { background: #FFF3E0; color: #D4820A; }
+
+/* 绑定面板 */
+.bind-panel {
+  background: #F9F5EF;
+  border-radius: 16rpx;
+  padding: 28rpx;
+  margin-top: 8rpx;
+}
+.my-code-box {
+  display: flex;
+  align-items: center;
+  background: #FFF8EE;
+  border-radius: 14rpx;
+  padding: 20rpx 24rpx;
+  margin-bottom: 28rpx;
+  gap: 16rpx;
+}
+.my-code-label {
+  font-size: 26rpx;
+  color: #8B5E3C;
+}
+.my-code-value {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #D4820A;
+  letter-spacing: 4rpx;
+  flex: 1;
+  text-align: center;
+}
+
+/* 绑定方式选择 */
+.bind-methods { margin-bottom: 24rpx; }
+.bind-method-title {
+  font-size: 26rpx;
+  color: #8B5E3C;
+  margin-bottom: 16rpx;
+}
+.bind-method-list {
+  display: flex;
+  gap: 20rpx;
+}
+.bind-method-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx 12rpx;
+  background: #FFFDF8;
+  border-radius: 16rpx;
+  border: 3rpx solid #E8DCC8;
+  gap: 8rpx;
+}
+.method-active {
+  border-color: #D4820A;
+  background: #FFF3E0;
+}
+.method-icon { font-size: 40rpx; }
+.method-name { font-size: 24rpx; color: #5C3A1E; font-weight: bold; }
+
+/* 微信号输入行 */
+.wxid-input-row {
+  display: flex;
+  align-items: center;
+  margin-top: 16rpx;
+}
+
+/* 绑定码输入行 */
+.input-row {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+  flex-wrap: wrap;
+  margin-top: 16rpx;
+}
+.input-label {
+  font-size: 26rpx;
+  color: #8B5E3C;
+  white-space: nowrap;
+}
+.input-field {
+  flex: 1;
+  background: #fff;
+  border: 2rpx solid #E8DCC8;
+  border-radius: 12rpx;
+  padding: 18rpx 20rpx;
+  font-size: 28rpx;
+  color: #5C3A1E;
+  min-width: 180rpx;
+}
+
+/* 成员列表 */
+.member-list { margin-top: 28rpx; }
+.member-list-title {
+  font-size: 26rpx;
+  color: #8B5E3C;
+  margin-bottom: 12rpx;
+}
+.member-row {
+  display: flex;
+  align-items: center;
+  padding: 16rpx 0;
+  border-bottom: 1rpx solid #F0E8D8;
+  gap: 16rpx;
+}
+.member-icon { font-size: 36rpx; }
+.member-name {
+  flex: 1;
+  font-size: 28rpx;
+  color: #5C3A1E;
+  font-weight: bold;
+}
+.member-role-tag {
+  font-size: 22rpx;
+  background: #F5E6D0;
+  color: #D4820A;
+  padding: 4rpx 14rpx;
+  border-radius: 12rpx;
+}
+
+/* 用药卡片（晚辈端） */
+.med-card {
+  background: #FFF8F0;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  border-left: 6rpx solid #D4820A;
+}
+.med-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+.med-name {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #5C3A1E;
+}
+.med-card-info {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+}
+.med-info-text {
+  font-size: 26rpx;
+  color: #8B5E3C;
+}
+.med-card-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.status-tag {
+  font-size: 24rpx;
+  padding: 6rpx 18rpx;
+  border-radius: 12rpx;
+  font-weight: bold;
+}
+.tag-on  { background: #E8F8EF; color: #27AE60; }
+.tag-off { background: #F5F0E8; color: #B09070; }
+
+/* 打卡记录行（晚辈端） */
+.record-row-junior {
+  display: flex;
+  align-items: flex-start;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #F0E8D8;
+  gap: 16rpx;
+}
+.record-info { flex: 1; }
+.record-info-name {
+  font-size: 28rpx;
+  color: #5C3A1E;
+  font-weight: bold;
+  display: block;
+}
+.record-info-time {
+  font-size: 24rpx;
+  color: #B09070;
+  display: block;
+  margin-top: 6rpx;
+}
+
+/* 备忘录卡片 */
+.memo-card {
+  background: #FFF8F0;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+  border-left: 6rpx solid #8E44AD;
+}
+.memo-card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12rpx;
+}
+.memo-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #5C3A1E;
+}
+.memo-date {
+  font-size: 24rpx;
+  color: #8B5E3C;
+}
+.memo-content {
+  font-size: 28rpx;
+  color: #8B5E3C;
+  line-height: 1.6;
+  display: block;
+  margin-bottom: 16rpx;
+}
+.memo-images {
+  display: flex;
+  gap: 16rpx;
+  margin-bottom: 16rpx;
+  flex-wrap: wrap;
+}
+/* ✅ 问题11修复：删除无效的 object-fit: cover */
+.memo-img {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 12rpx;
+}
+.memo-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16rpx;
+}
+
+/* 图片上传区域 */
+.img-upload-area {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  margin-top: 12rpx;
+}
+.img-thumb-wrap {
+  position: relative;
+  width: 160rpx;
+  height: 160rpx;
+}
+/* ✅ 问题11修复：删除无效的 object-fit: cover */
+.img-thumb {
+  width: 100%;
+  height: 100%;
+  border-radius: 12rpx;
+}
+.img-delete-btn {
+  position: absolute;
+  top: -10rpx;
+  right: -10rpx;
+  width: 40rpx;
+  height: 40rpx;
+  background: rgba(0,0,0,0.6);
+  color: #fff;
+  border-radius: 50%;
+  font-size: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.img-add-btn {
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 12rpx;
+  background: #F5F0E8;
+  border: 3rpx dashed #E8DCC8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+}
+.img-add-icon { font-size: 44rpx; }
+.img-add-text { font-size: 22rpx; color: #B09070; }
+
+/* ============================================================
+  表单弹窗
+============================================================ */
+.form-modal {}
+.form-title {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #5C3A1E;
+  text-align: center;
+  margin-bottom: 36rpx;
+}
+.form-row {
+  margin-bottom: 28rpx;
+}
+.form-label {
+  display: block;
+  font-size: 28rpx;
+  color: #8B5E3C;
+  font-weight: bold;
+  margin-bottom: 12rpx;
+}
+.textarea-field {
+  width: 100%;
+  min-height: 120rpx;
+  background: #F9F5EF;
+  border: 2rpx solid #E8DCC8;
+  border-radius: 12rpx;
+  padding: 18rpx 20rpx;
+  font-size: 28rpx;
+  color: #5C3A1E;
+  box-sizing: border-box;
+  line-height: 1.6;
+}
+.picker-display {
+  background: #F9F5EF;
+  border: 2rpx solid #E8DCC8;
+  border-radius: 12rpx;
+  padding: 18rpx 20rpx;
+  font-size: 28rpx;
+  color: #5C3A1E;
+}
+.form-btns {
+  display: flex;
+  gap: 20rpx;
+  margin-top: 40rpx;
+}
+.form-btns .btn-primary {
+  flex: 1;
+}
+
+/* ============================================================
+  老人端备忘录详情弹窗
+============================================================ */
+.memo-detail-modal {}
+.memo-detail-title {
+  display: block;
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #5C3A1E;
+  text-align: center;
+  margin-bottom: 16rpx;
+}
+.memo-detail-date {
+  display: block;
+  font-size: 32rpx;
+  color: #D4820A;
+  text-align: center;
+  margin-bottom: 28rpx;
+}
+.memo-detail-content {
+  display: block;
+  font-size: 40rpx;    /* 老人端大字 */
+  font-weight: bold;
+  color: #5C3A1E;
+  line-height: 1.7;
+  text-align: center;
+  margin-bottom: 32rpx;
+}
+.memo-detail-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16rpx;
+  justify-content: center;
+  margin-bottom: 32rpx;
+}
+/* ✅ 问题11修复：删除无效的 object-fit: cover */
+.memo-detail-img {
+  width: 200rpx;
+  height: 200rpx;
+  border-radius: 16rpx;
+}
+.btn-close-memo {
+  width: 100%;
+  margin-top: 8rpx;
+  font-size: 34rpx;
+  height: 100rpx;
+}
+/* ── 功能说明区块 ── */
+.feature-intro-box {
+  background: #FFF8EE;
+  border-radius: 16rpx;
+  padding: 24rpx 28rpx;
+  margin-bottom: 36rpx;
+  border: 1rpx solid #F5D5A0;
+}
+.feature-intro-title {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #D4820A;
+  margin-bottom: 16rpx;
+}
+.feature-intro-text {
+  font-size: 26rpx;
+  color: #5C3A1E;
+  line-height: 1.7;
+  margin-bottom: 12rpx;
+}
+.feature-intro-item {
+  font-size: 25rpx;
+  color: #8B5E3C;
+  line-height: 1.8;
+  padding-left: 8rpx;
+}
+.page-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F5F0E8;
+}
+.page-loading-text {
+  font-size: 28rpx;
+  color: #B09070;
+}

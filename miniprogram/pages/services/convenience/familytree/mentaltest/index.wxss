@@ -1,0 +1,810 @@
+/* pages/services/convenience/familytree/mentaltest/index.wxss */
+/* ============================================================
+  心理测试页样式
+  配色体系（沿用心理健康中心）：
+    主紫    #4527A0
+    亮紫    #7C4DFF
+    浅紫    #EDE7F6
+    橙黄    #FF9800（选中态）
+    成功绿  #2E7D32
+    白底    #FFFFFF
+============================================================ */
+
+/* ========== 基础 ========== */
+page {
+  background: #EDE7F6;
+  font-family: -apple-system, "PingFang SC", sans-serif;
+}
+
+.test-page {
+  min-height: 100vh;
+  background: #EDE7F6;
+  padding-bottom: 80rpx;
+}
+
+/* ========== 加载占位 ========== */
+.page-loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24rpx;
+}
+
+.page-loading__icon {
+  font-size: 80rpx;
+  animation: floatBounce 1.5s ease-in-out infinite;
+}
+
+.page-loading__text {
+  font-size: 26rpx;
+  color: #9575CD;
+}
+
+@keyframes floatBounce {
+  0%,100% { transform: translateY(0);    }
+  50%      { transform: translateY(-16rpx); }
+}
+
+/* ========== 顶部导航 ========== */
+.nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #4527A0;
+  padding: 24rpx 28rpx;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.nav-back {
+  display: flex;
+  align-items: center;
+  gap: 4rpx;
+  min-width: 100rpx;
+}
+
+.nav-back__arrow {
+  font-size: 36rpx;
+  color: #D1C4E9;
+  line-height: 1;
+}
+
+.nav-back__text {
+  font-size: 28rpx;
+  color: #D1C4E9;
+}
+
+.nav-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #fff;
+  flex: 1;
+  text-align: center;
+  padding: 0 20rpx;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-count {
+  font-size: 24rpx;
+  color: #CE93D8;
+  background: rgba(255,255,255,0.12);
+  padding: 6rpx 18rpx;
+  border-radius: 20rpx;
+  min-width: 100rpx;
+  text-align: right;
+}
+
+.nav-placeholder {
+  min-width: 100rpx;
+}
+
+/* ============================================================
+  ① INTRO 封面介绍页
+============================================================ */
+.intro-page {
+  padding: 0 0 40rpx;
+}
+
+/* 封面卡片 */
+.intro-cover {
+  background: linear-gradient(160deg, #4527A0 0%, #7B1FA2 55%, #AD1457 100%);
+  padding: 60rpx 40rpx 50rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.intro-cover__deco1 {
+  position: absolute;
+  width: 300rpx;
+  height: 300rpx;
+  background: rgba(255,255,255,0.06);
+  border-radius: 50%;
+  top: -100rpx;
+  right: -80rpx;
+}
+
+.intro-cover__deco2 {
+  position: absolute;
+  width: 200rpx;
+  height: 200rpx;
+  background: rgba(255,255,255,0.04);
+  border-radius: 50%;
+  bottom: -60rpx;
+  left: -50rpx;
+}
+
+.intro-cover__emoji {
+  font-size: 100rpx;
+  margin-bottom: 24rpx;
+  display: block;
+  filter: drop-shadow(0 4rpx 12rpx rgba(0,0,0,0.2));
+}
+
+.intro-cover__title {
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 10rpx;
+  letter-spacing: 2rpx;
+}
+
+.intro-cover__scale {
+  font-size: 24rpx;
+  color: rgba(255,255,255,0.65);
+  margin-bottom: 36rpx;
+}
+
+/* 信息标签行 */
+.intro-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 16rpx;
+}
+
+.intro-tag {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background: rgba(255,255,255,0.15);
+  border-radius: 20rpx;
+  padding: 10rpx 22rpx;
+}
+
+.intro-tag--free {
+  background: rgba(76,175,80,0.25);
+  border: 1rpx solid rgba(76,175,80,0.4);
+}
+
+.intro-tag__icon {
+  font-size: 24rpx;
+}
+
+.intro-tag__text {
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.9);
+  font-weight: bold;
+}
+
+/* 说明卡片 */
+.intro-desc-card {
+  background: #fff;
+  border-radius: 24rpx;
+  margin: 24rpx 24rpx 0;
+  padding: 32rpx;
+  box-shadow: 0 2rpx 12rpx rgba(69,39,160,0.06);
+}
+
+.intro-desc-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #4527A0;
+  margin-bottom: 20rpx;
+  padding-bottom: 16rpx;
+  border-bottom: 2rpx solid #EDE7F6;
+}
+
+.intro-desc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.intro-desc-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+}
+
+.intro-desc-dot {
+  color: #7C4DFF;
+  font-size: 32rpx;
+  line-height: 1.3;
+  flex-shrink: 0;
+}
+
+.intro-desc-text {
+  font-size: 26rpx;
+  color: #5C3A1E;
+  line-height: 1.7;
+}
+
+/* 适用对象卡片 */
+.intro-audience-card {
+  background: #F3E5F5;
+  border-radius: 20rpx;
+  margin: 16rpx 24rpx 0;
+  padding: 28rpx;
+  border-left: 6rpx solid #7C4DFF;
+}
+
+.intro-audience-title {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #4527A0;
+  margin-bottom: 10rpx;
+}
+
+.intro-audience-text {
+  font-size: 26rpx;
+  color: #6A4CAF;
+  line-height: 1.7;
+}
+
+/* 温馨提示 */
+.intro-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  margin: 20rpx 24rpx 0;
+  background: #FFF8E1;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  border: 1rpx solid #FFE082;
+}
+
+.intro-notice__icon {
+  font-size: 28rpx;
+  flex-shrink: 0;
+}
+
+.intro-notice__text {
+  font-size: 22rpx;
+  color: #F57F17;
+  line-height: 1.7;
+}
+
+/* 开始按钮区 */
+.intro-btn-area {
+  margin: 36rpx 24rpx 0;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+}
+
+.intro-start-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14rpx;
+  background: linear-gradient(135deg, #7C4DFF, #4527A0);
+  border-radius: 60rpx;
+  padding: 34rpx 0;
+  box-shadow: 0 8rpx 28rpx rgba(124,77,255,0.4);
+}
+
+.intro-start-btn:active {
+  opacity: 0.88;
+  transform: scale(0.98);
+}
+
+.intro-start-btn__icon {
+  font-size: 32rpx;
+  color: #fff;
+}
+
+.intro-start-btn__text {
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #fff;
+  letter-spacing: 4rpx;
+}
+
+.intro-back-btn {
+  text-align: center;
+  font-size: 24rpx;
+  color: #9575CD;
+  padding: 16rpx 0;
+}
+
+/* ============================================================
+  ② TESTING 答题进行页
+============================================================ */
+.testing-page {
+  padding: 0 0 40rpx;
+}
+
+/* 进度条 */
+.progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  padding: 20rpx 28rpx 10rpx;
+  background: #4527A0;
+}
+
+.progress-bg {
+  flex: 1;
+  height: 10rpx;
+  background: rgba(255,255,255,0.2);
+  border-radius: 10rpx;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #CE93D8, #E040FB);
+  border-radius: 10rpx;
+  transition: width 0.4s ease;
+}
+
+.progress-label {
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.7);
+  min-width: 60rpx;
+  text-align: right;
+}
+
+/* 题目卡片 */
+.question-card {
+  background: #fff;
+  border-radius: 28rpx;
+  margin: 24rpx 24rpx 0;
+  padding: 36rpx 32rpx;
+  box-shadow: 0 4rpx 20rpx rgba(69,39,160,0.1);
+  min-height: 440rpx;
+}
+
+/* 题号标签行 */
+.question-number-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24rpx;
+}
+
+.question-number-tag {
+  background: linear-gradient(135deg, #7C4DFF, #4527A0);
+  color: #fff;
+  font-size: 22rpx;
+  font-weight: bold;
+  padding: 8rpx 22rpx;
+  border-radius: 20rpx;
+}
+
+.question-category {
+  font-size: 22rpx;
+  color: #B39DDB;
+  background: #F3E5F5;
+  padding: 6rpx 18rpx;
+  border-radius: 12rpx;
+}
+
+/* 题目文字 */
+.question-text {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #3E2723;
+  line-height: 1.7;
+  margin-bottom: 32rpx;
+  display: block;
+}
+
+/* 儿童版辅助说明 */
+.question-child-hint {
+  display: flex;
+  align-items: flex-start;
+  gap: 10rpx;
+  background: #FFF8E1;
+  border-radius: 14rpx;
+  padding: 18rpx 20rpx;
+  margin-bottom: 28rpx;
+}
+
+.question-child-hint__icon {
+  font-size: 28rpx;
+  flex-shrink: 0;
+}
+
+.question-child-hint__text {
+  font-size: 26rpx;
+  color: #F57F17;
+  line-height: 1.6;
+}
+
+/* ── 表情卡片型选项（儿童版） ── */
+.options-emoji {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+}
+
+.option-emoji-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  background: #F3E5F5;
+  border-radius: 20rpx;
+  padding: 28rpx 20rpx;
+  border: 3rpx solid transparent;
+  position: relative;
+  transition: all 0.2s;
+}
+
+.option-emoji-card:active {
+  transform: scale(0.95);
+}
+
+.option-emoji-card--selected {
+  background: #EDE7F6;
+  border-color: #7C4DFF;
+  box-shadow: 0 4rpx 16rpx rgba(124,77,255,0.25);
+  transform: scale(1.02);
+}
+
+.option-emoji-card__face {
+  font-size: 72rpx;
+  line-height: 1;
+}
+
+.option-emoji-card__label {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #4527A0;
+  text-align: center;
+}
+
+.option-check {
+  position: absolute;
+  top: 10rpx;
+  right: 10rpx;
+  width: 36rpx;
+  height: 36rpx;
+  background: #7C4DFF;
+  border-radius: 50%;
+  color: #fff;
+  font-size: 22rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── 标准文字型选项（成人量表） ── */
+.options-text {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.option-text-item {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  background: #FAFAFA;
+  border-radius: 16rpx;
+  padding: 24rpx 24rpx;
+  border: 2rpx solid #E8E0F0;
+  transition: all 0.2s;
+}
+
+.option-text-item:active {
+  background: #F3E5F5;
+}
+
+.option-text-item--selected {
+  background: #EDE7F6;
+  border-color: #7C4DFF;
+}
+
+/* 单选圆圈 */
+.option-radio {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  border: 3rpx solid #B39DDB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: border-color 0.2s;
+}
+
+.option-radio--selected {
+  border-color: #7C4DFF;
+  background: #7C4DFF;
+}
+
+.option-radio__dot {
+  width: 16rpx;
+  height: 16rpx;
+  background: #fff;
+  border-radius: 50%;
+}
+
+.option-text-item__label {
+  flex: 1;
+  font-size: 28rpx;
+  color: #3E2723;
+  line-height: 1.5;
+}
+
+.option-text-item__freq {
+  font-size: 22rpx;
+  color: #9575CD;
+  background: #F3E5F5;
+  padding: 4rpx 14rpx;
+  border-radius: 10rpx;
+  flex-shrink: 0;
+}
+
+/* ── 图片+文字型选项（老年视觉辅助） ── */
+.options-image {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+}
+
+.option-image-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+  background: #F3E5F5;
+  border-radius: 20rpx;
+  padding: 28rpx 16rpx;
+  border: 3rpx solid transparent;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.option-image-card--selected {
+  background: #EDE7F6;
+  border-color: #7C4DFF;
+  box-shadow: 0 4rpx 16rpx rgba(124,77,255,0.2);
+}
+
+.option-image-card__emoji {
+  font-size: 64rpx;
+  line-height: 1;
+}
+
+.option-image-card__label {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #4527A0;
+}
+
+.option-image-card__desc {
+  font-size: 20rpx;
+  color: #9575CD;
+  line-height: 1.4;
+}
+
+/* 已选提示 */
+.selected-tip {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  margin: 16rpx 24rpx 0;
+  padding: 16rpx 24rpx;
+  background: #E8F5E9;
+  border-radius: 12rpx;
+}
+
+.selected-tip--empty {
+  background: #F3E5F5;
+}
+
+.selected-tip__check {
+  font-size: 26rpx;
+}
+
+.selected-tip__text {
+  font-size: 22rpx;
+  color: #4CAF50;
+}
+
+.selected-tip--empty .selected-tip__text {
+  color: #9575CD;
+}
+
+/* 底部操作栏 */
+.question-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 28rpx 24rpx 0;
+  gap: 16rpx;
+}
+
+.btn-prev {
+  font-size: 26rpx;
+  color: #7C4DFF;
+  background: #EDE7F6;
+  border-radius: 16rpx;
+  padding: 20rpx 28rpx;
+  font-weight: bold;
+  min-width: 120rpx;
+  text-align: center;
+}
+
+.btn-prev--disabled {
+  color: #BDBDBD;
+  background: #F5F5F5;
+}
+
+/* 进度点阵 */
+.progress-dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8rpx;
+  max-width: 280rpx;
+  flex: 1;
+}
+
+.progress-dot {
+  width: 14rpx;
+  height: 14rpx;
+  border-radius: 50%;
+  background: #E0E0E0;
+  transition: all 0.2s;
+}
+
+.dot-answered {
+  background: #9575CD;
+}
+
+.dot-current {
+  background: #7C4DFF;
+  transform: scale(1.3);
+  box-shadow: 0 0 6rpx rgba(124,77,255,0.5);
+}
+
+.btn-next {
+  font-size: 26rpx;
+  color: #fff;
+  background: linear-gradient(135deg, #7C4DFF, #4527A0);
+  border-radius: 16rpx;
+  padding: 20rpx 28rpx;
+  font-weight: bold;
+  min-width: 120rpx;
+  text-align: center;
+  box-shadow: 0 4rpx 14rpx rgba(124,77,255,0.35);
+}
+
+.btn-next--disabled {
+  background: #E0E0E0;
+  color: #9E9E9E;
+  box-shadow: none;
+}
+
+/* 跳过提示 */
+.skip-tip {
+  text-align: center;
+  font-size: 22rpx;
+  color: #BDBDBD;
+  margin-top: 20rpx;
+  padding: 16rpx 0;
+}
+
+/* ============================================================
+  ③ SUBMITTING 提交中动画
+============================================================ */
+.submitting-page {
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx;
+  gap: 32rpx;
+}
+
+.submitting-anim {
+  position: relative;
+  width: 160rpx;
+  height: 160rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.submitting-emoji {
+  font-size: 80rpx;
+  position: relative;
+  z-index: 2;
+  animation: floatBounce 1.5s ease-in-out infinite;
+}
+
+.submitting-ring {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 50%;
+  border: 6rpx solid transparent;
+  border-top-color: #7C4DFF;
+  border-right-color: #CE93D8;
+  animation: spin 1.2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg);   }
+  to   { transform: rotate(360deg); }
+}
+
+.submitting-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #4527A0;
+  text-align: center;
+}
+
+.submitting-sub {
+  font-size: 24rpx;
+  color: #9575CD;
+  text-align: center;
+}
+
+.submitting-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  width: 100%;
+  max-width: 500rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 28rpx 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(69,39,160,0.08);
+}
+
+.submitting-step {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.step-dot {
+  font-size: 24rpx;
+  color: #B39DDB;
+  width: 40rpx;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.step-text {
+  font-size: 26rpx;
+  color: #9575CD;
+}
+
+.submitting-step.step-done .step-dot {
+  color: #4CAF50;
+}
+
+.submitting-step.step-done .step-text {
+  color: #3E2723;
+  font-weight: bold;
+}

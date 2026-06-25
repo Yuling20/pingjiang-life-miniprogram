@@ -1,0 +1,336 @@
+<!-- pages/services/convenience/familytree/mentaltestresult/index.wxml -->
+<!-- ============================================================
+  心理测试结果页
+  包含：
+    1. 顶部结果头图（评级颜色 + 大图标）
+    2. 评分总览卡（得分 + 等级 + 描述）
+    3. 维度雷达图（纯 CSS 模拟，兼容小程序）
+    4. 个性化建议列表
+    5. 专属资源推荐（课程 / 直播 / 咨询）
+    6. 家庭分享卡（可选发布到家庭树动态）
+    7. 危机干预模块（PHQ-9高分时强制展示）
+    8. 底部操作按钮（再测一次 / 返回 / 查看记录）
+============================================================ -->
+
+<!-- 加载占位 -->
+<view class="page-loading" wx:if="{{!pageReady}}">
+  <text class="page-loading__icon">📊</text>
+  <text class="page-loading__text">结果生成中...</text>
+</view>
+
+<view class="result-page" wx:if="{{pageReady}}">
+
+  <!-- ====================================================
+    顶部导航
+  ==================================================== -->
+  <view class="nav-bar" style="background:{{levelColor}};">
+    <view class="nav-back" bindtap="onGoHome">
+      <text class="nav-back__icon">🏠</text>
+      <text class="nav-back__text">返回首页</text>
+    </view>
+    <text class="nav-title">测试结果</text>
+    <view class="nav-right" bindtap="onViewHistory">
+      <text class="nav-right__text">历史</text>
+    </view>
+  </view>
+
+  <!-- ====================================================
+    ① 结果头图区域
+  ==================================================== -->
+  <view class="result-hero" style="background: linear-gradient(160deg, {{levelColor}} 0%, {{levelColorLight}} 100%);">
+
+    <!-- 背景装饰圆 -->
+    <view class="hero-deco1"></view>
+    <view class="hero-deco2"></view>
+
+    <!-- 测试信息 -->
+    <view class="hero-test-info">
+      <text class="hero-test-emoji">{{testInfo.emoji}}</text>
+      <text class="hero-test-name">{{testInfo.title}}</text>
+    </view>
+
+    <!-- 评级徽章 -->
+    <view class="hero-level-badge">
+      <text class="hero-level-emoji">{{levelEmoji}}</text>
+      <text class="hero-level-label">{{levelLabel}}</text>
+    </view>
+
+    <!-- 分数环 -->
+    <view class="hero-score-ring">
+      <view class="score-ring-outer">
+        <view class="score-ring-inner">
+          <text class="score-ring-num">{{score}}</text>
+          <text class="score-ring-total">/ {{maxScore}}</text>
+        </view>
+      </view>
+      <text class="score-ring-caption">综合得分</text>
+    </view>
+
+    <!-- 完成信息 -->
+    <view class="hero-meta">
+      <text class="hero-meta-item">📝 {{answeredCount}}/{{totalQuestions}} 题</text>
+      <text class="hero-meta-sep">·</text>
+      <text class="hero-meta-item">📅 {{dateStr}}</text>
+    </view>
+  </view>
+
+  <!-- ====================================================
+    ⚠️ 危机干预模块（PHQ-9 q9 > 0 或总分极高时显示）
+  ==================================================== -->
+  <view class="crisis-card" wx:if="{{showCrisis}}">
+    <view class="crisis-card__header">
+      <text class="crisis-card__icon">⚠️</text>
+      <text class="crisis-card__title">我们注意到您可能需要帮助</text>
+    </view>
+    <text class="crisis-card__desc">
+      您的部分回答显示您可能正在经历较大的心理困扰。请记住，寻求帮助是勇敢的行为。
+    </text>
+    <view class="crisis-hotlines">
+      <view
+        wx:for="{{crisisHotlines}}"
+        wx:key="name"
+        class="crisis-hotline-item"
+        bindtap="onCallCrisis"
+        data-phone="{{item.phone}}"
+      >
+        <text class="crisis-hotline-icon">📞</text>
+        <view class="crisis-hotline-body">
+          <text class="crisis-hotline-name">{{item.name}}</text>
+          <text class="crisis-hotline-phone">{{item.phone}}</text>
+        </view>
+        <text class="crisis-hotline-call">立即拨打</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ====================================================
+    ② 评分总览卡
+  ==================================================== -->
+  <view class="overview-card">
+    <view class="overview-card__header">
+      <text class="overview-card__title">📊 评估总览</text>
+      <view class="overview-level-tag" style="background:{{levelBg}}; color:{{levelColor}};">
+        {{levelLabel}}
+      </view>
+    </view>
+
+    <!-- 总分进度条 -->
+    <view class="score-progress-wrap">
+      <view class="score-progress-labels">
+        <text class="spl-left">0</text>
+        <text class="spl-score">得分：{{score}}</text>
+        <text class="spl-right">{{maxScore}}</text>
+      </view>
+      <view class="score-progress-bg">
+        <view
+          class="score-progress-fill"
+          style="width:{{scorePercent}}%; background:{{levelColor}};"
+        ></view>
+        <!-- 分级刻度线 -->
+        <view
+          wx:for="{{levelThresholds}}"
+          wx:key="index"
+          class="score-threshold"
+          style="left:{{item.percent}}%;"
+        ></view>
+      </view>
+      <!-- 等级区间标注 -->
+      <view class="score-level-marks">
+        <view
+          wx:for="{{levelMarks}}"
+          wx:key="label"
+          class="score-level-mark"
+          style="left:{{item.left}}%; color:{{item.color}};"
+        >
+          {{item.label}}
+        </view>
+      </view>
+    </view>
+
+    <!-- 等级描述文字 -->
+    <view class="overview-desc-box" style="border-left-color:{{levelColor}};">
+      <text class="overview-desc-emoji">{{levelEmoji}}</text>
+      <text class="overview-desc-text">{{levelDesc}}</text>
+    </view>
+  </view>
+
+  <!-- ====================================================
+    ③ 维度分析（多维度量表显示）
+  ==================================================== -->
+  <view class="dimension-card" wx:if="{{dimensionList && dimensionList.length > 1}}">
+    <view class="dimension-card__title">🔍 维度分析</view>
+
+    <view class="dimension-list">
+      <view
+        wx:for="{{dimensionList}}"
+        wx:key="name"
+        class="dimension-item"
+      >
+        <view class="dimension-item__header">
+          <text class="dimension-item__name">{{item.name}}</text>
+          <text class="dimension-item__score" style="color:{{item.color}};">
+            {{item.score}} / {{item.max}}
+          </text>
+        </view>
+        <view class="dimension-item__bar-bg">
+          <view
+            class="dimension-item__bar-fill"
+            style="width:{{item.percent}}%; background:{{item.color}};"
+          ></view>
+        </view>
+        <text class="dimension-item__label" style="color:{{item.color}};">
+          {{item.levelLabel}}
+        </text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ====================================================
+    ④ 个性化建议
+  ==================================================== -->
+  <view class="advice-card">
+    <view class="advice-card__title">💡 个性化建议</view>
+    <view class="advice-list">
+      <view
+        wx:for="{{adviceList}}"
+        wx:key="index"
+        class="advice-item advice-item--{{item.type}}"
+      >
+        <view class="advice-item__icon-wrap">
+          <text class="advice-item__icon">{{item.icon}}</text>
+        </view>
+        <view class="advice-item__body">
+          <text class="advice-item__title">{{item.title}}</text>
+          <text class="advice-item__desc">{{item.desc}}</text>
+        </view>
+        <!-- 操作按钮（可选） -->
+        <text
+          class="advice-item__action"
+          wx:if="{{item.action}}"
+          bindtap="onAdviceAction"
+          data-action="{{item.action}}"
+        >{{item.actionText}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ====================================================
+    ⑤ 推荐资源
+  ==================================================== -->
+  <view class="resource-card">
+    <view class="resource-card__header">
+      <text class="resource-card__title">📚 推荐资源</text>
+      <text class="resource-card__sub">根据您的测试结果精选</text>
+    </view>
+
+    <!-- 推荐课程 -->
+    <view class="resource-section-label">🎬 推荐课程</view>
+    <scroll-view class="resource-courses" scroll-x="true">
+      <view
+        wx:for="{{recommendCourses}}"
+        wx:key="id"
+        class="resource-course-card"
+        bindtap="onGoToCourse"
+        data-id="{{item.id}}"
+      >
+        <view class="resource-course-cover" style="background:{{item.coverBg}};">
+          <text class="resource-course-emoji">{{item.emoji}}</text>
+          <text class="resource-course-duration">{{item.duration}}</text>
+        </view>
+        <text class="resource-course-title">{{item.title}}</text>
+        <view class="resource-course-meta">
+          <text class="resource-course-free {{item.free ? 'tag-free' : 'tag-pay'}}">
+            {{item.free ? '免费' : '付费'}}
+          </text>
+          <text class="resource-course-plays">{{item.plays}}次播</text>
+        </view>
+      </view>
+    </scroll-view>
+
+    <!-- 推荐直播 -->
+    <view class="resource-section-label" wx:if="{{recommendLive}}">📡 相关直播</view>
+    <view
+      class="resource-live-card"
+      wx:if="{{recommendLive}}"
+      bindtap="onGoToLive"
+      data-live="{{recommendLive}}"
+    >
+      <view class="resource-live-left">
+        <text class="resource-live-emoji">📡</text>
+        <view>
+          <text class="resource-live-title">{{recommendLive.title}}</text>
+          <text class="resource-live-meta">{{recommendLive.teacher}} · {{recommendLive.date}} {{recommendLive.time}}</text>
+        </view>
+      </view>
+      <view class="resource-live-btn">预约</view>
+    </view>
+  </view>
+
+  <!-- ====================================================
+    ⑥ 家庭分享卡
+  ==================================================== -->
+  <view class="share-card">
+    <view class="share-card__header">
+      <text class="share-card__title">🌳 分享到家庭树</text>
+      <switch
+        class="share-switch"
+        checked="{{shareToFamily}}"
+        bindchange="onToggleShare"
+        color="#7C4DFF"
+      />
+    </view>
+
+    <!-- 分享预览 -->
+    <view class="share-preview" wx:if="{{shareToFamily}}">
+      <view class="share-preview__card">
+        <view class="share-preview__top">
+          <text class="share-preview__icon">{{testInfo.emoji}}</text>
+          <view class="share-preview__info">
+            <text class="share-preview__name">{{myLabel}} 完成了心理测试</text>
+            <text class="share-preview__test">《{{testInfo.title}}》</text>
+          </view>
+          <view class="share-preview__level" style="background:{{levelBg}}; color:{{levelColor}};">
+            {{levelLabel}}
+          </view>
+        </view>
+        <text class="share-preview__desc">{{shareDesc}}</text>
+        <text class="share-preview__time">{{dateStr}}</text>
+      </view>
+      <text class="share-preview__tip">家人将在家庭树动态中看到以上内容</text>
+
+      <!-- 留言给家人 -->
+      <view class="share-message-wrap">
+        <text class="share-message-label">💬 附上一句话（选填）</text>
+        <textarea
+          class="share-message-input"
+          placeholder="写点想对家人说的话..."
+          maxlength="50"
+          value="{{shareMessage}}"
+          bindinput="onShareMessageInput"
+          auto-height
+        />
+      </view>
+
+      <view class="share-btn" bindtap="onDoShare">
+        <text class="share-btn__icon">🌳</text>
+        <text class="share-btn__text">发布到家庭树</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ====================================================
+    ⑦ 底部按钮区
+  ==================================================== -->
+  <view class="result-actions">
+    <view class="result-action-secondary" bindtap="onRetakeTest">
+      <text>🔄 再测一次</text>
+    </view>
+    <view class="result-action-primary" bindtap="onGoMental">
+      <text>返回心理中心 →</text>
+    </view>
+  </view>
+
+  <!-- 底部占位 -->
+  <view style="height:80rpx;"></view>
+
+</view>

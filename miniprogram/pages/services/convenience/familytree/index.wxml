@@ -1,0 +1,187 @@
+<!-- pages/services/convenience/familytree/index.wxml -->
+<view class="ftree-page">
+
+<!-- ① 顶部 Header -->
+<view class="ftree-header">
+  <view class="ftree-header-deco1"></view>
+  <view class="ftree-header-deco2"></view>
+
+  <view class="ftree-header-top">
+    <view class="ftree-header-title-row">
+      <text class="ftree-header-emoji">🌳</text>
+      <view>
+        <text class="ftree-header-title">家庭心树</text>
+        <text class="ftree-header-sub">{{cityName}} · 家庭关怀服务</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 家庭成员滚动 -->
+  <scroll-view class="ftree-members" scroll-x="{{true}}">
+    <view
+      wx:for="{{memberList}}"
+      wx:key="uid"
+      class="ftree-member-item"
+      bindtap="onTapMember"
+      data-uid="{{item.uid}}"
+    >
+      <view class="ftree-member-avatar {{item.hasNew ? 'has-new' : ''}}">
+        <text class="ftree-member-icon">{{item.icon}}</text>
+      </view>
+      <text class="ftree-member-name">{{item.label}}</text>
+      <view class="ftree-member-mood" wx:if="{{item.moodEmoji}}">
+        <text>{{item.moodEmoji}}</text>
+      </view>
+    </view>
+  </scroll-view>
+</view>
+
+<!-- ② 今日心情打卡 -->
+<view class="ftree-section">
+  <view class="ftree-section-header">
+    <view class="ftree-section-title-wrap">
+      <text class="ftree-section-dot" style="background:#FF9800;"></text>
+      <text class="ftree-section-title">今日心情</text>
+    </view>
+    <text class="ftree-section-sub" wx:if="{{todayMood}}">已打卡 ✓</text>
+  </view>
+
+  <view class="ftree-mood-card">
+    <text class="ftree-mood-question">你今天感觉怎么样？</text>
+    <view class="ftree-mood-row">
+      <view
+        wx:for="{{moodList}}"
+        wx:key="id"
+        class="ftree-mood-item {{selectedMood === item.id ? 'ftree-mood-item--active' : ''}}"
+        bindtap="onSelectMood"
+        data-id="{{item.id}}"
+        data-emoji="{{item.emoji}}"
+        data-label="{{item.label}}"
+      >
+        <text class="ftree-mood-emoji">{{item.emoji}}</text>
+        <text class="ftree-mood-label">{{item.label}}</text>
+      </view>
+    </view>
+    <view
+      class="ftree-mood-submit {{selectedMood ? '' : 'ftree-mood-submit--disabled'}}"
+      bindtap="onSubmitMood"
+    >
+      <text class="ftree-mood-submit-text">
+        {{todayMood ? '今日已打卡 ' + todayMoodEmoji : '分享给家人'}}
+      </text>
+    </view>
+  </view>
+</view>
+
+<!-- ③ 核心功能入口 -->
+<view class="ftree-section">
+  <view class="ftree-section-header">
+    <view class="ftree-section-title-wrap">
+      <text class="ftree-section-dot" style="background:#2E7D32;"></text>
+      <text class="ftree-section-title">家庭服务</text>
+    </view>
+  </view>
+
+  <view class="ftree-func-grid">
+
+    <!-- 心理健康 -->
+    <view class="ftree-func-item" bindtap="onGoMental">
+      <view class="ftree-func-icon-wrap" style="background:linear-gradient(135deg,#7C4DFF,#4527A0);">
+        <text class="ftree-func-icon">🧠</text>
+      </view>
+      <text class="ftree-func-name">心理健康</text>
+      <text class="ftree-func-desc">情绪关怀中心</text>
+    </view>
+
+    <!-- 心理测试 -->
+    <view class="ftree-func-item" bindtap="onGoMentalTest">
+      <view class="ftree-func-icon-wrap" style="background:linear-gradient(135deg,#E91E63,#880E4F);">
+        <text class="ftree-func-icon">📝</text>
+      </view>
+      <text class="ftree-func-name">心理测试</text>
+      <text class="ftree-func-desc">科学评估心理</text>
+    </view>
+
+    <!-- 长辈关怀 -->
+    <view class="ftree-func-item" bindtap="onGoElder">
+      <view class="ftree-func-icon-wrap" style="background:linear-gradient(135deg,#FF9800,#E65100);">
+        <text class="ftree-func-icon">👴</text>
+      </view>
+      <text class="ftree-func-name">长辈关怀</text>
+      <text class="ftree-func-desc">简洁长辈端</text>
+    </view>
+
+    <!-- 社区课堂 -->
+    <view class="ftree-func-item" bindtap="onGoCommunity">
+      <view class="ftree-func-icon-wrap" style="background:linear-gradient(135deg,#2E7D32,#1B5E20);">
+        <text class="ftree-func-icon">📚</text>
+      </view>
+      <text class="ftree-func-name">社区课堂</text>
+      <text class="ftree-func-desc">乡镇学习平台</text>
+    </view>
+
+  </view>
+</view>
+
+<!-- ④ 家庭动态 -->
+<view class="ftree-section">
+  <view class="ftree-section-header">
+    <view class="ftree-section-title-wrap">
+      <text class="ftree-section-dot" style="background:#1565C0;"></text>
+      <text class="ftree-section-title">家庭动态</text>
+    </view>
+    <text class="ftree-section-more">全部 ›</text>
+  </view>
+
+  <!-- 动态列表 -->
+  <view class="ftree-dynamics">
+    <view
+      wx:for="{{dynamicList}}"
+      wx:key="id"
+      class="ftree-dynamic-card"
+    >
+      <view class="ftree-dynamic-header">
+        <text class="ftree-dynamic-avatar">{{item.memberIcon}}</text>
+        <view class="ftree-dynamic-user">
+          <text class="ftree-dynamic-name">{{item.memberName}}</text>
+          <text class="ftree-dynamic-time">{{item.timeAgo}}</text>
+        </view>
+        <view class="ftree-dynamic-type-tag">
+          <text class="ftree-dynamic-type-text">{{item.typeLabel}}</text>
+        </view>
+      </view>
+      <text class="ftree-dynamic-content">{{item.content}}</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="ftree-dynamic-empty" wx:if="{{dynamicList.length === 0}}">
+      <text class="ftree-dynamic-empty-icon">🌱</text>
+      <text class="ftree-dynamic-empty-text">还没有家庭动态</text>
+      <text class="ftree-dynamic-empty-sub">打卡心情或学习课程后将在这里显示</text>
+    </view>
+  </view>
+</view>
+
+<!-- ⑤ 直播预告快捷入口 -->
+<view class="ftree-section" wx:if="{{livePreview}}">
+  <view class="ftree-live-banner" bindtap="onGoLive">
+    <view class="ftree-live-banner-left">
+      <view class="ftree-live-tag">
+        <text class="ftree-live-dot"></text>
+        <text class="ftree-live-tag-text">即将开播</text>
+      </view>
+      <text class="ftree-live-title">{{livePreview.title}}</text>
+      <text class="ftree-live-teacher">{{livePreview.teacherName}} · {{livePreview.date}} {{livePreview.time}}</text>
+    </view>
+    <view class="ftree-live-banner-right">
+      <text class="ftree-live-emoji">📡</text>
+      <view class="ftree-live-enter-btn">
+        <text class="ftree-live-enter-text">预约</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+<view style="height:60rpx;"></view>
+
+</view>

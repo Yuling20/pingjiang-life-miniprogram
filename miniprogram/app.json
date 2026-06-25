@@ -18,14 +18,20 @@
     "pages/services/convenience/water/water",
     "pages/services/convenience/guide/guide",
     "pages/services/convenience/hospital/hospital",
+    "pages/services/convenience/familytree/index",
+    "pages/services/convenience/familytree/mental/index",
+    "pages/services/convenience/familytree/mentaltest/index",
+    "pages/services/convenience/familytree/mentaltestresult/index",
+    "pages/services/convenience/familytree/elder/index",
+    "pages/services/convenience/familytree/community/index",
+    "pages/services/convenience/familytree/live/index",
     "pages/common/webview/webview",
     "pages/ai/ai",
     "pages/community/publish/index",
     "pages/community/comment/index",
     "pages/community/user/index",
     "pages/community/follow/index",
-    "pages/community/detail/index",
-    "pages/services/convenience/elder/elder"
+    "pages/community/detail/index"
   ],
   "window": {
     "backgroundTextStyle": "light",

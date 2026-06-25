@@ -1,0 +1,505 @@
+<!-- pages/services/convenience/familytree/live/index.wxml -->
+<!-- ============================================================
+  直播间
+  包含：
+    1. 视频播放区（live-player 组件）
+    2. 顶部信息栏（讲师信息 + 观看人数 + 关闭）
+    3. 实时弹幕区
+    4. 右侧互动工具栏（点赞/收藏/分享/提问）
+    5. 底部输入区（发送弹幕/提问）
+    6. 直播结束/未开播状态页
+    7. 商品/资源侧边栏（课程推荐）
+    8. 全屏遮罩控制（点击显隐控件）
+    9. 网络异常提示
+   10. 直播回放模式
+============================================================ -->
+
+<view class="live-page" style="background:#1A1A2E;">
+
+<!-- ====================================================
+  网络异常提示（浮层）
+==================================================== -->
+<view class="network-tip" wx:if="{{networkWeak}}">
+  <text class="network-tip__icon">📶</text>
+  <text class="network-tip__text">网络信号弱，画质已自动降低</text>
+</view>
+
+<!-- ====================================================
+  直播视频区
+==================================================== -->
+<view class="live-player-wrap" bindtap="onToggleControls">
+
+  <!-- live-player 核心组件 -->
+  <live-player
+    wx:if="{{isLive && !liveEnded}}"
+    id="live-player"
+    class="live-player"
+    src="{{liveUrl}}"
+    mode="live"
+    autoplay="{{true}}"
+    muted="{{muted}}"
+    orientation="{{orientation}}"
+    object-fit="fillCrop"
+    min-cache="1"
+    max-cache="3"
+    bindstatechange="onPlayerStateChange"
+    binderror="onPlayerError"
+    bindnetstatus="onNetStatus"
+  />
+
+  <!-- 回放模式使用 video -->
+  <video
+    wx:if="{{!isLive || liveEnded}}"
+    id="replay-player"
+    class="live-player"
+    src="{{replayUrl}}"
+    autoplay="{{false}}"
+    controls="{{true}}"
+    show-fullscreen-btn="{{true}}"
+    show-play-btn="{{true}}"
+    enable-progress-gesture="{{true}}"
+    object-fit="cover"
+  />
+
+  <!-- 未开播占位 -->
+  <view class="live-not-started" wx:if="{{!isLive && !liveEnded && !replayUrl}}">
+    <text class="live-not-started__emoji">📡</text>
+    <text class="live-not-started__title">直播尚未开始</text>
+    <text class="live-not-started__time">预计 {{liveInfo.date}} {{liveInfo.time}} 开播</text>
+    <view class="live-countdown-wrap">
+      <view class="live-countdown-item">
+        <text class="live-countdown-num">{{countdown.hours}}</text>
+        <text class="live-countdown-label">小时</text>
+      </view>
+      <text class="live-countdown-sep">:</text>
+      <view class="live-countdown-item">
+        <text class="live-countdown-num">{{countdown.minutes}}</text>
+        <text class="live-countdown-label">分钟</text>
+      </view>
+      <text class="live-countdown-sep">:</text>
+      <view class="live-countdown-item">
+        <text class="live-countdown-num">{{countdown.seconds}}</text>
+        <text class="live-countdown-label">秒</text>
+      </view>
+    </view>
+    <view class="live-subscribe-big-btn {{liveInfo.subscribed ? 'subscribed' : ''}}" bindtap="onSubscribe">
+      <text class="live-subscribe-big-btn__icon">{{liveInfo.subscribed ? '✓' : '🔔'}}</text>
+      <text class="live-subscribe-big-btn__text">
+        {{liveInfo.subscribed ? '已预约，开播提醒我' : '预约提醒'}}
+      </text>
+    </view>
+  </view>
+
+  <!-- 直播结束占位 -->
+  <view class="live-ended-mask" wx:if="{{liveEnded}}">
+    <text class="live-ended-emoji">🎬</text>
+    <text class="live-ended-title">直播已结束</text>
+    <text class="live-ended-sub">回放将在整理后上线</text>
+    <view class="live-ended-btn" bindtap="onGoBack">
+      <text>返回社区课堂</text>
+    </view>
+  </view>
+
+  <!-- 点击遮罩层（控制显隐） -->
+  <view class="live-controls-mask" wx:if="{{showControls}}">
+
+    <!-- ① 顶部信息栏 -->
+    <view class="live-top-bar">
+      <!-- 左侧讲师信息 -->
+      <view class="live-teacher-info">
+        <view class="live-teacher-avatar-wrap">
+          <text class="live-teacher-avatar">{{liveInfo.teacherAvatar}}</text>
+          <!-- 直播状态标识 -->
+          <view class="live-status-badge" wx:if="{{isLive && !liveEnded}}">
+            <text class="live-status-dot"></text>
+            <text class="live-status-text">直播中</text>
+          </view>
+          <view class="live-replay-badge" wx:if="{{liveEnded && replayUrl}}">
+            <text class="live-replay-text">回放</text>
+          </view>
+        </view>
+        <view class="live-teacher-detail">
+          <text class="live-teacher-name">{{liveInfo.teacherName}}</text>
+          <text class="live-teacher-title">{{liveInfo.teacherTitle}}</text>
+        </view>
+        <!-- 关注按钮 -->
+        <view
+          class="live-follow-btn {{liveInfo.followed ? 'live-follow-btn--active' : ''}}"
+          bindtap="onFollowTeacher"
+        >
+          <text class="live-follow-btn__text">
+            {{liveInfo.followed ? '✓ 已关注' : '+ 关注'}}
+          </text>
+        </view>
+      </view>
+
+      <!-- 右侧数据 -->
+      <view class="live-top-right">
+        <!-- 观看人数 -->
+        <view class="live-viewers">
+          <text class="live-viewers__icon">👁️</text>
+          <text class="live-viewers__num">{{viewerCount}}</text>
+        </view>
+        <!-- 静音 -->
+        <view class="live-mute-btn" bindtap="onToggleMute">
+          <text class="live-mute-btn__icon">{{muted ? '🔇' : '🔊'}}</text>
+        </view>
+        <!-- 关闭 -->
+        <view class="live-close-btn" bindtap="onGoBack">
+          <text class="live-close-btn__icon">✕</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- ② 直播标题 -->
+    <view class="live-title-bar">
+      <text class="live-title-text">{{liveInfo.title}}</text>
+      <view class="live-title-tags">
+        <view
+          wx:for="{{liveInfo.tags}}"
+          wx:key="index"
+          class="live-title-tag"
+        >{{item}}</view>
+      </view>
+    </view>
+
+  </view><!-- /live-controls-mask -->
+
+  <!-- 点赞飞心动效区（始终可见） -->
+  <view class="live-hearts-area">
+    <view
+      wx:for="{{heartList}}"
+      wx:key="id"
+      class="live-heart live-heart--{{item.style}}"
+      style="left:{{item.left}}%; animation-delay:{{item.delay}}s;"
+    >
+      <text>{{item.emoji}}</text>
+    </view>
+  </view>
+
+</view><!-- /live-player-wrap -->
+
+<!-- ====================================================
+  弹幕区
+==================================================== -->
+<view class="danmu-area">
+  <view
+    wx:for="{{danmuList}}"
+    wx:key="id"
+    class="danmu-item danmu-item--{{item.type}}"
+  >
+    <!-- 系统消息 -->
+    <view class="danmu-system" wx:if="{{item.type === 'system'}}">
+      <text class="danmu-system__text">{{item.content}}</text>
+    </view>
+
+    <!-- 普通弹幕 -->
+    <view class="danmu-normal" wx:if="{{item.type === 'normal'}}">
+      <text class="danmu-user-role" style="color:{{item.roleColor}};">
+        {{item.roleLabel}}
+      </text>
+      <text class="danmu-user-name">{{item.userName}}</text>
+      <text class="danmu-user-sep">：</text>
+      <text class="danmu-content">{{item.content}}</text>
+    </view>
+
+    <!-- 精选提问 -->
+    <view class="danmu-question" wx:if="{{item.type === 'question'}}">
+      <text class="danmu-question__icon">❓</text>
+      <text class="danmu-question__name">{{item.userName}}</text>
+      <text class="danmu-question__content">{{item.content}}</text>
+    </view>
+
+    <!-- 讲师回复 -->
+    <view class="danmu-reply" wx:if="{{item.type === 'teacher'}}">
+      <text class="danmu-reply__icon">🎓</text>
+      <text class="danmu-reply__name">{{liveInfo.teacherName}}</text>
+      <text class="danmu-reply__content">{{item.content}}</text>
+    </view>
+
+    <!-- 礼物/点赞消息 -->
+    <view class="danmu-gift" wx:if="{{item.type === 'gift'}}">
+      <text class="danmu-gift__icon">{{item.giftEmoji}}</text>
+      <text class="danmu-gift__name">{{item.userName}}</text>
+      <text class="danmu-gift__text"> 送出了 {{item.giftName}}</text>
+    </view>
+  </view>
+</view>
+
+<!-- ====================================================
+  右侧互动工具栏
+==================================================== -->
+<view class="live-sidebar">
+
+  <!-- 点赞 -->
+  <view class="live-sidebar-item" bindtap="onLike">
+    <view class="live-sidebar-icon-wrap {{liking ? 'like-animate' : ''}}">
+      <text class="live-sidebar-icon">❤️</text>
+    </view>
+    <text class="live-sidebar-label">{{likeCount}}</text>
+  </view>
+
+  <!-- 收藏课程 -->
+  <view class="live-sidebar-item" bindtap="onCollect">
+    <view class="live-sidebar-icon-wrap">
+      <text class="live-sidebar-icon">{{collected ? '⭐' : '☆'}}</text>
+    </view>
+    <text class="live-sidebar-label">收藏</text>
+  </view>
+
+  <!-- 分享 -->
+  <view class="live-sidebar-item" bindtap="onShareLive">
+    <view class="live-sidebar-icon-wrap">
+      <text class="live-sidebar-icon">🔗</text>
+    </view>
+    <text class="live-sidebar-label">分享</text>
+  </view>
+
+  <!-- 课程资料 -->
+  <view class="live-sidebar-item" bindtap="onOpenResources">
+    <view class="live-sidebar-icon-wrap">
+      <text class="live-sidebar-icon">📋</text>
+    </view>
+    <text class="live-sidebar-label">资料</text>
+  </view>
+
+  <!-- 举手提问 -->
+  <view class="live-sidebar-item" bindtap="onOpenQuestion">
+    <view class="live-sidebar-icon-wrap {{hasNewAnswer ? 'new-answer-animate' : ''}}">
+      <text class="live-sidebar-icon">✋</text>
+      <view class="live-sidebar-badge" wx:if="{{hasNewAnswer}}">
+        <text class="live-sidebar-badge__text">答</text>
+      </view>
+    </view>
+    <text class="live-sidebar-label">提问</text>
+  </view>
+
+</view>
+
+<!-- ====================================================
+  底部输入区
+==================================================== -->
+<view class="live-bottom-bar">
+
+  <!-- 发弹幕输入框 -->
+  <view class="live-input-wrap" bindtap="onOpenInput">
+    <text class="live-input__icon">💬</text>
+    <text class="live-input__placeholder">说点什么...</text>
+  </view>
+
+  <!-- 快捷表情 -->
+  <view class="live-quick-emojis">
+    <view
+      wx:for="{{quickEmojis}}"
+      wx:key="index"
+      class="live-quick-emoji"
+      bindtap="onQuickEmoji"
+      data-emoji="{{item}}"
+    >
+      <text class="live-quick-emoji__text">{{item}}</text>
+    </view>
+  </view>
+
+  <!-- 快捷点赞 -->
+  <view class="live-like-btn" bindtap="onLike">
+    <text class="live-like-btn__icon">❤️</text>
+  </view>
+
+</view>
+
+</view>
+
+<!-- ====================================================
+弹幕输入面板
+==================================================== -->
+<view class="input-panel" wx:if="{{showInputPanel}}">
+<view class="input-panel__mask" bindtap="onCloseInput"></view>
+<view class="input-panel__box">
+  <view class="input-panel__row">
+    <input
+      class="input-panel__input"
+      placeholder="说点什么，和大家互动..."
+      placeholder-class="input-panel__placeholder"
+      value="{{inputText}}"
+      bindinput="onInput"
+      focus="{{true}}"
+      maxlength="50"
+      adjust-position="{{true}}"
+      confirm-type="send"
+      bindconfirm="onSendDanmu"
+    />
+    <view class="input-panel__send {{inputText ? '' : 'input-panel__send--disabled'}}" bindtap="onSendDanmu">
+      <text class="input-panel__send-text">发送</text>
+    </view>
+  </view>
+  <!-- 快捷短语 -->
+  <view class="input-panel__shortcuts">
+    <view
+      wx:for="{{shortcutTexts}}"
+      wx:key="index"
+      class="input-panel__shortcut"
+      bindtap="onUseShortcut"
+      data-text="{{item}}"
+    >{{item}}</view>
+  </view>
+  <!-- 表情选择 -->
+  <view class="input-panel__emojis">
+    <view
+      wx:for="{{allEmojis}}"
+      wx:key="index"
+      class="input-panel__emoji-item"
+      bindtap="onAddEmoji"
+      data-emoji="{{item}}"
+    >{{item}}</view>
+  </view>
+</view>
+</view>
+
+<!-- ====================================================
+提问面板
+==================================================== -->
+<view class="question-panel" wx:if="{{showQuestionPanel}}">
+<view class="question-panel__mask" bindtap="onCloseQuestion"></view>
+<view class="question-panel__box">
+  <view class="question-panel__header">
+    <text class="question-panel__title">✋ 向讲师提问</text>
+    <text class="question-panel__close" bindtap="onCloseQuestion">✕</text>
+  </view>
+  <!-- 已有提问列表 -->
+  <view class="question-panel__my-questions" wx:if="{{myQuestions.length > 0}}">
+    <text class="question-panel__sub">我的提问</text>
+    <view
+      wx:for="{{myQuestions}}"
+      wx:key="id"
+      class="my-question-item {{item.answered ? 'answered' : ''}}"
+    >
+      <text class="my-question-content">Q：{{item.content}}</text>
+      <view class="my-question-answer" wx:if="{{item.answered}}">
+        <text class="my-question-answer-label">🎓 讲师回答：</text>
+        <text class="my-question-answer-content">{{item.answer}}</text>
+      </view>
+      <view class="my-question-status" wx:if="{{!item.answered}}">
+        <text class="my-question-status__text">等待回答中...</text>
+      </view>
+    </view>
+  </view>
+  <!-- 提问输入 -->
+  <view class="question-input-wrap">
+    <textarea
+      class="question-input"
+      placeholder="输入您的问题（限80字）..."
+      value="{{questionText}}"
+      bindinput="onQuestionInput"
+      maxlength="80"
+      auto-height
+    />
+    <view class="question-send-btn {{questionText ? '' : 'question-send-btn--disabled'}}" bindtap="onSendQuestion">
+      <text class="question-send-btn__icon">✋</text>
+      <text class="question-send-btn__text">提交问题</text>
+    </view>
+  </view>
+</view>
+</view>
+
+<!-- ====================================================
+课程资料侧边栏
+==================================================== -->
+<view class="resources-panel" wx:if="{{showResourcesPanel}}">
+<view class="resources-panel__mask" bindtap="onCloseResources"></view>
+<view class="resources-panel__box">
+  <view class="resources-panel__header">
+    <text class="resources-panel__title">📋 直播资料</text>
+    <text class="resources-panel__close" bindtap="onCloseResources">✕</text>
+  </view>
+
+  <!-- 课程大纲 -->
+  <view class="resources-outline">
+    <text class="resources-outline__title">📌 本次直播大纲</text>
+    <view
+      wx:for="{{liveOutline}}"
+      wx:key="index"
+      class="resources-outline-item {{item.done ? 'outline-done' : (item.current ? 'outline-current' : '')}}"
+    >
+      <view class="outline-item-dot"></view>
+      <view class="outline-item-body">
+        <text class="outline-item-time">{{item.time}}</text>
+        <text class="outline-item-title">{{item.title}}</text>
+      </view>
+      <text class="outline-item-status" wx:if="{{item.done}}">✓</text>
+      <view class="outline-item-live-badge" wx:if="{{item.current}}">
+        <text class="outline-item-live-text">进行中</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 推荐相关课程 -->
+  <view class="resources-related">
+    <text class="resources-related__title">🎬 相关课程推荐</text>
+    <view
+      wx:for="{{relatedCourses}}"
+      wx:key="id"
+      class="resources-course-item"
+      bindtap="onGoRelatedCourse"
+      data-id="{{item.id}}"
+    >
+      <view class="resources-course-cover" style="background:{{item.coverBg}};">
+        <text class="resources-course-emoji">{{item.emoji}}</text>
+      </view>
+      <view class="resources-course-body">
+        <text class="resources-course-title">{{item.title}}</text>
+        <text class="resources-course-meta">{{item.teacherName}} · {{item.duration}}</text>
+      </view>
+      <view class="resources-course-free" wx:if="{{item.free}}">
+        <text class="resources-course-free__text">免费</text>
+      </view>
+    </view>
+  </view>
+
+</view>
+</view>
+
+<!-- ====================================================
+分享面板
+==================================================== -->
+<view class="share-panel" wx:if="{{showSharePanel}}">
+<view class="share-panel__mask" bindtap="onCloseShare"></view>
+<view class="share-panel__box">
+  <text class="share-panel__title">🔗 分享直播间</text>
+  <view class="share-panel__btns">
+
+    <!-- 分享到家庭树 -->
+    <view class="share-panel__btn" bindtap="onShareToFamily">
+      <view class="share-panel__btn-icon-wrap" style="background:#E8F5E9;">
+        <text class="share-panel__btn-icon">🌳</text>
+      </view>
+      <text class="share-panel__btn-label">家庭树</text>
+    </view>
+
+    <!-- 复制链接 -->
+    <view class="share-panel__btn" bindtap="onCopyLink">
+      <view class="share-panel__btn-icon-wrap" style="background:#E3F2FD;">
+        <text class="share-panel__btn-icon">🔗</text>
+      </view>
+      <text class="share-panel__btn-label">复制链接</text>
+    </view>
+
+    <!-- 生成海报 -->
+    <view class="share-panel__btn" bindtap="onGenPoster">
+      <view class="share-panel__btn-icon-wrap" style="background:#FFF3E0;">
+        <text class="share-panel__btn-icon">🖼️</text>
+      </view>
+      <text class="share-panel__btn-label">生成海报</text>
+    </view>
+
+    <!-- 微信好友 -->
+    <view class="share-panel__btn" open-type="share">
+      <view class="share-panel__btn-icon-wrap" style="background:#E8F5E9;">
+        <text class="share-panel__btn-icon">💬</text>
+      </view>
+      <text class="share-panel__btn-label">微信好友</text>
+    </view>
+
+  </view>
+  <view class="share-panel__cancel" bindtap="onCloseShare">取消</view>
+</view>
+</view>

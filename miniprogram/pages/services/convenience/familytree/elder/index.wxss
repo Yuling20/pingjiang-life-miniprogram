@@ -1,0 +1,829 @@
+/* pages/services/convenience/familytree/elder/index.wxss */
+/* ============================================================
+  长辈简洁端样式
+  设计原则：
+    · 字体最小 32rpx，标题 44-56rpx
+    · 按钮最小高度 100rpx
+    · 行间距宽松 1.8+
+    · 配色暖橙系：主橙 #E65100，暖黄 #FF9800，浅米 #FFF8F0
+    · 圆角大（28-40rpx），视觉柔和
+============================================================ */
+
+page {
+  background: #FFF8F0;
+  font-family: -apple-system, "PingFang SC", "STHeiti", sans-serif;
+}
+
+.elder-page {
+  min-height: 100vh;
+  background: #FFF8F0;
+  padding-bottom: 40rpx;
+}
+
+/* ========== 加载占位 ========== */
+.elder-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.elder-loading__text {
+  font-size: 36rpx;
+  color: #FF9800;
+}
+
+/* ========== ① 顶部问候区 ========== */
+.elder-header {
+  background: linear-gradient(160deg, #E65100 0%, #FF9800 100%);
+  padding: 48rpx 36rpx 52rpx;
+  position: relative;
+  overflow: hidden;
+  border-radius: 0 0 48rpx 48rpx;
+}
+
+.elder-header__deco1 {
+  position: absolute;
+  width: 280rpx;
+  height: 280rpx;
+  background: rgba(255,255,255,0.07);
+  border-radius: 50%;
+  top: -80rpx;
+  right: -60rpx;
+}
+
+.elder-header__deco2 {
+  position: absolute;
+  width: 160rpx;
+  height: 160rpx;
+  background: rgba(255,255,255,0.05);
+  border-radius: 50%;
+  bottom: -40rpx;
+  left: -30rpx;
+}
+
+/* 问候语 */
+.elder-greet {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.elder-greet__wave {
+  font-size: 56rpx;
+  flex-shrink: 0;
+}
+
+.elder-greet__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.elder-greet__hello {
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #fff;
+  line-height: 1.4;
+}
+
+.elder-greet__sub {
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.8);
+}
+
+/* 天气 */
+.elder-weather {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4rpx;
+  background: rgba(255,255,255,0.15);
+  border-radius: 20rpx;
+  padding: 12rpx 18rpx;
+  flex-shrink: 0;
+}
+
+.elder-weather__icon { font-size: 40rpx; }
+
+.elder-weather__temp {
+  font-size: 22rpx;
+  color: rgba(255,255,255,0.9);
+}
+
+/* 在线提示 */
+.elder-online-tip {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+  background: rgba(255,255,255,0.15);
+  border-radius: 20rpx;
+  padding: 12rpx 24rpx;
+  width: fit-content;
+}
+
+.elder-online-dot {
+  display: block;
+  width: 16rpx;
+  height: 16rpx;
+  background: #69F0AE;
+  border-radius: 50%;
+  animation: blink 1.5s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%,100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+.elder-online-text {
+  font-size: 26rpx;
+  color: rgba(255,255,255,0.9);
+}
+
+/* ========== 通用 section ========== */
+.elder-section {
+  margin: 28rpx 24rpx 0;
+}
+
+.elder-section__title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #4E342E;
+  display: block;
+  margin-bottom: 6rpx;
+}
+
+.elder-section__sub {
+  font-size: 26rpx;
+  color: #A1887F;
+  display: block;
+  margin-bottom: 20rpx;
+}
+
+/* ========== ② 家人快捷拨号 ========== */
+.family-dial-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20rpx;
+}
+
+.family-dial-card {
+  background: #fff;
+  border-radius: 28rpx;
+  padding: 28rpx 20rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+  box-shadow: 0 4rpx 20rpx rgba(230,81,0,0.08);
+  position: relative;
+}
+
+.family-dial-card:active {
+  transform: scale(0.97);
+  opacity: 0.92;
+}
+
+.family-dial-card--add {
+  background: #FFF3E0;
+  border: 3rpx dashed #FFB74D;
+}
+
+/* 头像 */
+.family-dial-avatar {
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.family-dial-avatar--add {
+  background: #FFE0B2;
+}
+
+.family-dial-avatar__icon {
+  font-size: 60rpx;
+  line-height: 1;
+}
+
+.family-dial-avatar__plus {
+  font-size: 56rpx;
+  color: #FF9800;
+  font-weight: 300;
+}
+
+/* 在线绿点 */
+.family-dial-online {
+  position: absolute;
+  bottom: 4rpx;
+  right: 4rpx;
+  width: 24rpx;
+  height: 24rpx;
+  background: #4CAF50;
+  border-radius: 50%;
+  border: 3rpx solid #fff;
+}
+
+.family-dial-role {
+  font-size: 24rpx;
+  color: #FF9800;
+  font-weight: bold;
+  background: #FFF3E0;
+  padding: 4rpx 16rpx;
+  border-radius: 12rpx;
+}
+
+.family-dial-name {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #4E342E;
+}
+
+.family-dial-last {
+  font-size: 22rpx;
+  color: #BCAAA4;
+}
+
+/* 拨号按钮 */
+.family-dial-btn {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  background: linear-gradient(135deg, #FF9800, #E65100);
+  border-radius: 20rpx;
+  padding: 14rpx 28rpx;
+  margin-top: 4rpx;
+  width: 100%;
+  justify-content: center;
+}
+
+.family-dial-btn__icon { font-size: 26rpx; }
+
+.family-dial-btn__text {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #fff;
+}
+
+/* ========== ③ 今日心情打卡 ========== */
+.mood-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16rpx;
+}
+
+.mood-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 20rpx 10rpx;
+  box-shadow: 0 2rpx 10rpx rgba(230,81,0,0.06);
+}
+
+.mood-item:active {
+  transform: scale(0.94);
+  background: #FFF3E0;
+}
+
+.mood-item__emoji {
+  font-size: 60rpx;
+  line-height: 1;
+}
+
+.mood-item__label {
+  font-size: 24rpx;
+  font-weight: bold;
+  color: #5D4037;
+}
+
+/* 已打卡状态 */
+.mood-done {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  background: #FFF3E0;
+  border-radius: 24rpx;
+  padding: 28rpx;
+  border: 2rpx solid #FFB74D;
+}
+
+.mood-done__emoji { font-size: 72rpx; flex-shrink: 0; }
+
+.mood-done__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6rpx;
+}
+
+.mood-done__label {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #4E342E;
+}
+
+.mood-done__tip {
+  font-size: 24rpx;
+  color: #A1887F;
+  line-height: 1.5;
+}
+
+.mood-done__change {
+  font-size: 22rpx;
+  color: #FF9800;
+  background: #fff;
+  padding: 10rpx 18rpx;
+  border-radius: 12rpx;
+  flex-shrink: 0;
+  border: 2rpx solid #FFB74D;
+}
+
+/* ========== ④ 核心功能大按钮 ========== */
+.elder-features {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.elder-feature-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-radius: 28rpx;
+  padding: 32rpx 28rpx;
+  box-shadow: 0 3rpx 16rpx rgba(230,81,0,0.07);
+  min-height: 120rpx;
+  position: relative;
+  overflow: hidden;
+}
+
+.elder-feature-card:active {
+  opacity: 0.88;
+  transform: scale(0.99);
+}
+
+/* 左侧色条 */
+.elder-feature-card--photo  { border-left: 8rpx solid #7C4DFF; }
+.elder-feature-card--video  { border-left: 8rpx solid #E65100; }
+.elder-feature-card--story  { border-left: 8rpx solid #2E7D32; }
+.elder-feature-card--test   { border-left: 8rpx solid #1565C0; }
+
+.elder-feature-card__left {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  flex: 1;
+}
+
+.elder-feature-card__emoji {
+  font-size: 60rpx;
+  flex-shrink: 0;
+}
+
+.elder-feature-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.elder-feature-card__title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #4E342E;
+}
+
+.elder-feature-card__sub {
+  font-size: 26rpx;
+  color: #A1887F;
+}
+
+.elder-feature-card__arrow {
+  font-size: 52rpx;
+  color: #D7CCC8;
+  line-height: 1;
+}
+
+/* 新消息角标 */
+.elder-badge {
+  position: absolute;
+  top: 16rpx;
+  right: 56rpx;
+  background: #F44336;
+  border-radius: 12rpx;
+  padding: 4rpx 12rpx;
+}
+
+.elder-badge__text {
+  font-size: 20rpx;
+  color: #fff;
+  font-weight: bold;
+}
+
+/* ========== ⑤ 健康提醒 ========== */
+.health-reminder-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14rpx;
+}
+
+.health-reminder-item {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+  background: #fff;
+  border-radius: 20rpx;
+  padding: 24rpx 24rpx;
+  box-shadow: 0 2rpx 10rpx rgba(230,81,0,0.05);
+  min-height: 100rpx;
+  border-left: 6rpx solid #FF9800;
+}
+
+.health-reminder-item--done {
+  background: #F5F5F5;
+  border-left-color: #A5D6A7;
+  opacity: 0.8;
+}
+
+.health-reminder-icon { font-size: 48rpx; flex-shrink: 0; }
+
+.health-reminder-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4rpx;
+}
+
+.health-reminder-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #4E342E;
+}
+
+.health-reminder-time {
+  font-size: 24rpx;
+  color: #A1887F;
+}
+
+/* 完成按钮 */
+.health-reminder-check {
+  border-radius: 16rpx;
+  padding: 12rpx 20rpx;
+  flex-shrink: 0;
+}
+
+.check-empty {
+  background: #FFF3E0;
+  border: 2rpx solid #FFB74D;
+}
+
+.check-done {
+  background: #E8F5E9;
+  border: 2rpx solid #A5D6A7;
+}
+
+.health-reminder-check__text {
+  font-size: 22rpx;
+  font-weight: bold;
+  color: #5D4037;
+}
+
+.check-done .health-reminder-check__text {
+  color: #2E7D32;
+}
+
+/* ========== ⑥ 家人最新消息 ========== */
+.latest-message-card {
+  background: #fff;
+  border-radius: 24rpx;
+  padding: 32rpx;
+  box-shadow: 0 3rpx 16rpx rgba(230,81,0,0.07);
+}
+
+.latest-message-header {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  margin-bottom: 20rpx;
+}
+
+.latest-message-avatar {
+  font-size: 56rpx;
+  flex-shrink: 0;
+}
+
+.latest-message-who {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2rpx;
+}
+
+.latest-message-name {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #4E342E;
+}
+
+.latest-message-time {
+  font-size: 22rpx;
+  color: #BCAAA4;
+}
+
+.latest-message-type-tag {
+  background: #FFF3E0;
+  border-radius: 12rpx;
+  padding: 6rpx 16rpx;
+}
+
+.latest-message-type-text {
+  font-size: 22rpx;
+  color: #FF9800;
+  font-weight: bold;
+}
+
+.latest-message-content {
+  font-size: 30rpx;
+  color: #5D4037;
+  line-height: 1.8;
+  display: block;
+  margin-bottom: 24rpx;
+  padding: 20rpx;
+  background: #FFF8F0;
+  border-radius: 16rpx;
+  border-left: 6rpx solid #FFB74D;
+}
+
+.latest-message-actions {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+}
+
+.latest-message-reply {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  background: linear-gradient(135deg, #FF9800, #E65100);
+  border-radius: 16rpx;
+  padding: 22rpx 0;
+}
+
+.latest-message-reply__icon { font-size: 30rpx; }
+
+.latest-message-reply__text {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #fff;
+}
+
+.latest-message-view {
+  font-size: 24rpx;
+  color: #FF9800;
+  padding: 16rpx 20rpx;
+}
+
+/* ========== ⑦ 紧急求助底部栏 ========== */
+.sos-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  box-shadow: 0 -4rpx 24rpx rgba(0,0,0,0.10);
+  padding: 16rpx 24rpx 48rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+  z-index: 200;
+}
+
+/* SOS 主按钮 */
+.sos-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16rpx;
+  background: linear-gradient(135deg, #F44336, #B71C1C);
+  border-radius: 24rpx;
+  padding: 30rpx 0;
+  box-shadow: 0 6rpx 24rpx rgba(244,67,54,0.4);
+}
+
+.sos-btn:active {
+  transform: scale(0.97);
+  opacity: 0.9;
+}
+
+.sos-btn__icon { font-size: 40rpx; }
+
+.sos-btn__text {
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #fff;
+  letter-spacing: 4rpx;
+}
+
+/* 辅助功能行 */
+.sos-aux {
+  display: flex;
+  gap: 16rpx;
+}
+
+.sos-aux-item {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  background: #FFF3E0;
+  border-radius: 16rpx;
+  padding: 18rpx 0;
+  border: 2rpx solid #FFB74D;
+}
+
+.sos-aux-item:active {
+  background: #FFE0B2;
+}
+
+.sos-aux-item__icon { font-size: 28rpx; }
+
+.sos-aux-item__text {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #E65100;
+}
+
+/* ========== 心情选择弹窗 ========== */
+.mood-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 500;
+  display: flex;
+  align-items: flex-end;
+}
+
+.mood-modal__mask {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.45);
+}
+
+.mood-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  background: #fff;
+  border-radius: 40rpx 40rpx 0 0;
+  padding: 40rpx 32rpx 80rpx;
+}
+
+.mood-modal__title {
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #4E342E;
+  text-align: center;
+  display: block;
+  margin-bottom: 10rpx;
+}
+
+.mood-modal__sub {
+  font-size: 28rpx;
+  color: #A1887F;
+  text-align: center;
+  display: block;
+  margin-bottom: 36rpx;
+}
+
+.mood-modal__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20rpx;
+  margin-bottom: 32rpx;
+}
+
+.mood-modal__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+  background: #FFF8F0;
+  border-radius: 20rpx;
+  padding: 24rpx 10rpx;
+}
+
+.mood-modal__item:active {
+  background: #FFE0B2;
+  transform: scale(0.94);
+}
+
+.mood-modal__emoji { font-size: 72rpx; line-height: 1; }
+
+.mood-modal__label {
+  font-size: 26rpx;
+  font-weight: bold;
+  color: #5D4037;
+}
+
+.mood-modal__cancel {
+  text-align: center;
+  font-size: 30rpx;
+  color: #BCAAA4;
+  padding: 20rpx 0;
+}
+
+/* ========== SOS 确认弹窗 ========== */
+.sos-modal {
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  z-index: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40rpx;
+}
+
+.sos-modal__mask {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0,0,0,0.6);
+}
+
+.sos-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 600rpx;
+  background: #fff;
+  border-radius: 40rpx;
+  padding: 48rpx 36rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.sos-modal__icon { font-size: 100rpx; }
+
+.sos-modal__title {
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #B71C1C;
+}
+
+.sos-modal__desc {
+  font-size: 28rpx;
+  color: #5D4037;
+  text-align: center;
+  line-height: 1.7;
+}
+
+.sos-modal__btns {
+  display: flex;
+  gap: 20rpx;
+  width: 100%;
+  margin-top: 10rpx;
+}
+
+.sos-modal__btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10rpx;
+  border-radius: 20rpx;
+  padding: 30rpx 20rpx;
+}
+
+.sos-modal__btn--call120 {
+  background: linear-gradient(135deg, #F44336, #B71C1C);
+}
+
+.sos-modal__btn--notify {
+  background: linear-gradient(135deg, #FF9800, #E65100);
+}
+
+.sos-modal__btn-icon { font-size: 48rpx; }
+
+.sos-modal__btn-text {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #fff;
+}
+
+.sos-modal__cancel {
+  font-size: 28rpx;
+  color: #BCAAA4;
+  padding: 16rpx 0;
+}

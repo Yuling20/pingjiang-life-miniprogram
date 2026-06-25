@@ -57,15 +57,54 @@
     <text class="service-desc">政务服务入口</text>
   </view>
 
-  <!-- 入口6：孝亲守护 -->
-  <view class="service-item" bindtap="goToElder">
-    <view class="service-icon-wrap gold">
-      <text class="service-icon">❤️</text>
+</view>
+
+<!-- ====================================================
+  家庭心树 · 入口卡片（替换原 elder 孝亲守护入口）
+==================================================== -->
+<view
+  class="service-family-tree-card"
+  bindtap="onGoFamilyTree"
+>
+  <!-- 背景装饰 -->
+  <view class="ftree-card-deco1"></view>
+  <view class="ftree-card-deco2"></view>
+
+  <!-- 左侧内容 -->
+  <view class="ftree-card-left">
+    <view class="ftree-card-title-row">
+      <text class="ftree-card-emoji">🌳</text>
+      <text class="ftree-card-title">家庭心树</text>
+      <view class="ftree-card-new-tag">
+        <text class="ftree-card-new-text">NEW</text>
+      </view>
     </view>
-    <text class="service-name">孝亲守护</text>
-    <text class="service-desc">关爱老人守护</text>
+    <text class="ftree-card-desc">家庭关怀 · 心理健康 · 社区课堂</text>
+    <view class="ftree-card-features">
+      <view class="ftree-card-feature">
+        <text class="ftree-card-feature-icon">❤️</text>
+        <text class="ftree-card-feature-text">心情打卡</text>
+      </view>
+      <view class="ftree-card-feature">
+        <text class="ftree-card-feature-icon">🧠</text>
+        <text class="ftree-card-feature-text">心理测试</text>
+      </view>
+      <view class="ftree-card-feature">
+        <text class="ftree-card-feature-icon">📚</text>
+        <text class="ftree-card-feature-text">社区课堂</text>
+      </view>
+      <view class="ftree-card-feature">
+        <text class="ftree-card-feature-icon">🔴</text>
+        <text class="ftree-card-feature-text">直播课</text>
+      </view>
+    </view>
   </view>
 
+  <!-- 右侧图标 -->
+  <view class="ftree-card-right">
+    <text class="ftree-card-main-emoji">🌳</text>
+    <text class="ftree-card-arrow">›</text>
+  </view>
 </view>
 
 <!-- 底部说明 -->

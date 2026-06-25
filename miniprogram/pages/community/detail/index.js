@@ -1,6 +1,9 @@
 // pages/community/detail/index.js
 // 帖子详情页：展示帖子全文、评论列表、点赞、关注作者、跳转评论页
 
+// 修复路径：从 ../../../utils/points 改为 ../../points/points
+const { addPoints } = require('../../points/points')
+
 const MOCK_POSTS = {
   1: {
     id: 1, userId: 'u1',
@@ -96,19 +99,40 @@ Page({
   },
 
   // =============================================
-  // 帖子点赞
+  // ✅ 帖子点赞（含积分：被他人点赞作者+2，防自赞）
   // =============================================
   toggleLike() {
     const { post } = this.data
+    const currentUserId = wx.getStorageSync('userId') || ''
+
+    // 防止自己给自己点赞
+    if (currentUserId && currentUserId === String(post.userId)) {
+      wx.showToast({ title: '不能给自己点赞哦', icon: 'none' })
+      return
+    }
+
     const isLiked = !post.isLiked
-    const likes = isLiked ? post.likes + 1 : post.likes - 1
+    const likes   = isLiked ? post.likes + 1 : post.likes - 1
     this.setData({ post: { ...post, isLiked, likes } })
-    wx.showToast({ title: isLiked ? '已点赞' : '取消点赞', icon: 'none' })
+
+    // 点赞成功时给帖子作者累积积分
+    // 实际接口场景：由服务端在 POST /api/post/like 响应后写积分
+    // 当前本地模拟：仅当前用户 storage 中累积（演示用）
+    if (isLiked) {
+      const result = addPoints('LIKED')
+      wx.showToast({
+        title: result.added > 0 ? `已点赞 · 作者+${result.added}积分` : '已点赞',
+        icon: 'none'
+      })
+    } else {
+      wx.showToast({ title: '取消点赞', icon: 'none' })
+    }
+
     // TODO: POST /api/post/like { postId: post.id }
   },
 
   // =============================================
-  // 关注作者
+  // 关注作者（原有逻辑不变）
   // =============================================
   toggleFollow(e) {
     const { post } = this.data
@@ -123,13 +147,26 @@ Page({
   },
 
   // =============================================
-  // 评论点赞
+  // ✅ 评论点赞（含防自赞）
   // =============================================
   likeComment(e) {
     const { id, index } = e.currentTarget.dataset
+    const currentUserId = wx.getStorageSync('userId') || ''
+    const comment       = this.data.comments[index]
+
+    // 防止给自己的评论点赞
+    if (currentUserId && currentUserId === String(comment.userId)) {
+      wx.showToast({ title: '不能给自己的评论点赞哦', icon: 'none' })
+      return
+    }
+
     const comments = this.data.comments.map((c, i) => {
       if (i === index) {
-        return { ...c, isLiked: !c.isLiked, likes: c.isLiked ? c.likes - 1 : c.likes + 1 }
+        return {
+          ...c,
+          isLiked: !c.isLiked,
+          likes:    c.isLiked ? c.likes - 1 : c.likes + 1
+        }
       }
       return c
     })
@@ -138,7 +175,7 @@ Page({
   },
 
   // =============================================
-  // 展开更多回复
+  // 展开更多回复（原有逻辑不变）
   // =============================================
   loadMoreReply(e) {
     const { id, index } = e.currentTarget.dataset
@@ -147,41 +184,49 @@ Page({
   },
 
   // =============================================
-  // 跳转评论/回复页
+  // ✅ 跳转评论页（发表评论后给帖子作者+2积分）
+  // 积分实际在 comment/index.js 提交成功时触发
+  // 此处仅做跳转，不重复计分
   // =============================================
   goComment() {
-    wx.navigateTo({ url: `../comment/index?postId=${this.data.postId}` })
+    wx.navigateTo({
+      url: `../comment/index?postId=${this.data.postId}&authorId=${this.data.post.userId}`
+    })
   },
 
   goReply(e) {
     const { id, name } = e.currentTarget.dataset
-    wx.navigateTo({ url: `../comment/index?postId=${this.data.postId}&replyId=${id}&replyName=${name}` })
+    wx.navigateTo({
+      url: `../comment/index?postId=${this.data.postId}&replyId=${id}&replyName=${encodeURIComponent(name)}&authorId=${this.data.post.userId}`
+    })
   },
 
   // =============================================
-  // 跳转个人主页
+  // 跳转个人主页（原有逻辑不变）
   // =============================================
   goUser(e) {
     wx.navigateTo({ url: `../user/index?userId=${e.currentTarget.dataset.id}` })
   },
 
   // =============================================
-  // 图片预览
+  // 图片预览（原有逻辑不变）
   // =============================================
   previewImg(e) {
     wx.previewImage({
       current: e.currentTarget.dataset.src,
-      urls: e.currentTarget.dataset.list
+      urls:    e.currentTarget.dataset.list
     })
   },
 
   // =============================================
-  // 举报评论
+  // 举报评论（原有逻辑不变）
   // =============================================
   reportComment(e) {
     wx.showModal({
-      title: '举报评论', content: '确认举报该评论？',
-      confirmText: '举报', confirmColor: '#E53935',
+      title:        '举报评论',
+      content:      '确认举报该评论？',
+      confirmText:  '举报',
+      confirmColor: '#E53935',
       success: (res) => {
         if (res.confirm) {
           wx.showToast({ title: '举报已提交', icon: 'none' })
@@ -192,14 +237,17 @@ Page({
   },
 
   // =============================================
-  // 转发帖子
+  // ✅ 转发帖子（转发给朋友+10积分 / 朋友圈+20积分）
   // =============================================
   sharePost() {
     wx.showActionSheet({
-      itemList: ['发给好友/群', '生成分享海报'],
+      itemList: ['发给好友/群', '分享到朋友圈', '生成分享海报'],
       success: (res) => {
         if (res.tapIndex === 0) {
+          // 触发微信自带转发，积分在 onShareAppMessage 回调中计入
           wx.showToast({ title: '请点击右上角菜单转发', icon: 'none' })
+        } else if (res.tapIndex === 1) {
+          wx.showToast({ title: '请点击右上角菜单分享到朋友圈', icon: 'none' })
         } else {
           wx.showToast({ title: '海报功能即将上线', icon: 'none' })
         }
@@ -208,13 +256,36 @@ Page({
   },
 
   // =============================================
-  // 微信分享配置
+  // ✅ 微信转发给朋友 → +10积分
   // =============================================
   onShareAppMessage() {
     const { post } = this.data
+    const result   = addPoints('SHARE_FRIEND')
+
+    if (result.added > 0) {
+      wx.showToast({ title: `+${result.added}积分 转发好友`, icon: 'none', duration: 1500 })
+    }
+
     return {
-      title: post.content ? post.content.slice(0, 30) + '...' : '平江贴吧',
-      path: `/pages/community/detail/index?id=${post.id}`
+      title: post.content ? post.content.slice(0, 30) + '...' : '平江汇 · 本地生活社区',
+      path:  `/pages/community/detail/index?id=${post.id}`
+    }
+  },
+
+  // =============================================
+  // ✅ 微信分享到朋友圈 → +20积分
+  // =============================================
+  onShareTimeline() {
+    const { post } = this.data
+    const result   = addPoints('SHARE_MOMENTS')
+
+    if (result.added > 0) {
+      wx.showToast({ title: `+${result.added}积分 朋友圈分享`, icon: 'none', duration: 1500 })
+    }
+
+    return {
+      title: post.content ? post.content.slice(0, 30) + '...' : '平江汇 · 本地生活社区',
+      query: `id=${post.id}`
     }
   }
 })

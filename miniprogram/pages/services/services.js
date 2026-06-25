@@ -34,6 +34,14 @@ Page({
     });
   },
 
+  // ─── 跳转家庭心树 ──────────────────────────
+  onGoFamilyTree() {
+    wx.navigateTo({
+      url: '/pages/services/convenience/familytree/index'
+    });
+  },
+
+  // 原孝亲守护跳转，已替换页面入口，可注释/删除
   goToElder: function() {
     wx.navigateTo({
       url: '/pages/services/convenience/elder/elder'

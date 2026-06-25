@@ -1,0 +1,327 @@
+<!-- pages/services/convenience/familytree/elder/index.wxml -->
+<!-- ============================================================
+  长辈简洁端
+  面向 60岁+ 老年人设计
+  包含：
+    1. 顶部问候区（姓名 + 天气 + 时间）
+    2. 家人头像快捷拨号区（最多4人）
+    3. 今日心情打卡（超大表情选择）
+    4. 核心功能大按钮（看照片/视频/故事）
+    5. 健康提醒（用药/血压/运动）
+    6. 紧急求助按钮（常驻底部）
+    7. 家人最新消息通知
+============================================================ -->
+
+<!-- 加载占位 -->
+<view class="elder-loading" wx:if="{{!pageReady}}">
+  <text class="elder-loading__text">正在加载，请稍候...</text>
+</view>
+
+<view class="elder-page" wx:if="{{pageReady}}">
+
+  <!-- ====================================================
+    ① 顶部问候区
+  ==================================================== -->
+  <view class="elder-header">
+    <!-- 背景装饰 -->
+    <view class="elder-header__deco1"></view>
+    <view class="elder-header__deco2"></view>
+
+    <!-- 问候语 -->
+    <view class="elder-greet">
+      <text class="elder-greet__wave">👋</text>
+      <view class="elder-greet__body">
+        <text class="elder-greet__hello">{{greeting}}，{{elderName}}！</text>
+        <text class="elder-greet__sub">今天是 {{todayStr}}，{{weekStr}}</text>
+      </view>
+      <!-- 天气（模拟） -->
+      <view class="elder-weather">
+        <text class="elder-weather__icon">{{weatherIcon}}</text>
+        <text class="elder-weather__temp">{{weatherText}}</text>
+      </view>
+    </view>
+
+    <!-- 家人在线状态 -->
+    <view class="elder-online-tip" wx:if="{{onlineMember}}">
+      <text class="elder-online-dot"></text>
+      <text class="elder-online-text">{{onlineMember}} 刚刚上线了</text>
+    </view>
+  </view>
+
+  <!-- ====================================================
+    ② 家人快捷拨号
+  ==================================================== -->
+  <view class="elder-section">
+    <text class="elder-section__title">📞 联系家人</text>
+    <text class="elder-section__sub">点击头像，一键通话</text>
+
+    <view class="family-dial-grid">
+      <view
+        wx:for="{{familyMembers}}"
+        wx:key="uid"
+        class="family-dial-card"
+        bindtap="onCallMember"
+        data-uid="{{item.uid}}"
+        data-name="{{item.name}}"
+        data-phone="{{item.phone}}"
+      >
+        <!-- 头像 -->
+        <view class="family-dial-avatar" style="background:{{item.avatarBg}};">
+          <text class="family-dial-avatar__icon">{{item.icon}}</text>
+          <!-- 在线绿点 -->
+          <view class="family-dial-online" wx:if="{{item.online}}"></view>
+        </view>
+        <!-- 称谓 -->
+        <text class="family-dial-role">{{item.role}}</text>
+        <!-- 名字 -->
+        <text class="family-dial-name">{{item.name}}</text>
+        <!-- 最近通话 -->
+        <text class="family-dial-last">{{item.lastCallText}}</text>
+        <!-- 拨号图标 -->
+        <view class="family-dial-btn">
+          <text class="family-dial-btn__icon">📞</text>
+          <text class="family-dial-btn__text">拨打</text>
+        </view>
+      </view>
+
+      <!-- 添加家人（未满4人时显示） -->
+      <view
+        class="family-dial-card family-dial-card--add"
+        wx:if="{{familyMembers.length < 4}}"
+        bindtap="onAddFamily"
+      >
+        <view class="family-dial-avatar family-dial-avatar--add">
+          <text class="family-dial-avatar__plus">＋</text>
+        </view>
+        <text class="family-dial-role">添加</text>
+        <text class="family-dial-name">更多家人</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ====================================================
+    ③ 今日心情打卡
+  ==================================================== -->
+  <view class="elder-section">
+    <text class="elder-section__title">😊 今天心情怎么样？</text>
+    <text class="elder-section__sub">点一下告诉家人您的心情</text>
+
+    <view class="mood-grid" wx:if="{{!todayMood}}">
+      <view
+        wx:for="{{moodList}}"
+        wx:key="value"
+        class="mood-item"
+        bindtap="onSelectMood"
+        data-mood="{{item}}"
+      >
+        <text class="mood-item__emoji">{{item.emoji}}</text>
+        <text class="mood-item__label">{{item.label}}</text>
+      </view>
+    </view>
+
+    <!-- 已打卡状态 -->
+    <view class="mood-done" wx:if="{{todayMood}}">
+      <text class="mood-done__emoji">{{todayMood.emoji}}</text>
+      <view class="mood-done__body">
+        <text class="mood-done__label">您今天感觉：{{todayMood.label}}</text>
+        <text class="mood-done__tip">已通知家人，他们很关心您 ❤️</text>
+      </view>
+      <view class="mood-done__change" bindtap="onChangeMood">换一个</view>
+    </view>
+  </view>
+
+  <!-- ====================================================
+    ④ 核心功能大按钮
+  ==================================================== -->
+  <view class="elder-section">
+    <text class="elder-section__title">🌟 家人为您准备的</text>
+
+    <view class="elder-features">
+
+      <!-- 看家人照片 -->
+      <view class="elder-feature-card elder-feature-card--photo" bindtap="onViewPhotos">
+        <view class="elder-feature-card__left">
+          <text class="elder-feature-card__emoji">🖼️</text>
+          <view class="elder-feature-card__body">
+            <text class="elder-feature-card__title">看家人照片</text>
+            <text class="elder-feature-card__sub">{{photoCount}} 张新照片</text>
+          </view>
+        </view>
+        <view class="elder-feature-card__arrow">›</view>
+        <!-- 新消息红点 -->
+        <view class="elder-badge" wx:if="{{photoCount > 0}}">
+          <text class="elder-badge__text">新</text>
+        </view>
+      </view>
+
+      <!-- 视频留言 -->
+      <view class="elder-feature-card elder-feature-card--video" bindtap="onViewVideos">
+        <view class="elder-feature-card__left">
+          <text class="elder-feature-card__emoji">🎬</text>
+          <view class="elder-feature-card__body">
+            <text class="elder-feature-card__title">看视频留言</text>
+            <text class="elder-feature-card__sub">{{videoCount}} 条新视频</text>
+          </view>
+        </view>
+        <view class="elder-feature-card__arrow">›</view>
+        <view class="elder-badge" wx:if="{{videoCount > 0}}">
+          <text class="elder-badge__text">新</text>
+        </view>
+      </view>
+
+      <!-- 听家人故事 -->
+      <view class="elder-feature-card elder-feature-card--story" bindtap="onViewStories">
+        <view class="elder-feature-card__left">
+          <text class="elder-feature-card__emoji">📖</text>
+          <view class="elder-feature-card__body">
+            <text class="elder-feature-card__title">听家人的话</text>
+            <text class="elder-feature-card__sub">点击收听语音留言</text>
+          </view>
+        </view>
+        <view class="elder-feature-card__arrow">›</view>
+      </view>
+
+      <!-- 心理健康小测试 -->
+      <view class="elder-feature-card elder-feature-card--test" bindtap="onGoMoodTest">
+        <view class="elder-feature-card__left">
+          <text class="elder-feature-card__emoji">🧠</text>
+          <view class="elder-feature-card__body">
+            <text class="elder-feature-card__title">心情小测试</text>
+            <text class="elder-feature-card__sub">了解自己的身心状态</text>
+          </view>
+        </view>
+        <view class="elder-feature-card__arrow">›</view>
+      </view>
+
+    </view>
+  </view>
+
+  <!-- ====================================================
+    ⑤ 健康提醒
+  ==================================================== -->
+  <view class="elder-section" wx:if="{{healthReminders && healthReminders.length > 0}}">
+    <text class="elder-section__title">💊 今日健康提醒</text>
+
+    <view class="health-reminder-list">
+      <view
+        wx:for="{{healthReminders}}"
+        wx:key="id"
+        class="health-reminder-item {{item.done ? 'health-reminder-item--done' : ''}}"
+        bindtap="onToggleReminder"
+        data-id="{{item.id}}"
+      >
+        <text class="health-reminder-icon">{{item.icon}}</text>
+        <view class="health-reminder-body">
+          <text class="health-reminder-title">{{item.title}}</text>
+          <text class="health-reminder-time">{{item.time}}</text>
+        </view>
+        <view class="health-reminder-check {{item.done ? 'check-done' : 'check-empty'}}">
+          <text class="health-reminder-check__text">{{item.done ? '✓ 已完成' : '点击完成'}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- ====================================================
+    ⑥ 家人最新消息
+  ==================================================== -->
+  <view class="elder-section" wx:if="{{latestMessage}}">
+    <text class="elder-section__title">💬 家人给您留言了</text>
+
+    <view class="latest-message-card">
+      <view class="latest-message-header">
+        <text class="latest-message-avatar">{{latestMessage.memberIcon}}</text>
+        <view class="latest-message-who">
+          <text class="latest-message-name">{{latestMessage.memberName}}</text>
+          <text class="latest-message-time">{{latestMessage.timeAgo}}</text>
+        </view>
+        <view class="latest-message-type-tag">
+          <text class="latest-message-type-text">{{latestMessage.typeLabel}}</text>
+        </view>
+      </view>
+      <text class="latest-message-content">{{latestMessage.content}}</text>
+      <view class="latest-message-actions">
+        <view class="latest-message-reply" bindtap="onReplyMessage">
+          <text class="latest-message-reply__icon">📞</text>
+          <text class="latest-message-reply__text">马上回电话</text>
+        </view>
+        <view class="latest-message-view" bindtap="onViewAllMessages">
+          查看全部留言 ›
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部占位（防止被紧急按钮遮挡） -->
+  <view style="height:200rpx;"></view>
+
+  <!-- ====================================================
+    ⑦ 紧急求助按钮（常驻底部）
+  ==================================================== -->
+  <view class="sos-bar">
+    <!-- SOS 主按钮 -->
+    <view class="sos-btn" bindtap="onSOS">
+      <text class="sos-btn__icon">🆘</text>
+      <text class="sos-btn__text">紧急求助</text>
+    </view>
+    <!-- 辅助功能 -->
+    <view class="sos-aux">
+      <view class="sos-aux-item" bindtap="onCallFirst">
+        <text class="sos-aux-item__icon">📞</text>
+        <text class="sos-aux-item__text">呼叫{{firstFamilyName}}</text>
+      </view>
+      <view class="sos-aux-item" bindtap="onCallSOS120">
+        <text class="sos-aux-item__icon">🚑</text>
+        <text class="sos-aux-item__text">拨打120</text>
+      </view>
+    </view>
+  </view>
+
+</view>
+
+<!-- ====================================================
+  心情选择弹窗（全屏）
+==================================================== -->
+<view class="mood-modal" wx:if="{{showMoodModal}}">
+  <view class="mood-modal__mask" bindtap="onCloseMoodModal"></view>
+  <view class="mood-modal__panel">
+    <text class="mood-modal__title">今天心情怎么样？</text>
+    <text class="mood-modal__sub">选一个最接近您感受的表情</text>
+    <view class="mood-modal__grid">
+      <view
+        wx:for="{{moodList}}"
+        wx:key="value"
+        class="mood-modal__item"
+        bindtap="onConfirmMood"
+        data-mood="{{item}}"
+      >
+        <text class="mood-modal__emoji">{{item.emoji}}</text>
+        <text class="mood-modal__label">{{item.label}}</text>
+      </view>
+    </view>
+    <view class="mood-modal__cancel" bindtap="onCloseMoodModal">
+      稍后再说
+    </view>
+  </view>
+</view>
+
+<!-- SOS 确认弹窗 -->
+<view class="sos-modal" wx:if="{{showSOSModal}}">
+  <view class="sos-modal__mask" bindtap="onCancelSOS"></view>
+  <view class="sos-modal__panel">
+    <text class="sos-modal__icon">🆘</text>
+    <text class="sos-modal__title">需要帮助吗？</text>
+    <text class="sos-modal__desc">系统将同时通知您的家人，并可拨打急救电话</text>
+    <view class="sos-modal__btns">
+      <view class="sos-modal__btn sos-modal__btn--call120" bindtap="onConfirmCall120">
+        <text class="sos-modal__btn-icon">🚑</text>
+        <text class="sos-modal__btn-text">拨打120</text>
+      </view>
+      <view class="sos-modal__btn sos-modal__btn--notify" bindtap="onConfirmNotifyFamily">
+        <text class="sos-modal__btn-icon">📱</text>
+        <text class="sos-modal__btn-text">通知家人</text>
+      </view>
+    </view>
+    <view class="sos-modal__cancel" bindtap="onCancelSOS">我没事，误触了</view>
+  </view>
+</view>

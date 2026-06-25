@@ -1,0 +1,315 @@
+<!-- pages/services/convenience/familytree/mental/index.wxml -->
+<!-- ============================================================
+  心理健康中心
+  包含：
+    1. 今日心情打卡
+    2. 心理测试入口（成人/儿童/家庭/老年）
+    3. 直播入口（正在直播 / 预约）
+    4. 心理课程视频列表
+    5. 底部导航
+============================================================ -->
+
+<!-- 加载占位 -->
+<view wx:if="{{!pageReady}}" class="page-loading">
+  <text class="loading-icon">🧠</text>
+  <text class="loading-text">加载中...</text>
+</view>
+
+<view class="mental-page" wx:if="{{pageReady}}">
+
+  <!-- ====================================================
+    顶部导航栏
+  ==================================================== -->
+  <view class="nav-bar">
+    <view class="nav-back" bindtap="onNavBack">‹ 返回</view>
+    <view class="nav-center">
+      <text class="nav-icon">🧠</text>
+      <text class="nav-title">心理健康</text>
+    </view>
+    <view class="nav-right">
+      <text class="nav-history" bindtap="onViewHistory">记录</text>
+    </view>
+  </view>
+
+  <!-- ====================================================
+    ① 今日心情打卡卡片
+  ==================================================== -->
+  <view class="mood-card">
+    <view class="mood-card__header">
+      <view class="mood-card__left">
+        <text class="mood-card__greet">{{greetText}} {{userLabel}} 👋</text>
+        <text class="mood-card__question">今天你的心情怎么样？</text>
+      </view>
+      <view class="mood-card__date-box">
+        <text class="mood-card__date">{{todayStr}}</text>
+        <text class="mood-card__date-sub">今天</text>
+      </view>
+    </view>
+
+    <!-- 心情选择行 -->
+    <view class="mood-row" wx:if="{{!todayMood}}">
+      <view
+        wx:for="{{moodOptions}}"
+        wx:key="value"
+        class="mood-option"
+        bindtap="onPickMood"
+        data-item="{{item}}"
+      >
+        <text class="mood-option__emoji">{{item.emoji}}</text>
+        <text class="mood-option__label">{{item.label}}</text>
+      </view>
+    </view>
+
+    <!-- 已打卡状态 -->
+    <view class="mood-done" wx:else>
+      <text class="mood-done__emoji">{{todayMood.emoji}}</text>
+      <view class="mood-done__right">
+        <text class="mood-done__text">今日心情：{{todayMood.label}}</text>
+        <text class="mood-done__tip">已同步到家庭树 🌳</text>
+      </view>
+      <text class="mood-done__change" bindtap="onChangeMood">修改</text>
+    </view>
+
+    <!-- 连续打卡天数 -->
+    <view class="streak-bar">
+      <text class="streak-icon">🔥</text>
+      <text class="streak-text">已连续打卡 {{moodStreak}} 天</text>
+      <text class="streak-tip">坚持打卡，了解自己的情绪变化</text>
+    </view>
+  </view>
+
+  <!-- ====================================================
+    ② 心理测试区块
+    （长辈端不显示心理测试，仅显示视频课程）
+  ==================================================== -->
+  <view class="section" wx:if="{{uiMode !== 'elder'}}">
+
+    <view class="section-header">
+      <text class="section-title">🧪 心理测试</text>
+      <text class="section-sub">科学量表，专业评估</text>
+    </view>
+
+    <!-- 留守儿童专项（置顶高亮） -->
+    <view
+      class="test-banner"
+      bindtap="onStartTest"
+      data-test="{{leftBehindTest}}"
+      wx:if="{{uiMode === 'child' || showLeftBehindBanner}}"
+    >
+      <view class="test-banner__left">
+        <text class="test-banner__emoji">🌟</text>
+        <view>
+          <text class="test-banner__title">留守儿童专项心理评估</text>
+          <text class="test-banner__desc">了解孩子的内心世界 · 科学温和 · 适龄设计</text>
+          <view class="test-banner__tags">
+            <text class="test-banner__tag">8-15岁适用</text>
+            <text class="test-banner__tag">约5分钟</text>
+            <text class="test-banner__tag">免费</text>
+          </view>
+        </view>
+      </view>
+      <text class="test-banner__arrow">›</text>
+    </view>
+
+    <!-- 测试卡片网格（2列） -->
+    <view class="test-grid">
+      <view
+        wx:for="{{testList}}"
+        wx:key="id"
+        class="test-card"
+        bindtap="onStartTest"
+        data-test="{{item}}"
+        wx:if="{{item.modes.indexOf(uiMode) !== -1}}"
+      >
+        <view class="test-card__top">
+          <text class="test-card__emoji">{{item.emoji}}</text>
+          <view class="test-card__badges">
+            <text class="test-card__badge test-card__badge--free" wx:if="{{item.free}}">免费</text>
+            <text class="test-card__badge test-card__badge--new"  wx:if="{{item.isNew}}">新</text>
+          </view>
+        </view>
+        <text class="test-card__title">{{item.title}}</text>
+        <text class="test-card__scale">{{item.scaleName}}</text>
+        <view class="test-card__info">
+          <text class="test-card__time">⏱ {{item.minutes}}分钟</text>
+          <text class="test-card__count">{{item.doneCount}}人测过</text>
+        </view>
+        <view class="test-card__btn">开始测试 →</view>
+      </view>
+    </view>
+
+  </view>
+
+  <!-- ====================================================
+    ③ 直播入口
+  ==================================================== -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">📡 心理直播</text>
+      <text class="section-sub">专业老师在线答疑</text>
+    </view>
+
+    <!-- 正在直播 -->
+    <view
+      class="live-card live-card--on"
+      wx:if="{{liveOnAir}}"
+      bindtap="onEnterLive"
+      data-live="{{liveOnAir}}"
+    >
+      <view class="live-card__badge">
+        <view class="live-dot"></view>
+        <text class="live-badge-text">直播中</text>
+      </view>
+      <view class="live-card__body">
+        <text class="live-card__title">{{liveOnAir.title}}</text>
+        <text class="live-card__teacher">主讲：{{liveOnAir.teacher}}</text>
+        <view class="live-card__info">
+          <text class="live-card__viewers">👥 {{liveOnAir.viewers}} 人在看</text>
+          <text class="live-card__location">📍 {{liveOnAir.location}}</text>
+        </view>
+      </view>
+      <view class="live-card__enter-btn">立即进入</view>
+    </view>
+
+    <!-- 无直播时的占位 -->
+    <view class="live-empty" wx:elif="{{!upcomingLives || upcomingLives.length === 0}}">
+      <text class="live-empty-icon">📡</text>
+      <text class="live-empty-text">暂无直播，敬请期待</text>
+    </view>
+
+    <!-- 即将开播预告 -->
+    <view class="upcoming-title" wx:if="{{upcomingLives && upcomingLives.length > 0}}">
+      🗓️ 即将开播
+    </view>
+    <view
+      wx:for="{{upcomingLives}}"
+      wx:key="id"
+      class="live-card live-card--upcoming"
+      bindtap="onSubscribeLive"
+      data-live="{{item}}"
+    >
+      <view class="live-upcoming__time-box">
+        <text class="live-upcoming__date">{{item.date}}</text>
+        <text class="live-upcoming__time">{{item.time}}</text>
+      </view>
+      <view class="live-upcoming__body">
+        <text class="live-upcoming__title">{{item.title}}</text>
+        <text class="live-upcoming__teacher">{{item.teacher}}</text>
+        <view class="live-upcoming__tags">
+          <text class="live-upcoming__tag live-upcoming__tag--online"  wx:if="{{item.hasOnline}}">线上直播</text>
+          <text class="live-upcoming__tag live-upcoming__tag--offline" wx:if="{{item.hasOffline}}">线下同步</text>
+        </view>
+      </view>
+      <view class="live-card__subscribe-btn {{item.subscribed ? 'subscribed' : ''}}">
+        {{item.subscribed ? '已预约✓' : '预约提醒'}}
+      </view>
+    </view>
+
+  </view>
+
+  <!-- ====================================================
+    ④ 心理课程视频列表
+  ==================================================== -->
+  <view class="section">
+    <view class="section-header">
+      <text class="section-title">🎬 心理课程</text>
+      <text class="section-more" bindtap="onViewAllCourses">全部 ›</text>
+    </view>
+
+    <!-- 分类 Tab -->
+    <scroll-view class="course-tabs" scroll-x="true">
+      <view
+        wx:for="{{courseTabs}}"
+        wx:key="value"
+        class="course-tab {{activeCourseTab === item.value ? 'course-tab--active' : ''}}"
+        bindtap="onSwitchCourseTab"
+        data-value="{{item.value}}"
+      >
+        {{item.label}}
+      </view>
+    </scroll-view>
+
+    <!-- 课程列表 -->
+    <view class="course-list">
+      <view
+        wx:for="{{filteredCourses}}"
+        wx:key="id"
+        class="course-item"
+        bindtap="onPlayCourse"
+        data-course="{{item}}"
+      >
+        <!-- 封面 -->
+        <view class="course-cover">
+          <text class="course-cover__emoji">{{item.coverEmoji}}</text>
+          <view class="course-cover__duration">{{item.duration}}</view>
+          <view class="course-cover__play">▶</view>
+        </view>
+        <!-- 信息 -->
+        <view class="course-info">
+          <text class="course-info__title">{{item.title}}</text>
+          <text class="course-info__desc">{{item.desc}}</text>
+          <view class="course-info__bottom">
+            <view class="course-stars">
+              <text wx:for="{{item.starsArr}}" wx:key="*this" wx:for-item="s" class="star-icon">{{s}}</text>
+              <text class="course-score">{{item.score}}</text>
+            </view>
+            <text class="course-plays">{{item.plays}}次播放</text>
+            <text class="course-free {{item.free ? 'tag-free' : 'tag-pay'}}">
+              {{item.free ? '免费' : '付费'}}
+            </text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+  </view>
+
+  <!-- ====================================================
+    ⑤ 心理援助热线（公益资源）
+  ==================================================== -->
+  <view class="hotline-section">
+    <view class="hotline-title">📞 心理援助热线</view>
+    <view class="hotline-list">
+      <view
+        wx:for="{{hotlines}}"
+        wx:key="name"
+        class="hotline-item"
+        bindtap="onCallHotline"
+        data-phone="{{item.phone}}"
+      >
+        <text class="hotline-item__icon">{{item.icon}}</text>
+        <view class="hotline-item__body">
+          <text class="hotline-item__name">{{item.name}}</text>
+          <text class="hotline-item__phone">{{item.phone}}</text>
+        </view>
+        <text class="hotline-item__call">拨打</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- ====================================================
+    底部导航栏
+  ==================================================== -->
+  <view class="bottom-nav">
+    <view class="bottom-nav-item" bindtap="onNavTree">
+      <text class="bottom-nav-icon">🌳</text>
+      <text class="bottom-nav-label">家庭树</text>
+    </view>
+    <view class="bottom-nav-item bottom-nav-item--active" bindtap="onNavMental">
+      <text class="bottom-nav-icon">🧠</text>
+      <text class="bottom-nav-label">心理</text>
+    </view>
+    <view class="bottom-nav-item" bindtap="onNavElder">
+      <text class="bottom-nav-icon">👴</text>
+      <text class="bottom-nav-label">关爱</text>
+    </view>
+    <view class="bottom-nav-item" bindtap="onNavCommunity">
+      <text class="bottom-nav-icon">🏘️</text>
+      <text class="bottom-nav-label">社区</text>
+    </view>
+  </view>
+
+  <!-- 底部占位 -->
+  <view style="height:160rpx;"></view>
+
+</view>

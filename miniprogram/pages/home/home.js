@@ -42,7 +42,8 @@ Page({
       { id: 3, icon: '🔧', name: '家政维修', type: 'homeservice', color: '#E67E22' },
       { id: 4, icon: '🚨', name: '停水停电', type: 'water',       color: '#E74C3C' },
       { id: 5, icon: '📋', name: '办事指南', type: 'guide',       color: '#8E44AD' },
-      { id: 6, icon: '❤️', name: '孝亲守护', type: 'elder',       color: '#D4820A' }
+      // ✅ 保留名称"孝亲守护"，type 改为 familytree，跳转新页面
+      { id: 6, icon: '🌳', name: '孝亲守护', type: 'familytree',  color: '#D4820A' }
     ],
 
     communityList: [
@@ -132,14 +133,25 @@ Page({
   },
 
   _doNavigate(type) {
+    // 社区 Tab 跳转
     if (type === 'community') {
       wx.switchTab({ url: '/pages/community/community' });
       return;
     }
-    if (type === 'elder') {
-      wx.navigateTo({ url: '/pages/services/convenience/elder/elder' });
+
+    // ✅ 孝亲守护 → 家庭心树新页面
+    if (type === 'familytree') {
+      wx.navigateTo({
+        url: '/pages/services/convenience/familytree/index',
+        fail(err) {
+          console.error('[跳转失败] familytree:', err);
+          wx.showToast({ title: '页面加载失败，请重试', icon: 'none' });
+        }
+      });
       return;
     }
+
+    // 其余便民服务路由表
     const routeMap = {
       job:         '/pages/services/convenience/job/job',
       rental:      '/pages/services/convenience/rental/rental',
@@ -147,6 +159,7 @@ Page({
       water:       '/pages/services/convenience/water/water',
       guide:       '/pages/services/convenience/guide/guide'
     };
+
     const url = routeMap[type];
     if (url) {
       wx.navigateTo({ url });
@@ -192,29 +205,24 @@ Page({
   //   3. 今日未签到 + 未屏蔽提醒 → 5秒后弹窗
   // =========================================================
   checkSignPopup() {
-    const today = getTodayStr(); // ✅ 使用统一格式 YYYY-MM-DD
+    const today = getTodayStr();
 
-    // ① 检查今日是否已签到（格式统一后，比对一定准确）
     const signedDate = wx.getStorageSync('signedDate') || '';
     console.log('[签到弹窗] 今日:', today, '上次签到日期:', signedDate);
 
     if (signedDate === today) {
-      // ✅ 今日已签到，直接返回，不弹窗，不设定时器
       console.log('[签到弹窗] 今日已签到，跳过弹窗');
       return;
     }
 
-    // ② 检查"今日不再提醒"标记
     const noPopupDate = wx.getStorageSync('signPopupNoShowDate') || '';
     if (noPopupDate === today) {
       console.log('[签到弹窗] 用户已选今日不再提醒，跳过弹窗');
       return;
     }
 
-    // ③ 未签到 + 未屏蔽 → 5秒后弹窗
     console.log('[签到弹窗] 未签到，5秒后弹出提醒');
     this._signPopupTimer = setTimeout(() => {
-      // ✅ 弹出前再次检查，防止定时器等待期间用户已完成签到
       const latestSignedDate = wx.getStorageSync('signedDate') || '';
       if (latestSignedDate === today) {
         console.log('[签到弹窗] 定时器触发时检测到已签到，取消弹窗');
@@ -232,7 +240,7 @@ Page({
 
   // 弹窗按钮②：今日不再提醒
   onModalNoTip() {
-    const today = getTodayStr(); // ✅ 使用统一格式
+    const today = getTodayStr();
     wx.setStorageSync('signPopupNoShowDate', today);
     this.setData({ showSignModal: false });
   },
@@ -248,14 +256,9 @@ Page({
 
   // =========================================================
   // ✅ 签到成功回调（签到页调用）
-  // 存入当日签到标记，使用统一日期格式
-  // 签到页调用方式：
-  //   const pages = getCurrentPages();
-  //   const homePage = pages.find(p => p.route === 'pages/home/home');
-  //   if (homePage) homePage.onSignSuccess();
   // =========================================================
   onSignSuccess() {
-    const today = getTodayStr(); // ✅ 使用统一格式
+    const today = getTodayStr();
     wx.setStorageSync('signedDate', today);
     console.log('[签到弹窗] 签到成功，记录日期:', today);
     this.setData({ showSignModal: false });

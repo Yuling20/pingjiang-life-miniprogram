@@ -1,0 +1,565 @@
+<!-- pages/services/convenience/familytree/community/index.wxml -->
+<!-- ============================================================
+  乡镇社区课堂
+  包含：
+    1. 顶部搜索栏 + Banner 轮播
+    2. 分类标签筛选（心理/育儿/养老/农技/健康）
+    3. 今日推荐课程（大卡片）
+    4. 课程列表（瀑布流卡片）
+    5. 本地讲师专区
+    6. 社区问答入口
+    7. 直播预告入口
+    8. 底部加载更多
+============================================================ -->
+
+<view class="community-page">
+
+<!-- ====================================================
+  ① 顶部区域
+==================================================== -->
+<view class="comm-header">
+  <!-- 背景装饰 -->
+  <view class="comm-header__deco1"></view>
+  <view class="comm-header__deco2"></view>
+
+  <!-- 标题行 -->
+  <view class="comm-title-row">
+    <view class="comm-title-left">
+      <text class="comm-title-emoji">🌾</text>
+      <view>
+        <text class="comm-title-main">社区课堂</text>
+        <text class="comm-title-sub">{{cityName}} · 乡镇服务</text>
+      </view>
+    </view>
+    <view class="comm-title-right" bindtap="onGoHistory">
+      <text class="comm-history-icon">📚</text>
+      <text class="comm-history-text">学习记录</text>
+    </view>
+  </view>
+
+  <!-- 搜索框 -->
+  <view class="comm-search" bindtap="onOpenSearch">
+    <text class="comm-search__icon">🔍</text>
+    <text class="comm-search__placeholder">搜索课程、讲师、话题...</text>
+    <view class="comm-search__voice" catchtap="onVoiceSearch">
+      <text class="comm-search__voice-icon">🎙️</text>
+    </view>
+  </view>
+
+  <!-- 统计数据 -->
+  <view class="comm-stats">
+    <view class="comm-stat-item">
+      <text class="comm-stat-num">{{totalCourses}}</text>
+      <text class="comm-stat-label">课程总数</text>
+    </view>
+    <view class="comm-stat-sep"></view>
+    <view class="comm-stat-item">
+      <text class="comm-stat-num">{{totalStudents}}</text>
+      <text class="comm-stat-label">乡亲学员</text>
+    </view>
+    <view class="comm-stat-sep"></view>
+    <view class="comm-stat-item">
+      <text class="comm-stat-num">{{myLearnedCount}}</text>
+      <text class="comm-stat-label">我已学习</text>
+    </view>
+  </view>
+</view>
+
+<!-- ====================================================
+  Banner 轮播
+==================================================== -->
+<view class="comm-banner-wrap">
+  <swiper
+    class="comm-banner"
+    autoplay="{{true}}"
+    interval="{{4000}}"
+    circular="{{true}}"
+    indicator-dots="{{true}}"
+    indicator-color="rgba(255,255,255,0.4)"
+    indicator-active-color="#fff"
+  >
+    <swiper-item
+      wx:for="{{bannerList}}"
+      wx:key="id"
+      bindtap="onBannerTap"
+      data-banner="{{item}}"
+    >
+      <view class="comm-banner-card" style="background:{{item.bg}};">
+        <view class="comm-banner-left">
+          <view class="comm-banner-tag">{{item.tag}}</view>
+          <text class="comm-banner-title">{{item.title}}</text>
+          <text class="comm-banner-sub">{{item.sub}}</text>
+          <view class="comm-banner-btn">
+            <text class="comm-banner-btn__text">立即学习</text>
+            <text class="comm-banner-btn__arrow">›</text>
+          </view>
+        </view>
+        <text class="comm-banner-emoji">{{item.emoji}}</text>
+      </view>
+    </swiper-item>
+  </swiper>
+</view>
+
+<!-- ====================================================
+  ② 分类标签
+==================================================== -->
+<view class="comm-cats-wrap">
+  <scroll-view class="comm-cats" scroll-x="{{true}}">
+    <view
+      wx:for="{{categoryList}}"
+      wx:key="id"
+      class="comm-cat-item {{activeCategory === item.id ? 'comm-cat-item--active' : ''}}"
+      bindtap="onSelectCategory"
+      data-id="{{item.id}}"
+      style="{{activeCategory === item.id ? 'background:' + item.color + '; border-color:' + item.color + ';' : ''}}"
+    >
+      <text class="comm-cat-emoji">{{item.emoji}}</text>
+      <text class="comm-cat-label">{{item.label}}</text>
+      <!-- 课程数量角标 -->
+      <text class="comm-cat-count">{{item.count}}</text>
+    </view>
+  </scroll-view>
+</view>
+
+<!-- ====================================================
+  ③ 今日推荐（大卡片）
+==================================================== -->
+<view class="comm-section" wx:if="{{todayRecommend}}">
+  <view class="comm-section-header">
+    <view class="comm-section-title-wrap">
+      <text class="comm-section-dot" style="background:#FF9800;"></text>
+      <text class="comm-section-title">今日推荐</text>
+    </view>
+    <text class="comm-section-more" bindtap="onViewMoreRecommend">更多 ›</text>
+  </view>
+
+  <view
+    class="today-recommend-card"
+    bindtap="onGoCourse"
+    data-course="{{todayRecommend}}"
+  >
+    <!-- 封面 -->
+    <view class="today-rec-cover" style="background:{{todayRecommend.coverBg}};">
+      <text class="today-rec-emoji">{{todayRecommend.emoji}}</text>
+      <!-- 直播标签 -->
+      <view class="today-rec-live-tag" wx:if="{{todayRecommend.isLive}}">
+        <text class="today-rec-live-dot"></text>
+        <text class="today-rec-live-text">直播中</text>
+      </view>
+      <!-- 时长 -->
+      <view class="today-rec-duration" wx:if="{{!todayRecommend.isLive}}">
+        <text class="today-rec-duration__text">{{todayRecommend.duration}}</text>
+      </view>
+      <!-- 免费角标 -->
+      <view class="today-rec-free" wx:if="{{todayRecommend.free}}">
+        <text class="today-rec-free__text">免费</text>
+      </view>
+    </view>
+
+    <!-- 课程信息 -->
+    <view class="today-rec-body">
+      <view class="today-rec-tags">
+        <view
+          wx:for="{{todayRecommend.tags}}"
+          wx:key="index"
+          class="today-rec-tag"
+        >{{item}}</view>
+      </view>
+      <text class="today-rec-title">{{todayRecommend.title}}</text>
+      <text class="today-rec-desc">{{todayRecommend.desc}}</text>
+
+      <!-- 讲师 -->
+      <view class="today-rec-teacher">
+        <text class="today-rec-teacher-avatar">{{todayRecommend.teacherAvatar}}</text>
+        <view class="today-rec-teacher-info">
+          <text class="today-rec-teacher-name">{{todayRecommend.teacherName}}</text>
+          <text class="today-rec-teacher-title">{{todayRecommend.teacherTitle}}</text>
+        </view>
+      </view>
+
+      <!-- 底部数据 -->
+      <view class="today-rec-footer">
+        <view class="today-rec-meta">
+          <text class="today-rec-meta-item">👁️ {{todayRecommend.views}}人看过</text>
+          <text class="today-rec-meta-item">⭐ {{todayRecommend.rating}}</text>
+        </view>
+        <view class="today-rec-play-btn">
+          <text class="today-rec-play-icon">▶</text>
+          <text class="today-rec-play-text">{{todayRecommend.isLive ? '进入直播' : '开始学习'}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- ====================================================
+  ④ 课程列表
+==================================================== -->
+<view class="comm-section">
+  <view class="comm-section-header">
+    <view class="comm-section-title-wrap">
+      <text class="comm-section-dot" style="background:#2E7D32;"></text>
+      <text class="comm-section-title">
+        {{activeCategoryLabel}} 课程
+      </text>
+    </view>
+    <!-- 排序切换 -->
+    <view class="comm-sort-wrap">
+      <view
+        class="comm-sort-item {{sortType === 'new' ? 'comm-sort-item--active' : ''}}"
+        bindtap="onSort"
+        data-type="new"
+      >最新</view>
+      <view
+        class="comm-sort-item {{sortType === 'hot' ? 'comm-sort-item--active' : ''}}"
+        bindtap="onSort"
+        data-type="hot"
+      >最热</view>
+    </view>
+  </view>
+
+  <!-- 课程卡片列表 -->
+  <view class="course-list">
+    <view
+      wx:for="{{courseList}}"
+      wx:key="id"
+      class="course-card"
+      bindtap="onGoCourse"
+      data-course="{{item}}"
+    >
+      <!-- 左侧封面 -->
+      <view class="course-card__cover" style="background:{{item.coverBg}};">
+        <text class="course-card__cover-emoji">{{item.emoji}}</text>
+        <!-- 进度条（已开始学习） -->
+        <view class="course-card__progress-bar" wx:if="{{item.progress > 0}}">
+          <view
+            class="course-card__progress-fill"
+            style="width:{{item.progress}}%;"
+          ></view>
+        </view>
+        <!-- 直播标识 -->
+        <view class="course-card__live-tag" wx:if="{{item.isLive}}">
+          <text class="course-card__live-dot"></text>
+        </view>
+      </view>
+
+      <!-- 右侧信息 -->
+      <view class="course-card__body">
+        <!-- 标签 -->
+        <view class="course-card__tags">
+          <view class="course-card__cat-tag" style="background:{{item.catColor}}20; color:{{item.catColor}};">
+            {{item.catLabel}}
+          </view>
+          <view class="course-card__free-tag" wx:if="{{item.free}}">免费</view>
+        </view>
+
+        <text class="course-card__title">{{item.title}}</text>
+
+        <!-- 讲师 -->
+        <view class="course-card__teacher">
+          <text class="course-card__teacher-avatar">{{item.teacherAvatar}}</text>
+          <text class="course-card__teacher-name">{{item.teacherName}}</text>
+        </view>
+
+        <!-- 底部元数据 -->
+        <view class="course-card__footer">
+          <view class="course-card__meta">
+            <text class="course-card__meta-item">👁️ {{item.views}}</text>
+            <text class="course-card__meta-sep">·</text>
+            <text class="course-card__meta-item">⭐ {{item.rating}}</text>
+            <text class="course-card__meta-sep">·</text>
+            <text class="course-card__meta-item">🕐 {{item.duration}}</text>
+          </view>
+          <!-- 收藏按钮 -->
+          <view
+            class="course-card__collect {{item.collected ? 'course-card__collect--active' : ''}}"
+            catchtap="onToggleCollect"
+            data-id="{{item.id}}"
+          >
+            <text>{{item.collected ? '❤️' : '🤍'}}</text>
+          </view>
+        </view>
+
+        <!-- 学习进度 -->
+        <view class="course-card__progress-text" wx:if="{{item.progress > 0}}">
+          <text class="course-card__progress-num">已学 {{item.progress}}%</text>
+          <text class="course-card__continue">继续学习 ›</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="course-empty" wx:if="{{courseList.length === 0 && !loading}}">
+      <text class="course-empty__icon">📭</text>
+      <text class="course-empty__text">该分类暂无课程</text>
+      <text class="course-empty__sub">可以试试其他分类</text>
+    </view>
+
+    <!-- 加载中 -->
+    <view class="course-loading-more" wx:if="{{loading}}">
+      <text class="course-loading-more__text">加载中...</text>
+    </view>
+
+    <!-- 加载更多 -->
+    <view
+      class="course-load-more-btn"
+      wx:if="{{hasMore && !loading && courseList.length > 0}}"
+      bindtap="onLoadMore"
+    >
+      <text class="course-load-more-btn__text">加载更多课程</text>
+      <text class="course-load-more-btn__icon">↓</text>
+    </view>
+
+    <!-- 没有更多 -->
+    <view class="course-no-more" wx:if="{{!hasMore && courseList.length > 0}}">
+      <text class="course-no-more__text">—— 已经到底啦 ——</text>
+    </view>
+  </view>
+</view>
+
+<!-- ====================================================
+  ⑤ 本地讲师专区
+==================================================== -->
+<view class="comm-section">
+  <view class="comm-section-header">
+    <view class="comm-section-title-wrap">
+      <text class="comm-section-dot" style="background:#7C4DFF;"></text>
+      <text class="comm-section-title">本地名师</text>
+    </view>
+    <text class="comm-section-more" bindtap="onViewAllTeachers">全部 ›</text>
+  </view>
+
+  <scroll-view class="teacher-list" scroll-x="{{true}}">
+    <view
+      wx:for="{{teacherList}}"
+      wx:key="id"
+      class="teacher-card"
+      bindtap="onGoTeacher"
+      data-id="{{item.id}}"
+    >
+      <view class="teacher-card__avatar" style="background:{{item.avatarBg}};">
+        <text class="teacher-card__avatar-icon">{{item.avatar}}</text>
+      </view>
+      <text class="teacher-card__name">{{item.name}}</text>
+      <text class="teacher-card__title">{{item.title}}</text>
+      <view class="teacher-card__tag">{{item.specialty}}</view>
+      <view class="teacher-card__meta">
+        <text class="teacher-card__meta-item">📚 {{item.courseCount}}课</text>
+        <text class="teacher-card__meta-item">👥 {{item.students}}人</text>
+      </view>
+      <view class="teacher-card__follow-btn {{item.followed ? 'followed' : ''}}">
+        <text class="teacher-card__follow-text">
+          {{item.followed ? '✓ 已关注' : '+ 关注'}}
+        </text>
+      </view>
+    </view>
+  </scroll-view>
+</view>
+
+<!-- ====================================================
+  ⑥ 社区问答
+==================================================== -->
+<view class="comm-section">
+  <view class="comm-section-header">
+    <view class="comm-section-title-wrap">
+      <text class="comm-section-dot" style="background:#E65100;"></text>
+      <text class="comm-section-title">社区问答</text>
+    </view>
+    <view class="comm-qa-ask-btn" bindtap="onAskQuestion">
+      <text class="comm-qa-ask-btn__icon">✏️</text>
+      <text class="comm-qa-ask-btn__text">我要提问</text>
+    </view>
+  </view>
+
+  <view class="qa-list">
+    <view
+      wx:for="{{qaList}}"
+      wx:key="id"
+      class="qa-card"
+      bindtap="onGoQA"
+      data-id="{{item.id}}"
+    >
+      <view class="qa-card__header">
+        <text class="qa-card__avatar">{{item.avatar}}</text>
+        <view class="qa-card__user">
+          <text class="qa-card__name">{{item.name}}</text>
+          <text class="qa-card__time">{{item.timeAgo}}</text>
+        </view>
+        <view class="qa-card__cat" style="background:{{item.catColor}}20; color:{{item.catColor}};">
+          {{item.cat}}
+        </view>
+      </view>
+      <text class="qa-card__question">{{item.question}}</text>
+      <!-- 精选回答 -->
+      <view class="qa-card__answer" wx:if="{{item.bestAnswer}}">
+        <text class="qa-card__answer-label">💡 精选回答</text>
+        <text class="qa-card__answer-content">{{item.bestAnswer}}</text>
+      </view>
+      <view class="qa-card__footer">
+        <text class="qa-card__footer-item">💬 {{item.answerCount}} 条回答</text>
+        <text class="qa-card__footer-item">👍 {{item.likes}}</text>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- ====================================================
+  ⑦ 直播预告
+==================================================== -->
+<view class="comm-section" wx:if="{{liveList && liveList.length > 0}}">
+  <view class="comm-section-header">
+    <view class="comm-section-title-wrap">
+      <text class="comm-section-dot" style="background:#F44336;"></text>
+      <text class="comm-section-title">即将开播</text>
+    </view>
+    <text class="comm-section-more" bindtap="onViewAllLive">全部直播 ›</text>
+  </view>
+
+  <view class="live-preview-list">
+    <view
+      wx:for="{{liveList}}"
+      wx:key="id"
+      class="live-preview-card"
+      bindtap="onGoLive"
+      data-live="{{item}}"
+    >
+      <!-- 状态标识 -->
+      <view class="live-preview-status {{item.status === 'live' ? 'status-live' : 'status-soon'}}">
+        <text class="live-preview-status__dot" wx:if="{{item.status === 'live'}}"></text>
+        <text class="live-preview-status__text">
+          {{item.status === 'live' ? '直播中' : item.countdownText}}
+        </text>
+      </view>
+
+      <!-- 封面 -->
+      <view class="live-preview-cover" style="background:{{item.coverBg}};">
+        <text class="live-preview-emoji">{{item.emoji}}</text>
+      </view>
+
+      <!-- 信息 -->
+      <view class="live-preview-body">
+        <text class="live-preview-title">{{item.title}}</text>
+        <view class="live-preview-teacher">
+          <text class="live-preview-teacher-avatar">{{item.teacherAvatar}}</text>
+          <text class="live-preview-teacher-name">{{item.teacherName}}</text>
+        </view>
+        <view class="live-preview-meta">
+          <text class="live-preview-time">📅 {{item.date}} {{item.time}}</text>
+          <text class="live-preview-subs">👥 {{item.subscribers}}人预约</text>
+        </view>
+      </view>
+
+      <!-- 预约/进入按钮 -->
+      <view
+        class="live-preview-action-btn {{item.status === 'live' ? 'btn-enter' : (item.subscribed ? 'btn-subscribed' : 'btn-subscribe')}}"
+        catchtap="onToggleLiveSubscribe"
+        data-id="{{item.id}}"
+        data-status="{{item.status}}"
+      >
+        <text class="live-preview-action-text">
+          {{item.status === 'live' ? '进入' : (item.subscribed ? '已预约' : '预约')}}
+        </text>
+      </view>
+    </view>
+  </view>
+</view>
+
+<!-- ====================================================
+  底部推荐语
+==================================================== -->
+<view class="comm-footer-tip">
+  <text class="comm-footer-tip__emoji">🌾</text>
+  <text class="comm-footer-tip__text">知识改变生活，学习照亮乡村</text>
+  <text class="comm-footer-tip__emoji">🌾</text>
+</view>
+
+<view style="height:60rpx;"></view>
+
+</view>
+
+<!-- ====================================================
+搜索弹窗
+==================================================== -->
+<view class="search-modal" wx:if="{{showSearch}}">
+<view class="search-modal__mask" bindtap="onCloseSearch"></view>
+<view class="search-modal__panel">
+  <!-- 输入框 -->
+  <view class="search-input-row">
+    <view class="search-input-wrap">
+      <text class="search-input-icon">🔍</text>
+      <input
+        class="search-input"
+        placeholder="搜索课程、讲师..."
+        value="{{searchKeyword}}"
+        bindinput="onSearchInput"
+        bindsearch="onDoSearch"
+        focus="{{true}}"
+        confirm-type="search"
+        confirm-hold="{{false}}"
+      />
+      <text
+        class="search-input-clear"
+        wx:if="{{searchKeyword}}"
+        bindtap="onClearSearch"
+      >✕</text>
+    </view>
+    <text class="search-cancel" bindtap="onCloseSearch">取消</text>
+  </view>
+
+  <!-- 搜索历史 -->
+  <view class="search-history" wx:if="{{!searchKeyword && searchHistory.length > 0}}">
+    <view class="search-history-header">
+      <text class="search-history-title">🕐 搜索历史</text>
+      <text class="search-history-clear" bindtap="onClearHistory">清除</text>
+    </view>
+    <view class="search-history-tags">
+      <view
+        wx:for="{{searchHistory}}"
+        wx:key="index"
+        class="search-history-tag"
+        bindtap="onUseHistory"
+        data-keyword="{{item}}"
+      >{{item}}</view>
+    </view>
+  </view>
+
+  <!-- 热门搜索 -->
+  <view class="search-hot" wx:if="{{!searchKeyword}}">
+    <text class="search-hot-title">🔥 热门搜索</text>
+    <view class="search-hot-tags">
+      <view
+        wx:for="{{hotKeywords}}"
+        wx:key="index"
+        class="search-hot-tag"
+        bindtap="onUseHistory"
+        data-keyword="{{item}}"
+      >{{item}}</view>
+    </view>
+  </view>
+
+  <!-- 搜索结果 -->
+  <view class="search-results" wx:if="{{searchKeyword && searchResults.length > 0}}">
+    <view
+      wx:for="{{searchResults}}"
+      wx:key="id"
+      class="search-result-item"
+      bindtap="onGoCourse"
+      data-course="{{item}}"
+    >
+      <text class="search-result-emoji">{{item.emoji}}</text>
+      <view class="search-result-body">
+        <text class="search-result-title">{{item.title}}</text>
+        <text class="search-result-meta">{{item.teacherName}} · {{item.catLabel}}</text>
+      </view>
+      <text class="search-result-arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 搜索无结果 -->
+  <view class="search-empty" wx:if="{{searchKeyword && searchResults.length === 0 && searchDone}}">
+    <text class="search-empty__icon">🔎</text>
+    <text class="search-empty__text">没有找到"{{searchKeyword}}"相关课程</text>
+    <text class="search-empty__sub">试试其他关键词</text>
+  </view>
+</view>
+</view>
